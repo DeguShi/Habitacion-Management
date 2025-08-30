@@ -1,0 +1,17 @@
+# Dependencies / build output
+node_modules/
+.next/
+out/
+.vercel/
+coverage/
+*.log
+
+# Local env
+.env
+.env*.local
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
