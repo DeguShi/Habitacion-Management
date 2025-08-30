@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { getJson } from "@/lib/s3";
-import { reservationToICS } from "@/utils/ics";
-import type { Reservation } from "@/core/entities";
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from from '@/lib/auth.config'
-import { userKeyFromEmail } from "@/lib/user";
+import { authOptions } from '@/lib/auth.config'       // <-- fixed
+import { getJson } from '@/lib/s3'
+import { reservationToICS } from '@/utils/ics'
+import { userKeyFromEmail } from '@/lib/user'
+import type { Reservation } from '@/core/entities'
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);

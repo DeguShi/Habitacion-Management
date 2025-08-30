@@ -1,15 +1,15 @@
+// core/usecases.ts
 import { v4 as uuid } from "uuid";
 import { reservationInputSchema } from "@/lib/schema";
 import { calcNights, calcTotal } from "@/lib/pricing";
 import type { Reservation } from "./entities";
-import { getJson, putJson, listReservationKeys, deleteKey} from "@/lib/s3";
+import { getJson, putJson, listReservationKeys, deleteKey } from "@/lib/s3";
 
-// S3/R2 key prefix for a given user
 function prefix(userId: string) {
   return `users/${userId}/reservations/`;
 }
 
-// Add N (can be negative) days to an ISO date (YYYY-MM-DD)
+// Add N days to an ISO date (YYYY-MM-DD)
 function addDaysISO(iso: string, days: number) {
   const [y, m, d] = iso.split("-").map(Number);
   const dt = new Date(y, m - 1, d + days);
@@ -19,27 +19,35 @@ function addDaysISO(iso: string, days: number) {
   return `${yy}-${mm}-${dd}`;
 }
 
+/** Extract a manual “lodging per night (group)” override from any client variant. */
+function getLodgingOverride(input: unknown): number | null {
+  const any = input as any;
+  if (typeof any?.lodgingOverride === "number") return any.lodgingOverride;
+  if (any?.manualLodgingEnabled && typeof any?.manualLodgingTotal === "number") {
+    return any.manualLodgingTotal;
+  }
+  return null;
+}
+
 export async function createReservation(
   userId: string,
   input: unknown
 ): Promise<Reservation> {
+  // Validate known fields; unknown keys are ignored by zod by default
   const data = reservationInputSchema.parse(input);
   const id = data.id ?? uuid();
   const now = new Date().toISOString();
 
-  // single night by default
-  const checkOut = data.checkOut ?? addDaysISO(data.checkIn, 1);
+  const checkOut = data.checkOut ?? addDaysISO(data.checkIn, 1); // single-night default
   const nights = calcNights(data.checkIn, checkOut);
 
-  // nightly is per-person; allow optional manual lodging override
   const total = calcTotal(
     nights,
     data.nightlyRate,
     data.breakfastIncluded,
     data.partySize,
     data.breakfastPerPersonPerNight,
-    // @ts-expect-error: field exists in updated schema; keep backward-compatible
-    (data as any).lodgingOverride ?? null
+    getLodgingOverride(input) // <- optional manual total per night (group)
   );
 
   const reservation: Reservation = {
@@ -66,9 +74,6 @@ export async function createReservation(
   return reservation;
 }
 
-export async function deleteReservation(userId: string, id: string): Promise<void> {
-  await deleteKey(`${prefix(userId)}${id}.json`);
-}
 export async function updateReservation(
   userId: string,
   id: string,
@@ -78,8 +83,15 @@ export async function updateReservation(
   const existing = await getJson<Reservation>(key);
   if (!existing) throw new Error("Reservation not found");
 
-  // Merge with existing then validate
-  const merged = reservationInputSchema.parse({ ...existing, ...input, id });
+  // guard unknown -> object before spreading
+  const partial: Record<string, unknown> =
+    typeof input === "object" && input !== null
+      ? (input as Record<string, unknown>)
+      : {};
+
+  // Merge with existing, then validate
+  const mergedInput = { ...existing, ...partial, id };
+  const merged = reservationInputSchema.parse(mergedInput);
 
   const checkOut = merged.checkOut ?? addDaysISO(merged.checkIn, 1);
   const nights = calcNights(merged.checkIn, checkOut);
@@ -90,8 +102,7 @@ export async function updateReservation(
     merged.breakfastIncluded,
     merged.partySize,
     merged.breakfastPerPersonPerNight,
-    // @ts-expect-error: see note above
-    (merged as any).lodgingOverride ?? null
+    getLodgingOverride(mergedInput) // respect manual value if present
   );
 
   const updated: Reservation = {
@@ -106,6 +117,10 @@ export async function updateReservation(
 
   await putJson(key, updated);
   return updated;
+}
+
+export async function deleteReservation(userId: string, id: string): Promise<void> {
+  await deleteKey(`${prefix(userId)}${id}.json`);
 }
 
 export async function listReservations(
