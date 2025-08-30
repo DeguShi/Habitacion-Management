@@ -86,12 +86,11 @@ export async function updateReservation(
 
   const total = calcTotal(
     nights,
-    merged.nightlyRate,
-    merged.breakfastIncluded,
-    merged.partySize,
-    merged.breakfastPerPersonPerNight,
-    // @ts-expect-error: see note above
-    (merged as any).lodgingOverride ?? null
+    data.nightlyRate,
+    data.breakfastIncluded,
+    data.partySize,
+    data.breakfastPerPersonPerNight,
+    (data as any).lodgingOverride ?? null
   );
 
   const updated: Reservation = {
