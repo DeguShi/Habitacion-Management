@@ -27,8 +27,12 @@ export default function ReservationEditor(props: {
   defaultDate?: string
   onClose: () => void
   onSaved: () => void
+  /** optional: notify parent when form becomes dirty/clean */
+  onDirtyChange?: (dirty: boolean) => void
+  /** optional (edit mode): switch to a read-only viewer outside this component */
+  onSwitchToView?: () => void
 }) {
-  const { open, mode, initial, defaultDate, onClose, onSaved } = props
+  const { open, mode, initial, defaultDate, onClose, onSaved, onDirtyChange, onSwitchToView } = props
 
   const [m, setM] = useState<ReservationItem>({
     guestName: '',
@@ -62,7 +66,6 @@ export default function ReservationEditor(props: {
       initialSnapshotRef.current = JSON.stringify(next)
     } else {
       const next = {
-        ...m,
         guestName: '',
         phone: '',
         email: '',
@@ -98,6 +101,11 @@ export default function ReservationEditor(props: {
     () => open && JSON.stringify(m) !== initialSnapshotRef.current,
     [open, m]
   )
+
+  // notify parent when dirty state toggles
+  useEffect(() => {
+    onDirtyChange?.(!!isDirty)
+  }, [isDirty, onDirtyChange])
 
   const nights = 1 // v1: always one night
 
@@ -156,7 +164,6 @@ export default function ReservationEditor(props: {
         throw new Error(msg || 'Save failed')
       }
 
-      // refresh and close
       onSaved()
     } catch (e: any) {
       setError(e?.message || 'Save failed')
@@ -181,17 +188,36 @@ export default function ReservationEditor(props: {
           <h2 className="text-lg font-semibold">
             {mode === 'create' ? 'Nova reserva' : 'Editar reserva'}
           </h2>
-          <button
-            aria-label="Fechar"
-            onClick={maybeClose}
-            className="rounded-full border p-1 shadow-sm transition hover:shadow"
-            title="Fechar"
-          >
-            {/* X icon */}
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {mode === 'edit' && onSwitchToView && (
+              <button
+                type="button"
+                title="Ver"
+                onClick={() => {
+                  if (isDirty && !confirm('Existem alterações não salvas. Deseja sair sem salvar?')) return
+                  onSwitchToView()
+                }}
+                className="rounded-full border p-1 shadow-sm transition hover:shadow"
+              >
+                {/* Eye icon */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" stroke="currentColor" strokeWidth="2" />
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                </svg>
+              </button>
+            )}
+            <button
+              aria-label="Fechar"
+              onClick={maybeClose}
+              className="rounded-full border p-1 shadow-sm transition hover:shadow"
+              title="Fechar"
+            >
+              {/* X icon */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Body (scrollable area) */}
