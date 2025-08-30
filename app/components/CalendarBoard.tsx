@@ -62,7 +62,7 @@ export default function CalendarBoard({
     return `01-${mm}-${yy}` // show day for clarity; user can edit freely
   }
   function parseDraft(str: string): string | null {
-    const s = str.trim().replaceAll('/', '-')
+    const s = str.trim().replace(/\//g, '-')
     // dd-mm-yyyy
     const m1 = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(s)
     if (m1) {
