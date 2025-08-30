@@ -9,7 +9,7 @@ function prefix(userId: string) {
   return `users/${userId}/reservations/`;
 }
 
-// Add N days to an ISO date (YYYY-MM-DD)
+// Add N (can be negative) days to an ISO date (YYYY-MM-DD)
 function addDaysISO(iso: string, days: number) {
   const [y, m, d] = iso.split("-").map(Number);
   const dt = new Date(y, m - 1, d + days);
@@ -19,35 +19,27 @@ function addDaysISO(iso: string, days: number) {
   return `${yy}-${mm}-${dd}`;
 }
 
-/** Extract a manual “lodging per night (group)” override from any client variant. */
-function getLodgingOverride(input: unknown): number | null {
-  const any = input as any;
-  if (typeof any?.lodgingOverride === "number") return any.lodgingOverride;
-  if (any?.manualLodgingEnabled && typeof any?.manualLodgingTotal === "number") {
-    return any.manualLodgingTotal;
-  }
-  return null;
-}
-
 export async function createReservation(
   userId: string,
   input: unknown
 ): Promise<Reservation> {
-  // Validate known fields; unknown keys are ignored by zod by default
   const data = reservationInputSchema.parse(input);
   const id = data.id ?? uuid();
   const now = new Date().toISOString();
 
-  const checkOut = data.checkOut ?? addDaysISO(data.checkIn, 1); // single-night default
+  // default to single night if not provided by client
+  const checkOut = data.checkOut ?? addDaysISO(data.checkIn, 1);
   const nights = calcNights(data.checkIn, checkOut);
 
+  // nightly is per-person; support optional manual lodging override
   const total = calcTotal(
     nights,
     data.nightlyRate,
     data.breakfastIncluded,
     data.partySize,
     data.breakfastPerPersonPerNight,
-    getLodgingOverride(input) // <- optional manual total per night (group)
+    // harmless if your calcTotal ignores it
+    (data as any).lodgingOverride ?? (data as any).manualLodgingTotal ?? null
   );
 
   const reservation: Reservation = {
@@ -83,15 +75,12 @@ export async function updateReservation(
   const existing = await getJson<Reservation>(key);
   if (!existing) throw new Error("Reservation not found");
 
-  // guard unknown -> object before spreading
+  // guard spreading
   const partial: Record<string, unknown> =
-    typeof input === "object" && input !== null
-      ? (input as Record<string, unknown>)
-      : {};
+    typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
 
-  // Merge with existing, then validate
-  const mergedInput = { ...existing, ...partial, id };
-  const merged = reservationInputSchema.parse(mergedInput);
+  // merge then validate
+  const merged = reservationInputSchema.parse({ ...existing, ...partial, id });
 
   const checkOut = merged.checkOut ?? addDaysISO(merged.checkIn, 1);
   const nights = calcNights(merged.checkIn, checkOut);
@@ -102,7 +91,7 @@ export async function updateReservation(
     merged.breakfastIncluded,
     merged.partySize,
     merged.breakfastPerPersonPerNight,
-    getLodgingOverride(mergedInput) // respect manual value if present
+    (merged as any).lodgingOverride ?? (merged as any).manualLodgingTotal ?? null
   );
 
   const updated: Reservation = {
@@ -134,7 +123,6 @@ export async function listReservations(
     if (r) items.push(r);
   }
   items.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
-
   // month format: YYYY-MM
   if (month) return items.filter((r) => r.checkIn.startsWith(month) || r.checkOut.startsWith(month));
   return items;

@@ -1,25 +1,29 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth.config'       // <-- fixed
-import { getJson } from '@/lib/s3'
-import { reservationToICS } from '@/utils/ics'
-import { userKeyFromEmail } from '@/lib/user'
-import type { Reservation } from '@/core/entities'
+// app/api/reservations/[id]/ics/route.ts
+import { NextResponse } from "next/server";
+import { getJson } from "@/lib/s3";
+import { reservationToICS } from "@/utils/ics";
+import type { Reservation } from "@/core/entities";
+import { requireUserIdFromSession } from "@/lib/user";
+
+function prefix(userId: string) {
+  return `users/${userId}/reservations/`;
+}
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const uid = userKeyFromEmail(session.user.email);
-  const res = await getJson<Reservation>(`users/${uid}/reservations/${params.id}.json`);
-  if (!res) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const ics = reservationToICS(res);
-  return new NextResponse(ics, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename=reservation-${res.id}.ics`,
-    },
-  });
+  try {
+    const userId = await requireUserIdFromSession();
+    const res = await getJson<Reservation>(`${prefix(userId)}${params.id}.json`);
+    if (!res) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const ics = reservationToICS(res);
+    return new NextResponse(ics, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/calendar; charset=utf-8",
+        "Content-Disposition": `attachment; filename=reservation-${res.id}.ics`,
+      },
+    });
+  } catch (e: any) {
+    const status = e?.status || 401;
+    return NextResponse.json({ error: e.message || "Unauthorized" }, { status });
+  }
 }

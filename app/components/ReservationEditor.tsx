@@ -2,7 +2,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ensureAdminKey } from '@/lib/admin'
 
 type ReservationItem = {
   id?: string
@@ -135,13 +134,6 @@ export default function ReservationEditor(props: {
     setSaving(true)
     setError(null)
     try {
-      const adminKey = await ensureAdminKey()
-        if (!adminKey) {
-        setError('É necessário informar a senha de administrador para salvar.')
-        setSaving(false)
-        return
-        }
-
       const payload = {
         ...m,
         checkOut: addDaysISO(m.checkIn, 1),
@@ -156,10 +148,7 @@ export default function ReservationEditor(props: {
         mode === 'create' ? '/api/reservations' : `/api/reservations/${initial?.id}`,
         {
           method: mode === 'create' ? 'POST' : 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-key': adminKey,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         }
       )
