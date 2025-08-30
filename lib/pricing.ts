@@ -1,31 +1,30 @@
-// lib/pricing.ts
 export function calcNights(checkInISO: string, checkOutISO: string): number {
-  const a = new Date(checkInISO)
-  const b = new Date(checkOutISO)
-  const ms = b.getTime() - a.getTime()
-  const nights = Math.round(ms / (1000 * 60 * 60 * 24))
-  return Math.max(0, nights)
+  const a = new Date(checkInISO);
+  const b = new Date(checkOutISO);
+  const diff = Math.round((+b - +a) / (1000 * 60 * 60 * 24));
+  return Math.max(0, diff);
 }
 
-/**
- * If `lodgingOverride` is provided (manual total), it replaces the lodging formula.
- * Otherwise: lodging = nights * nightlyPerPerson * partySize
- */
 export function calcTotal(
   nights: number,
-  nightlyPerPerson: number,
+  nightlyRate: number,
   breakfastIncluded: boolean,
   partySize: number,
   breakfastPerPersonPerNight: number,
-  lodgingOverride: number | null | undefined = null
+  lodgingOverride: number | null = null // NEW
 ): number {
-  const lodging = lodgingOverride != null
-    ? lodgingOverride
-    : nights * nightlyPerPerson * partySize
+  const lodging =
+    lodgingOverride != null
+      ? Number(lodgingOverride)
+      : nights * nightlyRate * partySize;
 
   const breakfast = breakfastIncluded
     ? nights * partySize * breakfastPerPersonPerNight
-    : 0
+    : 0;
 
-  return Math.round((lodging + breakfast) * 100) / 100
+  return round2(lodging + breakfast);
+}
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
 }
