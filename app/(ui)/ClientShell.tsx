@@ -109,7 +109,7 @@ export default function ClientShell() {
   })
 
   async function loadMonth() {
-    const res = await fetch(`/api/reservations?month=${month}`)
+    const res = await fetch(`/api/reservations?month=${month}`, { cache: 'no-store' });
     setItems(await res.json())
   }
   useEffect(() => {
@@ -119,10 +119,14 @@ export default function ClientShell() {
   // upcoming (for bottom list)
   const [upcoming, setUpcoming] = useState<ReservationItem[]>([])
   async function loadUpcoming() {
-    const res = await fetch('/api/reservations')
+    const res = await fetch('/api/reservations', { cache: 'no-store' })
     const all: ReservationItem[] = await res.json()
     const today = todayISO()
-    setUpcoming(all.filter(r => r.checkIn >= today).sort((a, b) => a.checkIn.localeCompare(b.checkIn)))
+    setUpcoming(
+      all
+        .filter((r) => r.checkIn >= today)
+        .sort((a, b) => a.checkIn.localeCompare(b.checkIn))
+    )
   }
   useEffect(() => {
     loadUpcoming()

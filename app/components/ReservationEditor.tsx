@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ensureAdminKey } from '@/lib/admin'
 
 type ReservationItem = {
   id?: string
@@ -27,31 +28,35 @@ export default function ReservationEditor(props: {
   defaultDate?: string
   onClose: () => void
   onSaved: () => void
-  /** optional: notify parent when form becomes dirty/clean */
   onDirtyChange?: (dirty: boolean) => void
-  /** optional (edit mode): switch to a read-only viewer outside this component */
   onSwitchToView?: () => void
 }) {
   const { open, mode, initial, defaultDate, onClose, onSaved, onDirtyChange, onSwitchToView } = props
 
+  // base, non-numeric fields
   const [m, setM] = useState<ReservationItem>({
     guestName: '',
     phone: '',
     email: '',
-    partySize: 1,
+    partySize: 1, // kept only for edit binding; payload will use derived number
     checkIn: defaultDate ?? isoToday(),
     breakfastIncluded: false,
-    nightlyRate: 100,
-    breakfastPerPersonPerNight: 10,
+    nightlyRate: 0,
+    breakfastPerPersonPerNight: 0,
     manualLodgingEnabled: false,
     manualLodgingTotal: undefined,
     depositPaid: false,
     notes: '',
   })
+
+  // draft strings so user can clear/leave empty while editing
+  const [partyStr, setPartyStr] = useState<string>('')          // Pessoas
+  const [nightlyStr, setNightlyStr] = useState<string>('')      // Diária por pessoa
+  const [breakfastStr, setBreakfastStr] = useState<string>('')  // Café por pessoa/noite
+  const [manualTotalStr, setManualTotalStr] = useState<string>('') // Total hospedagem manual
+
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // snapshot to detect "dirty" accurately
   const initialSnapshotRef = useRef<string>('')
 
   useEffect(() => {
@@ -63,31 +68,54 @@ export default function ReservationEditor(props: {
         manualLodgingTotal: initial.manualLodgingTotal,
       }
       setM(next)
-      initialSnapshotRef.current = JSON.stringify(next)
+      // load numeric drafts from existing values
+      setPartyStr(String(initial.partySize ?? ''))
+      setNightlyStr(String(initial.nightlyRate ?? ''))
+      setBreakfastStr(String(initial.breakfastPerPersonPerNight ?? ''))
+      setManualTotalStr(
+        initial.manualLodgingEnabled ? String(initial.manualLodgingTotal ?? '') : ''
+      )
+      initialSnapshotRef.current = snapshot(next, {
+        partyStr: String(initial.partySize ?? ''),
+        nightlyStr: String(initial.nightlyRate ?? ''),
+        breakfastStr: String(initial.breakfastPerPersonPerNight ?? ''),
+        manualTotalStr:
+          initial.manualLodgingEnabled ? String(initial.manualLodgingTotal ?? '') : '',
+      })
     } else {
-      const next = {
+      const next: ReservationItem = {
         guestName: '',
         phone: '',
         email: '',
         partySize: 1,
         checkIn: defaultDate ?? isoToday(),
         breakfastIncluded: false,
-        nightlyRate: 100,
-        breakfastPerPersonPerNight: 10,
+        nightlyRate: 0,
+        breakfastPerPersonPerNight: 0,
         manualLodgingEnabled: false,
         manualLodgingTotal: undefined,
         depositPaid: false,
         notes: '',
       }
       setM(next)
-      initialSnapshotRef.current = JSON.stringify(next)
+      // new form: leave numeric drafts empty
+      setPartyStr('')
+      setNightlyStr('')
+      setBreakfastStr('')
+      setManualTotalStr('')
+      initialSnapshotRef.current = snapshot(next, {
+        partyStr: '',
+        nightlyStr: '',
+        breakfastStr: '',
+        manualTotalStr: '',
+      })
     }
     setError(null)
     setSaving(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode, initial, defaultDate])
 
-  // Close with Esc (with dirty guard)
+  // Esc closes (with dirty guard)
   useEffect(() => {
     if (!open) return
     function onKey(e: KeyboardEvent) {
@@ -95,38 +123,44 @@ export default function ReservationEditor(props: {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, m])
+  }, [open, m, partyStr, nightlyStr, breakfastStr, manualTotalStr])
 
-  const isDirty = useMemo(
-    () => open && JSON.stringify(m) !== initialSnapshotRef.current,
-    [open, m]
-  )
+  const isDirty = useMemo(() => {
+    if (!open) return false
+    return (
+      snapshot(m, { partyStr, nightlyStr, breakfastStr, manualTotalStr }) !==
+      initialSnapshotRef.current
+    )
+  }, [open, m, partyStr, nightlyStr, breakfastStr, manualTotalStr])
 
-  // notify parent when dirty state toggles
   useEffect(() => {
     onDirtyChange?.(!!isDirty)
   }, [isDirty, onDirtyChange])
 
-  const nights = 1 // v1: always one night
+  const nights = 1 // v1
+
+  // helpers to coerce numbers (but not during typing)
+  const partySizeNum = intOrNaN(partyStr)
+  const nightlyNum = numOrNaN(nightlyStr)
+  const breakfastNum = numOrNaN(breakfastStr)
+  const manualTotalNum = numOrNaN(manualTotalStr)
 
   const computedTotal = useMemo(() => {
     const lodging = m.manualLodgingEnabled
-      ? Number(m.manualLodgingTotal ?? 0)
-      : nights * m.nightlyRate * m.partySize
+      ? (isNaN(manualTotalNum) ? 0 : manualTotalNum)
+      : nights * (isNaN(nightlyNum) ? 0 : nightlyNum) * (isNaN(partySizeNum) ? 0 : partySizeNum)
 
     const breakfast = m.breakfastIncluded
-      ? nights * m.partySize * m.breakfastPerPersonPerNight
+      ? nights * (isNaN(partySizeNum) ? 0 : partySizeNum) * (isNaN(breakfastNum) ? 0 : breakfastNum)
       : 0
 
     return round2(lodging + breakfast)
-  }, [m, nights])
+  }, [m.manualLodgingEnabled, m.breakfastIncluded, nights, partySizeNum, nightlyNum, breakfastNum, manualTotalNum])
 
   const computedDeposit = useMemo(() => round2(computedTotal * 0.5), [computedTotal])
 
   function maybeClose() {
-    if (isDirty && !confirm('Existem alterações não salvas. Deseja sair sem salvar?')) {
-      return
-    }
+    if (isDirty && !confirm('Existem alterações não salvas. Deseja sair sem salvar?')) return
     onClose()
   }
 
@@ -134,21 +168,47 @@ export default function ReservationEditor(props: {
     setSaving(true)
     setError(null)
     try {
+      const adminKey = await ensureAdminKey()
+      if (!adminKey) {
+        setError('É necessário informar a senha de administrador para salvar.')
+        setSaving(false)
+        return
+      }
+
+      // Validate required numbers
+      const party = intOrNaN(partyStr)
+      const nightly = numOrNaN(nightlyStr)
+      const breakfast = numOrNaN(breakfastStr)
+      const manualTotal = numOrNaN(manualTotalStr)
+
+      if (isNaN(party) || party < 1) throw new Error('Informe o nº de pessoas')
+      if (!m.manualLodgingEnabled) {
+        if (isNaN(nightly) || nightly < 0) throw new Error('Informe a diária por pessoa')
+      } else {
+        if (isNaN(manualTotal) || manualTotal < 0) throw new Error('Informe o total da hospedagem')
+      }
+      if (m.breakfastIncluded && (isNaN(breakfast) || breakfast < 0)) {
+        throw new Error('Informe o valor do café')
+      }
+
       const payload = {
         ...m,
+        partySize: party,
+        nightlyRate: isNaN(nightly) ? 0 : nightly,
+        breakfastPerPersonPerNight: isNaN(breakfast) ? 0 : breakfast,
         checkOut: addDaysISO(m.checkIn, 1),
-        // normalize manual lodging fields
         manualLodgingEnabled: !!m.manualLodgingEnabled,
-        manualLodgingTotal: m.manualLodgingEnabled
-          ? Number(m.manualLodgingTotal ?? 0)
-          : undefined,
+        manualLodgingTotal: m.manualLodgingEnabled ? (isNaN(manualTotal) ? 0 : manualTotal) : undefined,
       }
 
       const res = await fetch(
         mode === 'create' ? '/api/reservations' : `/api/reservations/${initial?.id}`,
         {
           method: mode === 'create' ? 'POST' : 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-key': adminKey,
+          },
           body: JSON.stringify(payload),
         }
       )
@@ -170,14 +230,15 @@ export default function ReservationEditor(props: {
 
   const canSave =
     m.guestName.trim().length > 0 &&
-    m.partySize >= 1 &&
     /^\d{4}-\d{2}-\d{2}$/.test(m.checkIn) &&
-    (!m.manualLodgingEnabled || Number(m.manualLodgingTotal ?? 0) >= 0)
+    // allow empty while typing, only block if obviously invalid
+    (partyStr === '' || intOrNaN(partyStr) >= 1) &&
+    (!m.manualLodgingEnabled || manualTotalStr === '' || numOrNaN(manualTotalStr) >= 0)
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
       <div className="mx-auto w-full max-w-2xl rounded-2xl bg-white shadow-xl max-h-[85vh] overflow-y-auto">
-        {/* Header (sticky) */}
+        {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white/80 px-5 py-4 backdrop-blur">
           <h2 className="text-lg font-semibold">
             {mode === 'create' ? 'Nova reserva' : 'Editar reserva'}
@@ -193,7 +254,6 @@ export default function ReservationEditor(props: {
                 }}
                 className="rounded-full border p-1 shadow-sm transition hover:shadow"
               >
-                {/* Eye icon */}
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" stroke="currentColor" strokeWidth="2" />
                   <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
@@ -206,7 +266,6 @@ export default function ReservationEditor(props: {
               className="rounded-full border p-1 shadow-sm transition hover:shadow"
               title="Fechar"
             >
-              {/* X icon */}
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
@@ -214,7 +273,7 @@ export default function ReservationEditor(props: {
           </div>
         </div>
 
-        {/* Body (scrollable area) */}
+        {/* Body */}
         <div className="px-5 py-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1">
@@ -229,10 +288,12 @@ export default function ReservationEditor(props: {
             <label className="flex flex-col gap-1">
               <span>Pessoas</span>
               <input
-                type="number"
-                min={1}
-                value={m.partySize}
-                onChange={(e) => setM({ ...m, partySize: Number(e.target.value || 1) })}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="ex: 3"
+                value={partyStr}
+                onChange={(e) => setPartyStr(e.target.value)}
               />
             </label>
 
@@ -258,11 +319,11 @@ export default function ReservationEditor(props: {
             <label className="flex flex-col gap-1">
               <span>Diária por pessoa (R$)</span>
               <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={m.nightlyRate}
-                onChange={(e) => setM({ ...m, nightlyRate: Number(e.target.value || 0) })}
+                type="text"
+                inputMode="decimal"
+                placeholder="ex: 120"
+                value={nightlyStr}
+                onChange={(e) => setNightlyStr(e.target.value)}
                 disabled={m.manualLodgingEnabled}
               />
             </label>
@@ -270,11 +331,11 @@ export default function ReservationEditor(props: {
             <label className="flex flex-col gap-1">
               <span>Café por pessoa/noite (R$)</span>
               <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={m.breakfastPerPersonPerNight}
-                onChange={(e) => setM({ ...m, breakfastPerPersonPerNight: Number(e.target.value || 0) })}
+                type="text"
+                inputMode="decimal"
+                placeholder="ex: 10"
+                value={breakfastStr}
+                onChange={(e) => setBreakfastStr(e.target.value)}
               />
             </label>
 
@@ -291,11 +352,11 @@ export default function ReservationEditor(props: {
               <label className="flex flex-col gap-1">
                 <span>Total da hospedagem (R$)</span>
                 <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={m.manualLodgingTotal ?? 0}
-                  onChange={(e) => setM({ ...m, manualLodgingTotal: Number(e.target.value || 0) })}
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="ex: 340"
+                  value={manualTotalStr}
+                  onChange={(e) => setManualTotalStr(e.target.value)}
                 />
               </label>
             )}
@@ -345,7 +406,7 @@ export default function ReservationEditor(props: {
           {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         </div>
 
-        {/* Footer (sticky) */}
+        {/* Footer */}
         <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t bg-white/80 px-5 py-4 backdrop-blur">
           <button onClick={maybeClose} className="rounded border px-4 py-2">Cancelar</button>
           <button
@@ -361,6 +422,22 @@ export default function ReservationEditor(props: {
   )
 }
 
+function snapshot(m: ReservationItem, drafts: { partyStr: string; nightlyStr: string; breakfastStr: string; manualTotalStr: string }) {
+  return JSON.stringify({ m, drafts })
+}
+
+function intOrNaN(s: string): number {
+  if (s.trim() === '') return NaN
+  const n = parseInt(s, 10)
+  return Number.isFinite(n) ? n : NaN
+}
+
+function numOrNaN(s: string): number {
+  if (s.trim() === '') return NaN
+  const n = parseFloat(s.replace(',', '.'))
+  return Number.isFinite(n) ? n : NaN
+}
+
 function isoToday() {
   const d = new Date()
   const y = d.getFullYear()
@@ -368,19 +445,15 @@ function isoToday() {
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
 }
-
 function addDaysISO(iso: string, days: number) {
   const [y,m,d] = iso.split('-').map(Number)
   const dt = new Date(y, m-1, d + days)
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
 }
-
 function round2(n: number) { return Math.round(n * 100) / 100 }
-
 function formatBRL(n: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 }
-
 async function safeMsg(res: Response) {
   try { const j = await res.json(); return (j?.error as string) || '' } catch { return '' }
 }

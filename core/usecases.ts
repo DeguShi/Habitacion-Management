@@ -1,4 +1,3 @@
-// core/usecases.ts
 import { v4 as uuid } from "uuid";
 import { reservationInputSchema } from "@/lib/schema";
 import { calcNights, calcTotal } from "@/lib/pricing";
@@ -31,15 +30,14 @@ export async function createReservation(
   const checkOut = data.checkOut ?? addDaysISO(data.checkIn, 1);
   const nights = calcNights(data.checkIn, checkOut);
 
-  // nightly is per-person; support optional manual lodging override
+  // nightly is per-person; use manual override when enabled
   const total = calcTotal(
     nights,
     data.nightlyRate,
     data.breakfastIncluded,
     data.partySize,
     data.breakfastPerPersonPerNight,
-    // harmless if your calcTotal ignores it
-    (data as any).lodgingOverride ?? (data as any).manualLodgingTotal ?? null
+    data.manualLodgingEnabled ? (data.manualLodgingTotal ?? 0) : null
   );
 
   const reservation: Reservation = {
@@ -53,6 +51,11 @@ export async function createReservation(
     breakfastIncluded: data.breakfastIncluded,
     nightlyRate: data.nightlyRate,
     breakfastPerPersonPerNight: data.breakfastPerPersonPerNight,
+
+    // persist manual lodging config
+    manualLodgingEnabled: data.manualLodgingEnabled ?? false,
+    manualLodgingTotal: data.manualLodgingEnabled ? (data.manualLodgingTotal ?? 0) : undefined,
+
     totalNights: nights,
     totalPrice: total,
     depositDue: Math.round(total * 0.5 * 100) / 100,
@@ -75,7 +78,7 @@ export async function updateReservation(
   const existing = await getJson<Reservation>(key);
   if (!existing) throw new Error("Reservation not found");
 
-  // guard spreading
+  // guard unknown -> object before spreading
   const partial: Record<string, unknown> =
     typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
 
@@ -91,13 +94,17 @@ export async function updateReservation(
     merged.breakfastIncluded,
     merged.partySize,
     merged.breakfastPerPersonPerNight,
-    (merged as any).lodgingOverride ?? (merged as any).manualLodgingTotal ?? null
+    merged.manualLodgingEnabled ? (merged.manualLodgingTotal ?? 0) : null
   );
 
   const updated: Reservation = {
     ...existing,
     ...merged,
     checkOut,
+    // keep manual lodging persisted
+    manualLodgingEnabled: merged.manualLodgingEnabled ?? false,
+    manualLodgingTotal: merged.manualLodgingEnabled ? (merged.manualLodgingTotal ?? 0) : undefined,
+
     totalNights: nights,
     totalPrice: total,
     depositDue: Math.round(total * 0.5 * 100) / 100,

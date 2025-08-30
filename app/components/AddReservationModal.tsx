@@ -1,5 +1,6 @@
 'use client'
 import { useMemo, useState } from 'react'
+import { ensureAdminKey } from '@/lib/admin'
 
 type Props = { open: boolean; onClose: () => void; onSaved: () => void; defaultDate?: string }
 
@@ -13,26 +14,60 @@ function addDaysISO(dateISO: string, days: number) {
 }
 
 export default function AddReservationModal({ open, onClose, onSaved, defaultDate }: Props) {
-  const [model, setModel] = useState({
-    guestName: '', partySize: 2, checkIn: defaultDate || '',
-    breakfastIncluded: false, nightlyRate: 100, breakfastPerPersonPerNight: 8,
-    depositPaid: false, phone: '', email: '', notes: ''
-  })
+  // string drafts so fields can be blank on mobile/desktop
+  const [guestName, setGuestName] = useState('')
+  const [partyStr, setPartyStr] = useState('')             // Pessoas
+  const [checkIn, setCheckIn] = useState(defaultDate || '')
+  const [breakfastIncluded, setBreakfastIncluded] = useState(false)
+  const [nightlyStr, setNightlyStr] = useState('')         // Diária por pessoa
+  const [breakfastStr, setBreakfastStr] = useState('')     // Café por pessoa/noite
+  const [depositPaid, setDepositPaid] = useState(false)
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [notes, setNotes] = useState('')
 
-  // single night
   const nights = 1
+  const party = intOrNaN(partyStr)
+  const nightly = numOrNaN(nightlyStr)
+  const breakfast = numOrNaN(breakfastStr)
+
   const total = useMemo(() => {
-    const lodging = nights * model.nightlyRate
-    const breakfast = model.breakfastIncluded ? nights * model.partySize * model.breakfastPerPersonPerNight : 0
-    return Math.round((lodging + breakfast) * 100) / 100
-  }, [model])
+    const lodging = nights * (isNaN(nightly) ? 0 : nightly) * (isNaN(party) ? 0 : party)
+    const coffee = breakfastIncluded ? nights * (isNaN(party) ? 0 : party) * (isNaN(breakfast) ? 0 : breakfast) : 0
+    return Math.round((lodging + coffee) * 100) / 100
+  }, [nights, nightly, party, breakfastIncluded, breakfast])
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!model.checkIn) { alert('Selecione a data de check-in'); return }
-    const payload = { ...model, checkOut: addDaysISO(model.checkIn, 1) } // compute next morning
+    const adminKey = await ensureAdminKey()
+    if (!adminKey) return
+
+    if (!checkIn) { alert('Selecione a data de check-in'); return }
+    const p = intOrNaN(partyStr)
+    if (isNaN(p) || p < 1) { alert('Informe o nº de pessoas'); return }
+    const n = numOrNaN(nightlyStr)
+    if (isNaN(n) || n < 0) { alert('Informe a diária por pessoa'); return }
+    const b = numOrNaN(breakfastStr)
+    if (breakfastIncluded && (isNaN(b) || b < 0)) { alert('Informe o valor do café'); return }
+
+    const payload = {
+      guestName,
+      partySize: p,
+      checkIn,
+      checkOut: addDaysISO(checkIn, 1),
+      breakfastIncluded,
+      nightlyRate: n,
+      breakfastPerPersonPerNight: isNaN(b) ? 0 : b,
+      depositPaid,
+      phone,
+      email,
+      notes
+    }
+
     const res = await fetch('/api/reservations', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+      body: JSON.stringify(payload)
     })
     if (!res.ok) { alert('Falha ao salvar'); return }
     onSaved()
@@ -48,16 +83,66 @@ export default function AddReservationModal({ open, onClose, onSaved, defaultDat
         </div>
 
         <form onSubmit={save} className="grid md:grid-cols-2 gap-3">
-          <label>Nome do hóspede<input value={model.guestName} onChange={e => setModel({ ...model, guestName: e.target.value })} required /></label>
-          <label>Nº de pessoas<input type="number" min={1} value={model.partySize} onChange={e => setModel({ ...model, partySize: Number(e.target.value) })} /></label>
-          <label>Check-in<input type="date" value={model.checkIn} onChange={e => setModel({ ...model, checkIn: e.target.value })} required /></label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={model.breakfastIncluded} onChange={e => setModel({ ...model, breakfastIncluded: e.target.checked })} /><span>Café da manhã</span></label>
-          <label>Diária (R$)<input type="number" value={model.nightlyRate} onChange={e => setModel({ ...model, nightlyRate: Number(e.target.value) })} /></label>
-          <label>Café R$/pessoa/noite<input type="number" value={model.breakfastPerPersonPerNight} onChange={e => setModel({ ...model, breakfastPerPersonPerNight: Number(e.target.value) })} /></label>
-          <label>Telefone<input value={model.phone} onChange={e => setModel({ ...model, phone: e.target.value })} /></label>
-          <label>Email<input type="email" value={model.email} onChange={e => setModel({ ...model, email: e.target.value })} /></label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={model.depositPaid} onChange={e => setModel({ ...model, depositPaid: e.target.checked })} /><span>Depósito pago (50%)</span></label>
-          <label className="md:col-span-2">Observações<textarea value={model.notes} onChange={e => setModel({ ...model, notes: e.target.value })} /></label>
+          <label>Nome do hóspede
+            <input value={guestName} onChange={e => setGuestName(e.target.value)} required placeholder="ex: Família Silva" />
+          </label>
+
+          <label>Nº de pessoas
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="ex: 4"
+              value={partyStr}
+              onChange={e => setPartyStr(e.target.value)}
+            />
+          </label>
+
+          <label>Check-in
+            <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} required />
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={breakfastIncluded} onChange={e => setBreakfastIncluded(e.target.checked)} />
+            <span>Café da manhã</span>
+          </label>
+
+          <label>Diária por pessoa (R$)
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="ex: 120"
+              value={nightlyStr}
+              onChange={e => setNightlyStr(e.target.value)}
+            />
+          </label>
+
+          <label>Café R$/pessoa/noite
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="ex: 8"
+              value={breakfastStr}
+              onChange={e => setBreakfastStr(e.target.value)}
+            />
+          </label>
+
+          <label>Telefone
+            <input value={phone} onChange={e => setPhone(e.target.value)} />
+          </label>
+
+          <label>Email
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} />
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={depositPaid} onChange={e => setDepositPaid(e.target.checked)} />
+            <span>Depósito pago (50%)</span>
+          </label>
+
+          <label className="md:col-span-2">Observações
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} />
+          </label>
 
           <div className="md:col-span-2 grid grid-cols-3 gap-2 bg-gray-50 rounded-lg p-3 text-sm">
             <div>Noites: <strong>1</strong></div>
@@ -73,4 +158,15 @@ export default function AddReservationModal({ open, onClose, onSaved, defaultDat
       </div>
     </div>
   )
+}
+
+function intOrNaN(s: string): number {
+  if (s.trim() === '') return NaN
+  const n = parseInt(s, 10)
+  return Number.isFinite(n) ? n : NaN
+}
+function numOrNaN(s: string): number {
+  if (s.trim() === '') return NaN
+  const n = parseFloat(s.replace(',', '.'))
+  return Number.isFinite(n) ? n : NaN
 }
