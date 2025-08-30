@@ -292,4 +292,4 @@ All responses are JSON unless noted.
 
 ## 📝 License
 
-GNU — see `LICENSE`.
+GNU GENERAL PUBLIC LICENSE — see `LICENSE`.
