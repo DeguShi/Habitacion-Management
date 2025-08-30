@@ -5,6 +5,7 @@ import CalendarBoard from '@/app/components/CalendarBoard'
 import ReservationEditor from '@/app/components/ReservationEditor'
 import { Eye, Settings, X as CloseX, Plus, Trash2 } from 'lucide-react'
 
+
 type ReservationItem = {
   id: string
   guestName: string

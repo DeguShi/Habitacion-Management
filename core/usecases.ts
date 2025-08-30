@@ -1,10 +1,10 @@
+// core/usecases.ts
 import { v4 as uuid } from "uuid";
 import { reservationInputSchema } from "@/lib/schema";
 import { calcNights, calcTotal } from "@/lib/pricing";
 import type { Reservation } from "./entities";
-import { getJson, putJson, listReservationKeys, deleteKey} from "@/lib/s3";
+import { getJson, putJson, listReservationKeys, deleteKey } from "@/lib/s3";
 
-// S3/R2 key prefix for a given user
 function prefix(userId: string) {
   return `users/${userId}/reservations/`;
 }
@@ -27,19 +27,19 @@ export async function createReservation(
   const id = data.id ?? uuid();
   const now = new Date().toISOString();
 
-  // single night by default
+  // default to single night if not provided by client
   const checkOut = data.checkOut ?? addDaysISO(data.checkIn, 1);
   const nights = calcNights(data.checkIn, checkOut);
 
-  // nightly is per-person; allow optional manual lodging override
+  // nightly is per-person; support optional manual lodging override
   const total = calcTotal(
     nights,
     data.nightlyRate,
     data.breakfastIncluded,
     data.partySize,
     data.breakfastPerPersonPerNight,
-    // @ts-expect-error: field exists in updated schema; keep backward-compatible
-    (data as any).lodgingOverride ?? null
+    // harmless if your calcTotal ignores it
+    (data as any).lodgingOverride ?? (data as any).manualLodgingTotal ?? null
   );
 
   const reservation: Reservation = {
@@ -66,9 +66,6 @@ export async function createReservation(
   return reservation;
 }
 
-export async function deleteReservation(userId: string, id: string): Promise<void> {
-  await deleteKey(`${prefix(userId)}${id}.json`);
-}
 export async function updateReservation(
   userId: string,
   id: string,
@@ -78,8 +75,12 @@ export async function updateReservation(
   const existing = await getJson<Reservation>(key);
   if (!existing) throw new Error("Reservation not found");
 
-  // Merge with existing then validate
-  const merged = reservationInputSchema.parse({ ...existing, ...input, id });
+  // guard spreading
+  const partial: Record<string, unknown> =
+    typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
+
+  // merge then validate
+  const merged = reservationInputSchema.parse({ ...existing, ...partial, id });
 
   const checkOut = merged.checkOut ?? addDaysISO(merged.checkIn, 1);
   const nights = calcNights(merged.checkIn, checkOut);
@@ -90,8 +91,7 @@ export async function updateReservation(
     merged.breakfastIncluded,
     merged.partySize,
     merged.breakfastPerPersonPerNight,
-    // @ts-expect-error: see note above
-    (merged as any).lodgingOverride ?? null
+    (merged as any).lodgingOverride ?? (merged as any).manualLodgingTotal ?? null
   );
 
   const updated: Reservation = {
@@ -108,6 +108,10 @@ export async function updateReservation(
   return updated;
 }
 
+export async function deleteReservation(userId: string, id: string): Promise<void> {
+  await deleteKey(`${prefix(userId)}${id}.json`);
+}
+
 export async function listReservations(
   userId: string,
   month?: string
@@ -119,7 +123,6 @@ export async function listReservations(
     if (r) items.push(r);
   }
   items.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
-
   // month format: YYYY-MM
   if (month) return items.filter((r) => r.checkIn.startsWith(month) || r.checkOut.startsWith(month));
   return items;

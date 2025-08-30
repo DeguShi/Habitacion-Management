@@ -1,11 +1,14 @@
 import type { Reservation } from "@/core/entities";
 
 function dt(dateISO: string): string {
-  return dateISO.replaceAll("-", "");
+  return dateISO.replace(/-/g, '') // YYYYMMDD
 }
-
 export function reservationToICS(res: Reservation): string {
-  const uid = `res-${res.id}@motherreservations`;
+  const uid = `res-${res.id}@motherreservations`
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d+Z$/, 'Z')
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
