@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ensureAdminKey } from '@/lib/admin'
 
 type ReservationItem = {
   id?: string
@@ -134,8 +135,12 @@ export default function ReservationEditor(props: {
     setSaving(true)
     setError(null)
     try {
-      const adminKey = localStorage.getItem('adminKey') || ''
-      if (!adminKey) throw new Error('Missing admin key')
+      const adminKey = await ensureAdminKey()
+        if (!adminKey) {
+        setError('É necessário informar a senha de administrador para salvar.')
+        setSaving(false)
+        return
+        }
 
       const payload = {
         ...m,
