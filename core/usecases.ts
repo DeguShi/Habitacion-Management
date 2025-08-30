@@ -38,7 +38,6 @@ export async function createReservation(
     data.breakfastIncluded,
     data.partySize,
     data.breakfastPerPersonPerNight,
-    // @ts-expect-error: field exists in updated schema; keep backward-compatible
     (data as any).lodgingOverride ?? null
   );
 
