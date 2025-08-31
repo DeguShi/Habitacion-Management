@@ -1,6 +1,5 @@
 'use client'
 import { useMemo, useState } from 'react'
-import { ensureAdminKey } from '@/lib/admin'
 
 type Props = { open: boolean; onClose: () => void; onSaved: () => void; defaultDate?: string }
 
@@ -38,39 +37,65 @@ export default function AddReservationModal({ open, onClose, onSaved, defaultDat
   }, [nights, nightly, party, breakfastIncluded, breakfast])
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const adminKey = await ensureAdminKey()
-    if (!adminKey) return
+    e.preventDefault();
 
-    if (!checkIn) { alert('Selecione a data de check-in'); return }
-    const p = intOrNaN(partyStr)
-    if (isNaN(p) || p < 1) { alert('Informe o nº de pessoas'); return }
-    const n = numOrNaN(nightlyStr)
-    if (isNaN(n) || n < 0) { alert('Informe a diária por pessoa'); return }
-    const b = numOrNaN(breakfastStr)
-    if (breakfastIncluded && (isNaN(b) || b < 0)) { alert('Informe o valor do café'); return }
+    if (!guestName || !guestName.trim()) {
+      alert('Informe o nome do hóspede'); 
+      return;
+    }
+    if (!checkIn) {
+      alert('Selecione a data de check-in');
+      return;
+    }
+
+    const p = intOrNaN(partyStr);
+    const n = numOrNaN(nightlyStr);
+    const b = numOrNaN(breakfastStr);
+
+    if (isNaN(p) || p < 1) {
+      alert('Informe o nº de pessoas');
+      return;
+    }
+    if (isNaN(n) || n < 0) {
+      alert('Informe a diária por pessoa');
+      return;
+    }
+    if (breakfastIncluded && (isNaN(b) || b < 0)) {
+      alert('Informe o valor do café');
+      return;
+    }
 
     const payload = {
-      guestName,
+      guestName: guestName.trim(),
       partySize: p,
       checkIn,
       checkOut: addDaysISO(checkIn, 1),
       breakfastIncluded,
-      nightlyRate: n,
+      nightlyRate: isNaN(n) ? 0 : n,
       breakfastPerPersonPerNight: isNaN(b) ? 0 : b,
       depositPaid,
       phone,
       email,
-      notes
-    }
+      notes,
+    };
 
     const res = await fetch('/api/reservations', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
-      body: JSON.stringify(payload)
-    })
-    if (!res.ok) { alert('Falha ao salvar'); return }
-    onSaved()
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      try {
+        const j = await res.json();
+        alert(`Falha ao salvar${j?.error ? `: ${j.error}` : ''}`);
+      } catch {
+        alert('Falha ao salvar');
+      }
+      return;
+    }
+
+    onSaved();
   }
 
   if (!open) return null
