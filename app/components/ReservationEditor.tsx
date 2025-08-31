@@ -2,7 +2,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ensureAdminKey } from '@/lib/admin'
 
 type ReservationItem = {
   id?: string
@@ -168,25 +167,24 @@ export default function ReservationEditor(props: {
     setSaving(true)
     setError(null)
     try {
-      const adminKey = await ensureAdminKey()
-      if (!adminKey) {
-        setError('É necessário informar a senha de administrador para salvar.')
-        setSaving(false)
-        return
-      }
-
-      // Validate required numbers
+      // Validate required numbers (allow empty while typing, require on save)
       const party = intOrNaN(partyStr)
       const nightly = numOrNaN(nightlyStr)
       const breakfast = numOrNaN(breakfastStr)
       const manualTotal = numOrNaN(manualTotalStr)
 
       if (isNaN(party) || party < 1) throw new Error('Informe o nº de pessoas')
-      if (!m.manualLodgingEnabled) {
-        if (isNaN(nightly) || nightly < 0) throw new Error('Informe a diária por pessoa')
+
+      if (m.manualLodgingEnabled) {
+        if (isNaN(manualTotal) || manualTotal < 0) {
+          throw new Error('Informe o total da hospedagem')
+        }
       } else {
-        if (isNaN(manualTotal) || manualTotal < 0) throw new Error('Informe o total da hospedagem')
+        if (isNaN(nightly) || nightly < 0) {
+          throw new Error('Informe a diária por pessoa')
+        }
       }
+
       if (m.breakfastIncluded && (isNaN(breakfast) || breakfast < 0)) {
         throw new Error('Informe o valor do café')
       }
@@ -198,18 +196,18 @@ export default function ReservationEditor(props: {
         breakfastPerPersonPerNight: isNaN(breakfast) ? 0 : breakfast,
         checkOut: addDaysISO(m.checkIn, 1),
         manualLodgingEnabled: !!m.manualLodgingEnabled,
-        manualLodgingTotal: m.manualLodgingEnabled ? (isNaN(manualTotal) ? 0 : manualTotal) : undefined,
+        manualLodgingTotal: m.manualLodgingEnabled
+          ? (isNaN(manualTotal) ? 0 : manualTotal)
+          : undefined,
       }
 
       const res = await fetch(
         mode === 'create' ? '/api/reservations' : `/api/reservations/${initial?.id}`,
         {
           method: mode === 'create' ? 'POST' : 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-key': adminKey,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
+          cache: 'no-store',
         }
       )
 
