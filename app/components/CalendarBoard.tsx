@@ -46,9 +46,10 @@ export default function CalendarBoard({
   // Softer, clearer palette:
   // 1 = pastel yellow, 2 = softened orange, 3+ = dark red
   const tint = (c: number) =>
-    c >= roomsTotal ? 'bg-red-200'
-      : c === 2 ? 'bg-orange-100'
-      : c === 1 ? 'bg-yellow-100' : ''
+    c >= roomsTotal ? '!bg-red-200'
+      : c === 2 ? '!bg-orange-100'
+      : c === 1 ? '!bg-yellow-100'
+      : 'bg-white'
 
   const dot = (c: number) =>
     c >= roomsTotal ? 'bg-red-700'
