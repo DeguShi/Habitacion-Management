@@ -26,18 +26,17 @@ export async function createReservation(
   const id = data.id ?? uuid();
   const now = new Date().toISOString();
 
-  // default to single night if not provided by client
   const checkOut = data.checkOut ?? addDaysISO(data.checkIn, 1);
   const nights = calcNights(data.checkIn, checkOut);
 
-  // nightly is per-person; use manual override when enabled
   const total = calcTotal(
     nights,
     data.nightlyRate,
     data.breakfastIncluded,
     data.partySize,
     data.breakfastPerPersonPerNight,
-    data.manualLodgingEnabled ? (data.manualLodgingTotal ?? 0) : null
+    data.manualLodgingEnabled ? (data.manualLodgingTotal ?? 0) : null,
+    data.extraSpend ?? 0
   );
 
   const reservation: Reservation = {
@@ -52,9 +51,10 @@ export async function createReservation(
     nightlyRate: data.nightlyRate,
     breakfastPerPersonPerNight: data.breakfastPerPersonPerNight,
 
-    // persist manual lodging config
     manualLodgingEnabled: data.manualLodgingEnabled ?? false,
     manualLodgingTotal: data.manualLodgingEnabled ? (data.manualLodgingTotal ?? 0) : undefined,
+
+    extraSpend: data.extraSpend ?? 0,
 
     totalNights: nights,
     totalPrice: total,
@@ -78,11 +78,9 @@ export async function updateReservation(
   const existing = await getJson<Reservation>(key);
   if (!existing) throw new Error("Reservation not found");
 
-  // guard unknown -> object before spreading
   const partial: Record<string, unknown> =
     typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
 
-  // merge then validate
   const merged = reservationInputSchema.parse({ ...existing, ...partial, id });
 
   const checkOut = merged.checkOut ?? addDaysISO(merged.checkIn, 1);
@@ -94,16 +92,19 @@ export async function updateReservation(
     merged.breakfastIncluded,
     merged.partySize,
     merged.breakfastPerPersonPerNight,
-    merged.manualLodgingEnabled ? (merged.manualLodgingTotal ?? 0) : null
+    merged.manualLodgingEnabled ? (merged.manualLodgingTotal ?? 0) : null,
+    merged.extraSpend ?? 0
   );
 
   const updated: Reservation = {
     ...existing,
     ...merged,
     checkOut,
-    // keep manual lodging persisted
+
     manualLodgingEnabled: merged.manualLodgingEnabled ?? false,
     manualLodgingTotal: merged.manualLodgingEnabled ? (merged.manualLodgingTotal ?? 0) : undefined,
+
+    extraSpend: merged.extraSpend ?? 0,
 
     totalNights: nights,
     totalPrice: total,
@@ -130,7 +131,6 @@ export async function listReservations(
     if (r) items.push(r);
   }
   items.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
-  // month format: YYYY-MM
   if (month) return items.filter((r) => r.checkIn.startsWith(month) || r.checkOut.startsWith(month));
   return items;
 }

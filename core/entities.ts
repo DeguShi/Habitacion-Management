@@ -15,6 +15,9 @@ export type Reservation = {
   manualLodgingEnabled?: boolean;
   manualLodgingTotal?: number;
 
+  // Flat add-on not multiplied by nights/people (Consumo extra)
+  extraSpend?: number;
+
   totalNights: number;
   totalPrice: number;
   depositDue: number;

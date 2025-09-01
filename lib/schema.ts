@@ -14,6 +14,8 @@ export const reservationInputSchema = z.object({
   nightlyRate: z.coerce.number().min(0),
   breakfastPerPersonPerNight: z.coerce.number().min(0),
 
+  extraSpend: z.coerce.number().min(0).optional().default(0),
+
   manualLodgingEnabled: z.coerce.boolean().optional().default(false),
   manualLodgingTotal: z.coerce.number().min(0).optional(),
 

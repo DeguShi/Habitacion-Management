@@ -11,6 +11,7 @@ type ReservationItem = {
   partySize: number
   checkIn: string
   checkOut: string
+  totalNights?: number
   totalPrice: number
   depositPaid: boolean
   phone?: string
@@ -18,6 +19,9 @@ type ReservationItem = {
   breakfastIncluded: boolean
   nightlyRate: number
   breakfastPerPersonPerNight: number
+  extraSpend?: number
+  manualLodgingEnabled?: boolean
+  manualLodgingTotal?: number
   notes?: string
 }
 
@@ -328,34 +332,69 @@ export default function ClientShell({ canWrite = false }: ClientShellProps) {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Detalhes da reserva</h3>
               <div className="flex items-center gap-2">
-                <IconButton
+                {/* <IconButton
                   title={canWrite ? 'Editar' : 'Somente leitura'}
                   onClick={() => openEdit(selectedReservation)}
                   disabled={!canWrite}
                 >
                   <Settings size={18} />
-                </IconButton>
+                </IconButton> */}
                 <IconButton title="Fechar" onClick={() => setViewOpen(false)}>
                   <CloseX size={18} />
                 </IconButton>
               </div>
             </div>
-            <dl className="grid md:grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-gray-500">Hóspede</dt><dd className="font-medium">{selectedReservation.guestName}</dd></div>
-              <div><dt className="text-gray-500">Pessoas</dt><dd className="font-medium">{selectedReservation.partySize}</dd></div>
-              <div><dt className="text-gray-500">Check-in</dt><dd className="font-medium">{formatBR(selectedReservation.checkIn)}</dd></div>
-              <div><dt className="text-gray-500">Check-out</dt><dd className="font-medium">{formatBR(selectedReservation.checkOut)}</dd></div>
-              <div><dt className="text-gray-500">Café da manhã</dt><dd className="font-medium">{selectedReservation.breakfastIncluded ? 'Sim' : 'Não'}</dd></div>
-              <div><dt className="text-gray-500">Contato</dt><dd className="font-medium">{selectedReservation.phone || selectedReservation.email || '-'}</dd></div>
-              <div><dt className="text-gray-500">Valor</dt><dd className="font-medium">{BRL(selectedReservation.totalPrice)}</dd></div>
-              <div><dt className="text-gray-500">Depósito</dt><dd className="font-medium">{selectedReservation.depositPaid ? 'Pago' : 'Pendente'}</dd></div>
-              {selectedReservation.notes && (
-                <div className="md:col-span-2">
-                  <dt className="text-gray-500">Observações</dt>
-                  <dd className="font-medium whitespace-pre-wrap">{selectedReservation.notes}</dd>
-                </div>
-              )}
-            </dl>
+
+            {/* simple breakdown calc */}
+            {(() => {
+              const r = selectedReservation
+              const nights = r.totalNights ?? 1
+              const lodging =
+                r.manualLodgingEnabled && r.manualLodgingTotal != null
+                  ? r.manualLodgingTotal
+                  : nights * r.nightlyRate * r.partySize
+              const breakfast = r.breakfastIncluded
+                ? nights * r.partySize * r.breakfastPerPersonPerNight
+                : 0
+              const extra = r.extraSpend ?? 0
+              const total = (lodging || 0) + (breakfast || 0) + (extra || 0)
+
+              return (
+                <dl className="grid md:grid-cols-2 gap-3 text-sm">
+                  <div><dt className="text-gray-500">Hóspede</dt><dd className="font-medium">{r.guestName}</dd></div>
+                  <div><dt className="text-gray-500">Pessoas</dt><dd className="font-medium">{r.partySize}</dd></div>
+                  <div><dt className="text-gray-500">Check-in</dt><dd className="font-medium">{formatBR(r.checkIn)}</dd></div>
+                  <div><dt className="text-gray-500">Check-out</dt><dd className="font-medium">{formatBR(r.checkOut)}</dd></div>
+                  <div><dt className="text-gray-500">Café da manhã</dt><dd className="font-medium">{r.breakfastIncluded ? 'Sim' : 'Não'}</dd></div>
+                  <div><dt className="text-gray-500">Contato</dt><dd className="font-medium">{r.phone || r.email || '-'}</dd></div>
+
+                  <div className="md:col-span-2 rounded-lg bg-gray-50 p-3">
+                    <div className="font-medium mb-1">Valor</div>
+                    <div className="grid grid-cols-2 gap-y-1">
+                      <div>Diária</div><div className="text-right">{BRL(lodging || 0)}</div>
+                      {breakfast > 0 && (
+                        <>
+                          <div>Café</div>
+                          <div className="text-right">{BRL(breakfast)}</div>
+                        </>
+                      )}
+                      <div>Consumo extra</div><div className="text-right">{BRL(extra || 0)}</div>
+                      <div className="col-span-2 border-t my-1" />
+                      <div>Total</div><div className="text-right font-semibold">{BRL(total)}</div>
+                    </div>
+                  </div>
+
+                  <div><dt className="text-gray-500">Depósito</dt><dd className="font-medium">{r.depositPaid ? 'Pago' : 'Pendente'}</dd></div>
+
+                  {r.notes && (
+                    <div className="md:col-span-2">
+                      <dt className="text-gray-500">Observações</dt>
+                      <dd className="font-medium whitespace-pre-wrap">{r.notes}</dd>
+                    </div>
+                  )}
+                </dl>
+              )
+            })()}
           </div>
         )}
       </Modal>
