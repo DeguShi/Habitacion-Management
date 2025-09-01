@@ -18,6 +18,40 @@ function addDaysISO(iso: string, days: number) {
   return `${yy}-${mm}-${dd}`;
 }
 
+/**
+ * Normalize various BR-friendly birth date inputs to ISO (YYYY-MM-DD).
+ * Accepts:
+ *   - "DD/MM/YYYY"
+ *   - "DD-MM-YYYY"
+ *   - "DDMMYYYY" (8 digits)
+ *   - empty / undefined → returns undefined
+ */
+function normalizeBirthDate(raw: unknown): string | undefined {
+  if (raw == null) return undefined;
+  let s = String(raw).trim();
+  if (!s) return undefined;
+
+  // already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // DD/MM/YYYY or DD-MM-YYYY
+  let m = /^(\d{2})[\/-](\d{2})[\/-](\d{4})$/.exec(s);
+  if (m) {
+    const [, dd, mm, yyyy] = m;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  // DDMMYYYY (8 digits)
+  if (/^\d{8}$/.test(s)) {
+    const dd = s.slice(0, 2);
+    const mm = s.slice(2, 4);
+    const yyyy = s.slice(4, 8);
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return undefined;
+}
+
 export async function createReservation(
   userId: string,
   input: unknown
@@ -25,6 +59,8 @@ export async function createReservation(
   const data = reservationInputSchema.parse(input);
   const id = data.id ?? uuid();
   const now = new Date().toISOString();
+
+  const birthDateISO = normalizeBirthDate((input as any)?.birthDate);
 
   const checkOut = data.checkOut ?? addDaysISO(data.checkIn, 1);
   const nights = calcNights(data.checkIn, checkOut);
@@ -55,6 +91,8 @@ export async function createReservation(
     manualLodgingTotal: data.manualLodgingEnabled ? (data.manualLodgingTotal ?? 0) : undefined,
 
     extraSpend: data.extraSpend ?? 0,
+    birthDate: data.birthDate || undefined,
+    // birthDate: birthDateISO,
 
     totalNights: nights,
     totalPrice: total,
@@ -83,6 +121,11 @@ export async function updateReservation(
 
   const merged = reservationInputSchema.parse({ ...existing, ...partial, id });
 
+  // normalize birth date only if explicitly provided; otherwise keep existing
+  const incomingBirth = (partial as any)?.birthDate;
+  const birthDateISO =
+    incomingBirth !== undefined ? normalizeBirthDate(incomingBirth) : (existing as any).birthDate;
+
   const checkOut = merged.checkOut ?? addDaysISO(merged.checkIn, 1);
   const nights = calcNights(merged.checkIn, checkOut);
 
@@ -105,6 +148,9 @@ export async function updateReservation(
     manualLodgingTotal: merged.manualLodgingEnabled ? (merged.manualLodgingTotal ?? 0) : undefined,
 
     extraSpend: merged.extraSpend ?? 0,
+
+    // New (optional)
+    birthDate: birthDateISO,
 
     totalNights: nights,
     totalPrice: total,

@@ -19,6 +19,7 @@ type ReservationItem = {
   extraSpend?: number
   depositPaid: boolean
   notes?: string
+  birthDate?: string         // DD/MM/YYYY (UI), ISO or empty allowed
 }
 
 export default function ReservationEditor(props: {
@@ -53,6 +54,7 @@ export default function ReservationEditor(props: {
     extraSpend: 0,
     depositPaid: false,
     notes: '',
+    birthDate: '',
   })
 
   // draft strings so user can clear/leave empty while editing
@@ -73,6 +75,7 @@ export default function ReservationEditor(props: {
         ...initial,
         manualLodgingEnabled: initial.manualLodgingEnabled ?? false,
         manualLodgingTotal: initial.manualLodgingTotal,
+        birthDate: initial.birthDate ?? '',
       }
       setM(next)
       setPartyStr(String(initial.partySize ?? ''))
@@ -102,6 +105,7 @@ export default function ReservationEditor(props: {
         extraSpend: 0,
         depositPaid: false,
         notes: '',
+        birthDate: '',
       }
       setM(next)
       setPartyStr('')
@@ -222,6 +226,7 @@ export default function ReservationEditor(props: {
           ? (isNaN(manualTotal) ? 0 : manualTotal)
           : undefined,
         extraSpend: isNaN(extraSpend) ? 0 : extraSpend,
+        birthDate: (m.birthDate || '').trim() || undefined, // optional
       }
 
       const res = await fetch(
@@ -378,6 +383,18 @@ export default function ReservationEditor(props: {
               />
             </label>
 
+            <label className="flex flex-col gap-1">
+              <span>Data de nascimento</span>
+              <input
+                type="text"
+                placeholder="DD/MM/AAAA"
+                value={m.birthDate || ''}
+                onChange={(e) => setM({ ...m, birthDate: formatBirthInput(e.target.value) })}
+                disabled={!canWrite}
+                inputMode="numeric"
+              />
+            </label>
+
             <label className="col-span-full flex items-center gap-2">
               <input
                 type="checkbox"
@@ -508,6 +525,13 @@ function numOrNaN(s: string): number {
   if (s.trim() === '') return NaN
   const n = parseFloat(s.replace(',', '.'))
   return Number.isFinite(n) ? n : NaN
+}
+
+function formatBirthInput(raw: string) {
+  const digits = raw.replace(/\D/g, '').slice(0, 8)
+  if (digits.length <= 2) return digits
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
 }
 
 function isoToday() {
