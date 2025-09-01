@@ -5,7 +5,6 @@ import CalendarBoard from '@/app/components/CalendarBoard'
 import ReservationEditor from '@/app/components/ReservationEditor'
 import { Eye, Settings, X as CloseX, Plus, Trash2 } from 'lucide-react'
 
-
 type ReservationItem = {
   id: string
   guestName: string
@@ -66,30 +65,39 @@ function Modal({
   )
 }
 
+/** Small icon button used throughout (now supports disabled for read-only users) */
 function IconButton({
   title,
   onClick,
   variant = 'neutral',
+  disabled = false,
   children,
 }: {
   title: string
   onClick: () => void
   variant?: 'neutral' | 'danger'
+  disabled?: boolean
   children: React.ReactNode
 }) {
+  const base = variant === 'danger' ? 'btn-danger' : 'btn-icon'
   return (
     <button
-      className={variant === 'danger' ? 'btn-danger' : 'btn-icon'}
-      onClick={onClick}
+      type="button"
+      className={`${base} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      onClick={() => { if (!disabled) onClick() }}
       title={title}
       aria-label={title}
+      aria-disabled={disabled}
+      disabled={disabled}
     >
       {children}
     </button>
   )
 }
 
-export default function ClientShell() {
+type ClientShellProps = { canWrite?: boolean }
+
+export default function ClientShell({ canWrite = false }: ClientShellProps) {
   const [month, setMonth] = useState<string>(monthOf(new Date()))
   const [items, setItems] = useState<ReservationItem[]>([])
   const [selectedDate, setSelectedDate] = useState<string>(todayISO())
@@ -147,6 +155,7 @@ export default function ClientShell() {
     setViewOpen(true)
   }
   function openCreate() {
+    if (!canWrite) return
     if (!confirmDiscardIfNeeded()) return
     setViewOpen(false)
     setSelectedReservation(null)
@@ -155,6 +164,7 @@ export default function ClientShell() {
     setEditorOpen(true)
   }
   function openEdit(item: ReservationItem) {
+    if (!canWrite) return
     if (!confirmDiscardIfNeeded()) return
     setViewOpen(false)
     setSelectedReservation(null)
@@ -164,12 +174,12 @@ export default function ClientShell() {
   }
 
   async function remove(item: ReservationItem) {
+    if (!canWrite) return
     const ok = confirm(
       `Excluir a reserva de ${item.guestName} em ${formatBR(item.checkIn)}?\n\nEsta ação é permanente e não pode ser desfeita.`
     )
     if (!ok) {return}
 
-    // no headers needed anymore
     const res = await fetch(`/api/reservations/${item.id}`, { method: 'DELETE' })
 
     if (res.status === 403) {
@@ -216,7 +226,13 @@ export default function ClientShell() {
       <section className="md:col-span-3 card">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">{formatBR(selectedDate)}</h2>
-          <IconButton title="Nova reserva" onClick={openCreate}><Plus size={18} /></IconButton>
+          <IconButton
+            title={canWrite ? 'Nova reserva' : 'Somente leitura'}
+            onClick={openCreate}
+            disabled={!canWrite}
+          >
+            <Plus size={18} />
+          </IconButton>
         </div>
 
         <div className={`space-y-2 ${dayItems.length > 4 ? 'max-h-96 overflow-y-auto scroll-soft' : ''}`}>
@@ -238,8 +254,21 @@ export default function ClientShell() {
                 </div>
                 <div className="flex items-center gap-2">
                   <IconButton title="Ver" onClick={() => openView(i)}><Eye size={18} /></IconButton>
-                  <IconButton title="Editar" onClick={() => openEdit(i)}><Settings size={18} /></IconButton>
-                  <IconButton title="Excluir" variant="danger" onClick={() => remove(i)}><Trash2 size={18} /></IconButton>
+                  <IconButton
+                    title={canWrite ? 'Editar' : 'Somente leitura'}
+                    onClick={() => openEdit(i)}
+                    disabled={!canWrite}
+                  >
+                    <Settings size={18} />
+                  </IconButton>
+                  <IconButton
+                    title={canWrite ? 'Excluir' : 'Somente leitura'}
+                    variant="danger"
+                    onClick={() => remove(i)}
+                    disabled={!canWrite}
+                  >
+                    <Trash2 size={18} />
+                  </IconButton>
                 </div>
               </div>
             </div>
@@ -270,10 +299,19 @@ export default function ClientShell() {
                   <IconButton title="Ver" onClick={() => { setMonth(i.checkIn.slice(0,7)); setSelectedDate(i.checkIn); openView(i) }}>
                     <Eye size={18} />
                   </IconButton>
-                  <IconButton title="Editar" onClick={() => { setMonth(i.checkIn.slice(0,7)); setSelectedDate(i.checkIn); openEdit(i) }}>
+                  <IconButton
+                    title={canWrite ? 'Editar' : 'Somente leitura'}
+                    onClick={() => { setMonth(i.checkIn.slice(0,7)); setSelectedDate(i.checkIn); openEdit(i) }}
+                    disabled={!canWrite}
+                  >
                     <Settings size={18} />
                   </IconButton>
-                  <IconButton title="Excluir" variant="danger" onClick={() => remove(i)}>
+                  <IconButton
+                    title={canWrite ? 'Excluir' : 'Somente leitura'}
+                    variant="danger"
+                    onClick={() => remove(i)}
+                    disabled={!canWrite}
+                  >
                     <Trash2 size={18} />
                   </IconButton>
                 </div>
@@ -291,8 +329,9 @@ export default function ClientShell() {
               <h3 className="font-semibold">Detalhes da reserva</h3>
               <div className="flex items-center gap-2">
                 <IconButton
-                  title="Editar"
+                  title={canWrite ? 'Editar' : 'Somente leitura'}
                   onClick={() => openEdit(selectedReservation)}
+                  disabled={!canWrite}
                 >
                   <Settings size={18} />
                 </IconButton>
@@ -336,6 +375,7 @@ export default function ClientShell() {
             if (!confirmDiscardIfNeeded()) return
             openView(editing)
           }}
+          canWrite={canWrite}
         />
       </Modal>
     </main>
