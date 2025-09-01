@@ -29,15 +29,20 @@ export default function ReservationEditor(props: {
   onSaved: () => void
   onDirtyChange?: (dirty: boolean) => void
   onSwitchToView?: () => void
+  /** when false, inputs are disabled and saves are blocked */
+  canWrite?: boolean
 }) {
-  const { open, mode, initial, defaultDate, onClose, onSaved, onDirtyChange, onSwitchToView } = props
+  const {
+    open, mode, initial, defaultDate, onClose, onSaved, onDirtyChange, onSwitchToView,
+    canWrite = true,
+  } = props
 
   // base, non-numeric fields
   const [m, setM] = useState<ReservationItem>({
     guestName: '',
     phone: '',
     email: '',
-    partySize: 1, // kept only for edit binding; payload will use derived number
+    partySize: 1,
     checkIn: defaultDate ?? isoToday(),
     breakfastIncluded: false,
     nightlyRate: 0,
@@ -138,7 +143,7 @@ export default function ReservationEditor(props: {
 
   const nights = 1 // v1
 
-  // helpers to coerce numbers (but not during typing)
+  // helpers to coerce numbers
   const partySizeNum = intOrNaN(partyStr)
   const nightlyNum = numOrNaN(nightlyStr)
   const breakfastNum = numOrNaN(breakfastStr)
@@ -167,7 +172,13 @@ export default function ReservationEditor(props: {
     setSaving(true)
     setError(null)
     try {
-      // Validate required numbers (allow empty while typing, require on save)
+      if (!canWrite) {
+        setError('Esta conta está em modo somente leitura (escritas restritas).')
+        setSaving(false)
+        return
+      }
+
+      // Validate required numbers
       const party = intOrNaN(partyStr)
       const nightly = numOrNaN(nightlyStr)
       const breakfast = numOrNaN(breakfastStr)
@@ -229,9 +240,9 @@ export default function ReservationEditor(props: {
   const canSave =
     m.guestName.trim().length > 0 &&
     /^\d{4}-\d{2}-\d{2}$/.test(m.checkIn) &&
-    // allow empty while typing, only block if obviously invalid
     (partyStr === '' || intOrNaN(partyStr) >= 1) &&
-    (!m.manualLodgingEnabled || manualTotalStr === '' || numOrNaN(manualTotalStr) >= 0)
+    (!m.manualLodgingEnabled || manualTotalStr === '' || numOrNaN(manualTotalStr) >= 0) &&
+    canWrite
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 p-4">
@@ -280,6 +291,7 @@ export default function ReservationEditor(props: {
                 value={m.guestName}
                 onChange={(e) => setM({ ...m, guestName: e.target.value })}
                 required
+                disabled={!canWrite}
               />
             </label>
 
@@ -292,6 +304,7 @@ export default function ReservationEditor(props: {
                 placeholder="ex: 3"
                 value={partyStr}
                 onChange={(e) => setPartyStr(e.target.value)}
+                disabled={!canWrite}
               />
             </label>
 
@@ -302,6 +315,7 @@ export default function ReservationEditor(props: {
                 value={m.checkIn}
                 onChange={(e) => setM({ ...m, checkIn: e.target.value })}
                 required
+                disabled={!canWrite}
               />
             </label>
 
@@ -310,6 +324,7 @@ export default function ReservationEditor(props: {
                 type="checkbox"
                 checked={m.breakfastIncluded}
                 onChange={(e) => setM({ ...m, breakfastIncluded: e.target.checked })}
+                disabled={!canWrite}
               />
               <span>Café da manhã</span>
             </label>
@@ -322,7 +337,7 @@ export default function ReservationEditor(props: {
                 placeholder="ex: 120"
                 value={nightlyStr}
                 onChange={(e) => setNightlyStr(e.target.value)}
-                disabled={m.manualLodgingEnabled}
+                disabled={!canWrite || m.manualLodgingEnabled}
               />
             </label>
 
@@ -334,6 +349,7 @@ export default function ReservationEditor(props: {
                 placeholder="ex: 10"
                 value={breakfastStr}
                 onChange={(e) => setBreakfastStr(e.target.value)}
+                disabled={!canWrite}
               />
             </label>
 
@@ -342,6 +358,7 @@ export default function ReservationEditor(props: {
                 type="checkbox"
                 checked={!!m.manualLodgingEnabled}
                 onChange={(e) => setM({ ...m, manualLodgingEnabled: e.target.checked })}
+                disabled={!canWrite}
               />
               <span>Informar valor total da hospedagem manualmente</span>
             </label>
@@ -355,6 +372,7 @@ export default function ReservationEditor(props: {
                   placeholder="ex: 340"
                   value={manualTotalStr}
                   onChange={(e) => setManualTotalStr(e.target.value)}
+                  disabled={!canWrite}
                 />
               </label>
             )}
@@ -364,6 +382,7 @@ export default function ReservationEditor(props: {
               <input
                 value={m.phone || ''}
                 onChange={(e) => setM({ ...m, phone: e.target.value })}
+                disabled={!canWrite}
               />
             </label>
 
@@ -373,6 +392,7 @@ export default function ReservationEditor(props: {
                 type="email"
                 value={m.email || ''}
                 onChange={(e) => setM({ ...m, email: e.target.value })}
+                disabled={!canWrite}
               />
             </label>
 
@@ -381,6 +401,7 @@ export default function ReservationEditor(props: {
                 type="checkbox"
                 checked={m.depositPaid}
                 onChange={(e) => setM({ ...m, depositPaid: e.target.checked })}
+                disabled={!canWrite}
               />
               <span>Depósito pago (50%)</span>
             </label>
@@ -391,6 +412,7 @@ export default function ReservationEditor(props: {
                 rows={3}
                 value={m.notes || ''}
                 onChange={(e) => setM({ ...m, notes: e.target.value })}
+                disabled={!canWrite}
               />
             </label>
           </div>
@@ -400,20 +422,44 @@ export default function ReservationEditor(props: {
             <div>Total estimado: <strong>{formatBRL(computedTotal)}</strong></div>
             <div>Depósito (50%): <strong>{formatBRL(computedDeposit)}</strong></div>
           </div>
-
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t bg-white/80 px-5 py-4 backdrop-blur">
-          <button onClick={maybeClose} className="rounded border px-4 py-2">Cancelar</button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !canSave}
-            className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
-          >
-            {saving ? 'Salvando…' : (mode === 'create' ? 'Salvar' : 'Atualizar')}
-          </button>
+        <div className="sticky bottom-0 z-10 border-t bg-white/90 backdrop-blur px-5 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm">
+              {error ? (
+                <span className="text-red-600">{error}</span>
+              ) : !canWrite ? (
+                <span className="text-amber-600">
+                  Escritas restritas para esta conta (somente leitura).
+                </span>
+              ) : (
+                <span className="opacity-0">placeholder</span>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={maybeClose}
+                className="rounded border px-4 py-2 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={handleSave}
+                disabled={saving || !canSave}
+                title={!canWrite ? 'Somente leitura' : undefined}
+                className="rounded bg-black px-4 py-2 text-white transition
+                           hover:bg-black/90
+                           disabled:opacity-45 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Salvando…' : (mode === 'create' ? 'Salvar' : 'Atualizar')}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
