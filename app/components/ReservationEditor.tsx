@@ -401,19 +401,36 @@ export default function ReservationEditor(props: {
             <div>Depósito (50%): <strong>{formatBRL(computedDeposit)}</strong></div>
           </div>
 
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+          {/* {error && <p className="mt-3 text-sm text-red-600">{error}</p>} */}
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t bg-white/80 px-5 py-4 backdrop-blur">
-          <button onClick={maybeClose} className="rounded border px-4 py-2">Cancelar</button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !canSave}
-            className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
-          >
-            {saving ? 'Salvando…' : (mode === 'create' ? 'Salvar' : 'Atualizar')}
-          </button>
+        <div className="sticky bottom-0 z-10 border-t bg-white/90 backdrop-blur px-5 py-3">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-3">
+            <p className={`text-sm truncate ${error ? 'text-red-600' : 'invisible'}`}>
+              {error || 'placeholder'}
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={maybeClose}
+                className="rounded border px-4 py-2 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={handleSave}
+                disabled={saving || !canSave}
+                className="rounded bg-black px-4 py-2 text-white transition
+                          hover:bg-black/90
+                          disabled:opacity-45 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Salvando…' : (mode === 'create' ? 'Salvar' : 'Atualizar')}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

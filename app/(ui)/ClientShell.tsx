@@ -104,10 +104,6 @@ export default function ClientShell() {
   const [editing, setEditing] = useState<ReservationItem | null>(null)
   const [editorDirty, setEditorDirty] = useState(false)
 
-  const adminHeaders = () => ({
-    'x-admin-key': typeof window !== 'undefined' ? localStorage.getItem('adminKey') || '' : '',
-  })
-
   async function loadMonth() {
     const res = await fetch(`/api/reservations?month=${month}`, { cache: 'no-store' });
     setItems(await res.json())
@@ -171,10 +167,24 @@ export default function ClientShell() {
     const ok = confirm(
       `Excluir a reserva de ${item.guestName} em ${formatBR(item.checkIn)}?\n\nEsta ação é permanente e não pode ser desfeita.`
     )
-    if (!ok) return
-    const res = await fetch(`/api/reservations/${item.id}`, { method: 'DELETE', headers: adminHeaders() })
-    if (!res.ok) { alert('Falha ao excluir'); return }
-    if (selectedReservation?.id === item.id) { setSelectedReservation(null); setViewOpen(false) }
+    if (!ok) {return}
+
+    // no headers needed anymore
+    const res = await fetch(`/api/reservations/${item.id}`, { method: 'DELETE' })
+
+    if (res.status === 403) {
+      alert('Sua conta não tem permissão para alterar dados.')
+      return
+    }
+    if (!res.ok) {
+      alert('Falha ao excluir')
+      return
+    }
+
+    if (selectedReservation?.id === item.id) {
+      setSelectedReservation(null)
+      setViewOpen(false)
+    }
     await Promise.all([loadMonth(), loadUpcoming()])
   }
 
