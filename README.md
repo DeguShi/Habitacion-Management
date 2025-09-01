@@ -2,104 +2,163 @@
 
 A minimalist, single‑purpose app to register **one‑night** reservations for a family guest room — built to be fast, clear, and safe for non‑technical users.
 
-- **Stack:** Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS  
-- **Auth:** NextAuth (Google) — each Google account sees **only its own** data  
-- **Storage:** Cloudflare R2 (S3‑compatible, generous free tier) — one JSON file per reservation  
-- **Calendar:** Per‑reservation `.ics` download (Google / Apple / Outlook)  
-- **Deploy:** Vercel (Hobby)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](./LICENSE)
+[![Made with Next.js](https://img.shields.io/badge/Next.js-14-black)](#)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](#)
 
-> UI branding: **“Habitación Familiar de Lisiani y Airton.”**
+> UI branding: **“Habitación Familiar de Lisiani y Airton.”**  
+> **Access control:** Authentication is open to all Google accounts, but authorization to create [items] is restricted to an **allowlist**." 
+
+> **Live Demo:** replace this link with your Vercel URL: `https://habitation-management.vercel.app`
 
 ---
 
-## ✨ Features
-
+## Features (current)
 - **One‑step reservation:** guest name, party size, **check‑in (always 1 night)**, optional breakfast, contacts, notes.
-- **Automatic pricing** *or* **manual lodging total** (when applying discounts):
-  - **Automatic:**  
-    `total = nights * (nightlyPerPerson * partySize) + (breakfast? nights * partySize * breakfastPerPersonPerNight : 0)`
-  - **Manual lodging total:** operator provides the *final lodging total*; breakfast (if any) is **still** added per person.
+- **Automatic pricing** *or* **manual lodging total** (for discounts).
 - **Deposit (50%)** with **paid / pending** status.
 - **Calendar with occupancy colors** (max 3 rooms):
-  - 1 reservation → pastel yellow; 2 → mellow orange; 3 → dark red (full).
-- **Day view** with all reservations and actions (👁 view, ⚙ edit, ✖ delete with confirmation).
+  - 1 reservation → pastel yellow; 2 → mellow orange; 3 → deep red (full).
+- **Day view** with all reservations and actions (👁 view, ⚙ edit, 🗑️ delete with confirmation).
 - **Upcoming list** from today onward (scroll if long).
-- **View / Edit never overlap**: switching prompts to save or discard unsaved changes.
-- **.ics event** per reservation (all‑day from check‑in to check‑out).
+- **View / Edit never overlap:** prompts to save/discard changes before switching.
 
 ---
 
-## 🧭 Project Structure
+## ⚡ Quick Start
+1. **Sign in with Google**. Access is limited to allowlisted emails.
+2. **Pick a date** on the calendar.
+3. **Fill guest details** — name, party size, optional breakfast, phone/email, notes.
+4. Choose **automatic** or **manual** lodging total.
+5. Set **deposit (50%)** as paid or pending.
+6. **Save** — the reservation appears in the **Day view** and the **Upcoming** list.
+
+---
+
+## Screenshots
+
+**Onboarding & sign‑in**
+<br/>
+<img src="./public/readme/01-onboarding.png" alt="Onboarding screen with features and Google sign-in" width="820" />
+
+**Calendar with occupancy colors**
+<br/>
+<img src="./public/readme/02-calendar.png" alt="Monthly calendar with colored occupancy indicators" width="820" />
+
+**Create a new reservation**
+<br/>
+<img src="./public/readme/03-new-reservation.png" alt="New reservation modal" width="820" />
+
+**Day view / reservation list**
+<br/>
+<img src="./public/readme/04-day-list.png" alt="Day list with actions for each reservation" width="820" />
+
+**Reservation details modal**
+<br/>
+<img src="./public/readme/05-reservation-details.png" alt="Reservation details read-only modal" width="820" />
+
+**Upcoming reservations list**
+<br/>
+<img src="./public/readme/06-upcoming-list.png" alt="Upcoming reservations scrolling list" width="820" />
+
+---
+
+## Tech highlights
+- **Next.js 14 (App Router)** — file‑based API routes for CRUD.
+- **React 18 + TypeScript** — strict types across domain helpers and UI.
+- **NextAuth (Google)** — per‑user data isolation; each account only accesses its own reservations.
+- **Cloudflare R2 (S3‑compatible)** — simple storage: one **JSON per reservation**.
+- **Zod validation** — schema‑validated inputs on both client and server.
+- **Pure pricing helpers** — deterministic functions enable straightforward unit tests.
+
+---
+
+## 🔐 Security model
+- **Sign‑in allowlist**: only emails listed in `ALLOWED_EMAILS` can authenticate.
+- **Per‑user isolation**: reservations are namespaced by `userId`; users only see their own data.
+- **Private bucket**: no public listing; access via scoped keys.
+
+> No **admin key** is required anywhere in the UI; access is controlled by the Google account allowlist.
+
+---
+
+## Project structure
 
 ```
 .
-├─ app/
-│  ├─ (ui)/ClientShell.tsx            # client page (calendar + day list + upcoming + modals)
-│  ├─ api/
-│  │  └─ reservations/
-│  │     ├─ route.ts                  # GET / POST (list / create)
-│  │     ├─ [id]/route.ts             # PUT / DELETE (update / remove)
-│  │     └─ [id]/ics/route.ts         # GET (.ics download)
-│  ├─ components/
-│  │  ├─ CalendarBoard.tsx            # calendar (colors, selection, navigation)
-│  │  ├─ AddReservationModal.tsx      # modal for creating new reservations
-│  │  ├─ ReservationEditor.tsx        # modal editor (auto vs manual pricing)
-│  │  ├─ ViewReservation.tsx          # read‑only details
-│  │  └─ Navbar.tsx
-│  ├─ sign-in/page.tsx                # Google Sign‑in + onboarding screen
-│  ├─ globals.css                     # Tailwind layers + small tokens
-│  ├─ layout.tsx                      # global providers + navbar
-│  └─ page.tsx                        # server auth gate + ClientShell
-├─ core/
-│  ├─ entities.ts                     # domain types (Reservation)
-│  └─ usecases.ts                     # create/update/list/delete + pricing orchestration
-├─ lib/
-│  ├─ auth.config.ts                  # NextAuth options (Google provider, callbacks)
-│  ├─ auth.client.tsx                 # <SessionProvider/> for client
-│  ├─ pricing.ts                      # pure pricing helpers
-│  ├─ schema.ts                       # zod schemas / validation
-│  ├─ s3.ts                           # S3/R2 gateway (get/put/list JSON)
-│  └─ user.ts                         # user helpers
-├─ utils/
-│  └─ ics.ts                          # .ics generator
-├─ public/
-│  └─ logo-hab.png
-├─ next.config.js
-├─ tailwind.config.ts
-├─ postcss.config.js
-└─ README.md
-```
-
-### Data Model (per JSON file)
-
-```ts
-type Reservation = {
-  id: string;
-  userId: string;                 // ownership (segregates data by Google account)
-  guestName: string;
-  partySize: number;
-  checkIn: string;                // YYYY-MM-DD
-  checkOut: string;               // YYYY-MM-DD (always +1 day)
-  breakfastIncluded: boolean;
-  nightlyRate: number;            // per-person / per-night
-  breakfastPerPersonPerNight: number;
-  manualLodgingEnabled?: boolean;
-  manualLodgingTotal?: number;    // if enabled, replaces lodging formula
-  totalNights: number;            // 1 in v1
-  totalPrice: number;
-  depositDue: number;             // 50% of total
-  depositPaid: boolean;
-  phone?: string;
-  email?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-};
+├── app
+│   ├── (ui)
+│   │   └── ClientShell.tsx
+│   ├── api
+│   │   ├── auth
+│   │   │   └── [...nextauth]
+│   │   │       └── route.ts
+│   │   └── reservations
+│   │       ├── [id]
+│   │       │   ├── ics
+│   │       │   │   └── route.ts
+│   │       │   └── route.ts
+│   │       └── route.ts
+│   ├── components
+│   │   ├── AddReservationModal.tsx
+│   │   ├── CalendarBoard.tsx
+│   │   ├── Navbar.tsx
+│   │   └── ReservationEditor.tsx
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── sign-in
+│       └── page.tsx
+├── core
+│   ├── entities.ts
+│   └── usecases.ts
+├── lib
+│   ├── admin.ts
+│   ├── allowlist.ts
+│   ├── auth.client.tsx
+│   ├── auth.config.ts
+│   ├── pricing.ts
+│   ├── s3.ts
+│   ├── schema.ts
+│   └── user.ts
+├── next-env.d.ts
+├── next.config.js
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── public
+│   └── icons
+├── tailwind.config.ts
+├── tsconfig.json
+└── utils
+    └── ics.ts
 ```
 
 ---
 
-## 🧮 Pricing Rules
+## Data model
+
+```ts
+type ReservationItem = {
+  id?: string
+  guestName: string
+  phone?: string
+  email?: string
+  partySize: number
+  checkIn: string
+  checkOut?: string
+  breakfastIncluded: boolean
+  nightlyRate: number
+  breakfastPerPersonPerNight: number
+  manualLodgingEnabled?: boolean
+  manualLodgingTotal?: number
+  depositPaid: boolean
+  notes?: string
+}
+```
+
+---
+
+## Pricing rules
 
 **Automatic**
 ```text
@@ -117,49 +176,45 @@ total = lodging + breakfast
 deposit = 0.5 * total
 ```
 
-- `nights = checkOut - checkIn` (days). In this app: **check‑out = check‑in + 1 day**.
-- UI currency: **BRL (pt‑BR)**.
+- `nights = checkOut - checkIn` (days). In v1: **check‑out = check‑in + 1 day**.
+- UI language & currency: **pt‑BR**, **BRL**.
 
 ---
 
-## 🔐 Authentication & Security
+## Run locally
 
-- **Google Sign‑In (NextAuth)**. Data is stored per‑user (`userId` prefix).  
-- **ADMIN_KEY** — a passphrase required for **write** operations (sent as `x-admin-key`).  
-  The client stores it in `localStorage` after first entry.
-- Bucket is private; there is no public listing.
-
-> For a single household, using the same Google account across devices is fine.
-
----
-
-## ☁️ Storage (Cloudflare R2 recommended)
-
-Cloudflare R2 is S3‑compatible and has a generous free tier with zero egress fees.
-
-**Environment variables (both local & production):**
-```env
-STORAGE_PROVIDER=R2
-BUCKET_NAME=<your-r2-bucket>
-CF_R2_ACCOUNT_ID=<account-id>
-CF_R2_ACCESS_KEY_ID=<r2-access-key-id>
-CF_R2_SECRET_ACCESS_KEY=<r2-secret-access-key>
-```
-
-If you ever switch to **AWS S3**, set:
-```env
-STORAGE_PROVIDER=S3
-BUCKET_NAME=<your-s3-bucket>
-AWS_REGION=<region>
-AWS_ACCESS_KEY_ID=<access-key>
-AWS_SECRET_ACCESS_KEY=<secret-key>
+```bash
+npm i
+npm run dev        # http://localhost:3000
+# production mode
+npm run build && npm start
 ```
 
 ---
 
-## ⚙️ Environment Variables
+## Deploy (Vercel)
 
-### Local (`.env.local`)
+1. Import the GitHub repository into **Vercel** (framework preset: *Next.js*).
+2. Add **Environment Variables** (see next section).
+3. Deploy.
+4. Add your Vercel domain to Google OAuth (origins + redirect URI).
+
+---
+
+## Google OAuth setup
+
+**Google Cloud Console → APIs & Services → Credentials**
+
+- **Authorized JavaScript origins**
+  - `http://localhost:3000`
+  - `https://<your-project>.vercel.app`
+- **Authorized redirect URIs**
+  - `http://localhost:3000/api/auth/callback/google`
+  - `https://<your-project>.vercel.app/api/auth/callback/google`
+
+---
+
+## Environment variables
 
 ```env
 # NextAuth
@@ -176,120 +231,73 @@ CF_R2_ACCOUNT_ID=<id>
 CF_R2_ACCESS_KEY_ID=<key>
 CF_R2_SECRET_ACCESS_KEY=<secret>
 
-# App
-ADMIN_KEY=<your passphrase>
+# App access control
+ALLOWED_EMAILS=mom@example.com,dad@example.com,me@gmail.com
+# or
+ALLOWED_DOMAIN=familia.com
 ```
 
-### Production (Vercel → Project → Settings → Environment Variables)
+---
 
-```env
-NEXTAUTH_URL=https://<your-project>.vercel.app
-NEXTAUTH_SECRET=<openssl rand -base64 32>
+## API endpoints
 
-GOOGLE_CLIENT_ID=<...>
-GOOGLE_CLIENT_SECRET=<...>
+- `GET /api/reservations?month=YYYY-MM` — list reservations for a month.
+- `POST /api/reservations` — create (requires a valid signed-in session).  
+- `PUT /api/reservations/:id` — update (requires a valid signed-in session).  
+- `DELETE /api/reservations/:id` — delete (requires a valid signed-in session).  
 
-STORAGE_PROVIDER=R2
-BUCKET_NAME=<...>
-CF_R2_ACCOUNT_ID=<...>
-CF_R2_ACCESS_KEY_ID=<...>
-CF_R2_SECRET_ACCESS_KEY=<...>
+### Example
 
-ADMIN_KEY=<...>
+```bash
+# Create
+curl -s -X POST https://<domain>/api/reservations \  -H "Content-Type: application/json" \  --cookie "next-auth.session-token=<SESSION_TOKEN>" \  -d '{
+    "guestName": "Familia Souza",
+    "partySize": 3,
+    "checkIn": "2025-09-01",
+    "checkOut": "2025-09-02",
+    "breakfastIncluded": true,
+    "nightlyRate": 60,
+    "breakfastPerPersonPerNight": 10
+  }'
 ```
 
-### `next.config.js` (avatars from Google)
+---
+
+## Troubleshooting
+
+- **“Invalid Compact JWE”** → set `NEXTAUTH_SECRET`.
+- **Avatar blocked** → add Google avatar hosts to `next.config.js` (see below).
+- **401 Unauthorized** → you’re not signed in or not allowlisted.
+- **403 Forbidden** → email not in `ALLOWED_EMAILS` / `ALLOWED_DOMAIN`.
+- **403 / 404 storage** → bucket name or IAM policy incorrect.
+- **Google OAuth error** → production origins/redirects not added.
+
+### `next.config.js` (Google avatars)
 ```js
 module.exports = {
   images: {
-    domains: ['lh3.googleusercontent.com','lh4.googleusercontent.com','lh5.googleusercontent.com'],
+    domains: [
+      'lh3.googleusercontent.com',
+      'lh4.googleusercontent.com',
+      'lh5.googleusercontent.com'
+    ],
   },
 };
 ```
 
 ---
 
-## 🔑 Google OAuth Setup
+## Roadmap (planned)
 
-In **Google Cloud Console → APIs & Services → Credentials**:
-
-- **Authorized JavaScript origins**
-  - `http://localhost:3000`
-  - `https://<your-project>.vercel.app`
-
-- **Authorized redirect URIs**
-  - `http://localhost:3000/api/auth/callback/google`
-  - `https://<your-project>.vercel.app/api/auth/callback/google`
-
----
-
-## 🧪 Run Locally
-
-```bash
-# install
-npm i
-
-# dev server
-npm run dev
-# http://localhost:3000
-
-# build & start (prod mode)
-npm run build
-npm start
-```
-
----
-
-## 🚀 Deploy (Vercel)
-
-1. Import the GitHub repository in Vercel.  
-2. Framework preset: **Next.js**.  
-3. Add **Environment Variables** (Production) as above.  
-4. Deploy.  
-5. Add your Vercel domain to Google OAuth (origins + redirect URI).
-
----
-
-## 🔌 API Endpoints
-
-- `GET /api/reservations?month=YYYY-MM` — list reservations for a month.
-- `POST /api/reservations` — create (requires `x-admin-key`).  
-- `PUT /api/reservations/:id` — update (requires `x-admin-key`).  
-- `DELETE /api/reservations/:id` — delete (requires `x-admin-key`).  
-- `GET /api/reservations/:id/ics` — download `.ics` for that reservation.
-
-All responses are JSON unless noted.
-
----
-
-## 🔁 Git Workflow
-
-- `main` — production‑ready.  
-- `develop` — integration branch.  
-- `feat/<name>` & `fix/<name>` for features/bugs → PR to `develop` → squash merge → release to `main`.
-
----
-
-## 🧯 Troubleshooting
-
-- **“Invalid Compact JWE”** → set `NEXTAUTH_SECRET`.  
-- **Avatar blocked** → add `lh3.googleusercontent.com` (and friends) to `next.config.js`.  
-- **401 on write** → missing or wrong `x-admin-key`.  
-- **403 / 404 with storage** → wrong bucket name or insufficient R2 token permissions.  
-- **Google OAuth error** → missing production origins/redirects.
-
----
-
-## 📅 Roadmap
-
-- Multi‑night reservations (date ranges).  
-- CSV export & monthly totals.  
-- Calendar feed for month (`/calendar.ics`).  
-- Share data between Google accounts.  
+- **Download per-reservation `.ics` event** (to sync with Google/Apple/Outlook).  
+- Multi‑night reservations (date ranges).
+- CSV export & monthly totals.
+- Calendar feed for month (`/calendar.ics`).
+- Share data between Google accounts.
 - PWA (offline / installable).
 
 ---
 
-## 📝 License
+## License
 
 GNU GENERAL PUBLIC LICENSE — see `LICENSE`.
