@@ -16,6 +16,7 @@ type ReservationItem = {
   breakfastPerPersonPerNight: number
   manualLodgingEnabled?: boolean
   manualLodgingTotal?: number
+  extraSpend?: number
   depositPaid: boolean
   notes?: string
 }
@@ -49,15 +50,17 @@ export default function ReservationEditor(props: {
     breakfastPerPersonPerNight: 0,
     manualLodgingEnabled: false,
     manualLodgingTotal: undefined,
+    extraSpend: 0,
     depositPaid: false,
     notes: '',
   })
 
   // draft strings so user can clear/leave empty while editing
-  const [partyStr, setPartyStr] = useState<string>('')          // Pessoas
-  const [nightlyStr, setNightlyStr] = useState<string>('')      // Diária por pessoa
-  const [breakfastStr, setBreakfastStr] = useState<string>('')  // Café por pessoa/noite
-  const [manualTotalStr, setManualTotalStr] = useState<string>('') // Total hospedagem manual
+  const [partyStr, setPartyStr] = useState<string>('')            // Pessoas
+  const [nightlyStr, setNightlyStr] = useState<string>('')        // Diária por pessoa
+  const [breakfastStr, setBreakfastStr] = useState<string>('')    // Café por pessoa/noite
+  const [manualTotalStr, setManualTotalStr] = useState<string>('')// Total hospedagem manual
+  const [extraSpendStr, setExtraSpendStr] = useState<string>('')  // Consumo extra
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -72,19 +75,17 @@ export default function ReservationEditor(props: {
         manualLodgingTotal: initial.manualLodgingTotal,
       }
       setM(next)
-      // load numeric drafts from existing values
       setPartyStr(String(initial.partySize ?? ''))
       setNightlyStr(String(initial.nightlyRate ?? ''))
       setBreakfastStr(String(initial.breakfastPerPersonPerNight ?? ''))
-      setManualTotalStr(
-        initial.manualLodgingEnabled ? String(initial.manualLodgingTotal ?? '') : ''
-      )
+      setManualTotalStr(initial.manualLodgingEnabled ? String(initial.manualLodgingTotal ?? '') : '')
+      setExtraSpendStr(String(initial.extraSpend ?? ''))
       initialSnapshotRef.current = snapshot(next, {
         partyStr: String(initial.partySize ?? ''),
         nightlyStr: String(initial.nightlyRate ?? ''),
         breakfastStr: String(initial.breakfastPerPersonPerNight ?? ''),
-        manualTotalStr:
-          initial.manualLodgingEnabled ? String(initial.manualLodgingTotal ?? '') : '',
+        manualTotalStr: initial.manualLodgingEnabled ? String(initial.manualLodgingTotal ?? '') : '',
+        extraSpendStr: String(initial.extraSpend ?? ''),
       })
     } else {
       const next: ReservationItem = {
@@ -98,20 +99,22 @@ export default function ReservationEditor(props: {
         breakfastPerPersonPerNight: 0,
         manualLodgingEnabled: false,
         manualLodgingTotal: undefined,
+        extraSpend: 0,
         depositPaid: false,
         notes: '',
       }
       setM(next)
-      // new form: leave numeric drafts empty
       setPartyStr('')
       setNightlyStr('')
       setBreakfastStr('')
       setManualTotalStr('')
+      setExtraSpendStr('')
       initialSnapshotRef.current = snapshot(next, {
         partyStr: '',
         nightlyStr: '',
         breakfastStr: '',
         manualTotalStr: '',
+        extraSpendStr: '',
       })
     }
     setError(null)
@@ -127,15 +130,15 @@ export default function ReservationEditor(props: {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, m, partyStr, nightlyStr, breakfastStr, manualTotalStr])
+  }, [open, m, partyStr, nightlyStr, breakfastStr, manualTotalStr, extraSpendStr])
 
   const isDirty = useMemo(() => {
     if (!open) return false
     return (
-      snapshot(m, { partyStr, nightlyStr, breakfastStr, manualTotalStr }) !==
+      snapshot(m, { partyStr, nightlyStr, breakfastStr, manualTotalStr, extraSpendStr }) !==
       initialSnapshotRef.current
     )
-  }, [open, m, partyStr, nightlyStr, breakfastStr, manualTotalStr])
+  }, [open, m, partyStr, nightlyStr, breakfastStr, manualTotalStr, extraSpendStr])
 
   useEffect(() => {
     onDirtyChange?.(!!isDirty)
@@ -148,6 +151,7 @@ export default function ReservationEditor(props: {
   const nightlyNum = numOrNaN(nightlyStr)
   const breakfastNum = numOrNaN(breakfastStr)
   const manualTotalNum = numOrNaN(manualTotalStr)
+  const extraSpendNum = numOrNaN(extraSpendStr)
 
   const computedTotal = useMemo(() => {
     const lodging = m.manualLodgingEnabled
@@ -158,8 +162,10 @@ export default function ReservationEditor(props: {
       ? nights * (isNaN(partySizeNum) ? 0 : partySizeNum) * (isNaN(breakfastNum) ? 0 : breakfastNum)
       : 0
 
-    return round2(lodging + breakfast)
-  }, [m.manualLodgingEnabled, m.breakfastIncluded, nights, partySizeNum, nightlyNum, breakfastNum, manualTotalNum])
+    const extra = isNaN(extraSpendNum) ? 0 : extraSpendNum
+
+    return round2(lodging + breakfast + extra)
+  }, [m.manualLodgingEnabled, m.breakfastIncluded, nights, partySizeNum, nightlyNum, breakfastNum, manualTotalNum, extraSpendNum])
 
   const computedDeposit = useMemo(() => round2(computedTotal * 0.5), [computedTotal])
 
@@ -183,6 +189,7 @@ export default function ReservationEditor(props: {
       const nightly = numOrNaN(nightlyStr)
       const breakfast = numOrNaN(breakfastStr)
       const manualTotal = numOrNaN(manualTotalStr)
+      const extraSpend = numOrNaN(extraSpendStr)
 
       if (isNaN(party) || party < 1) throw new Error('Informe o nº de pessoas')
 
@@ -200,6 +207,10 @@ export default function ReservationEditor(props: {
         throw new Error('Informe o valor do café')
       }
 
+      if (!isNaN(extraSpend) && extraSpend < 0) {
+        throw new Error('Consumo extra não pode ser negativo')
+      }
+
       const payload = {
         ...m,
         partySize: party,
@@ -210,6 +221,7 @@ export default function ReservationEditor(props: {
         manualLodgingTotal: m.manualLodgingEnabled
           ? (isNaN(manualTotal) ? 0 : manualTotal)
           : undefined,
+        extraSpend: isNaN(extraSpend) ? 0 : extraSpend,
       }
 
       const res = await fetch(
@@ -242,6 +254,7 @@ export default function ReservationEditor(props: {
     /^\d{4}-\d{2}-\d{2}$/.test(m.checkIn) &&
     (partyStr === '' || intOrNaN(partyStr) >= 1) &&
     (!m.manualLodgingEnabled || manualTotalStr === '' || numOrNaN(manualTotalStr) >= 0) &&
+    (extraSpendStr === '' || numOrNaN(extraSpendStr) >= 0) &&
     canWrite
 
   return (
@@ -349,6 +362,18 @@ export default function ReservationEditor(props: {
                 placeholder="ex: 10"
                 value={breakfastStr}
                 onChange={(e) => setBreakfastStr(e.target.value)}
+                disabled={!canWrite}
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span>Consumo extra (R$)</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="ex: 50"
+                value={extraSpendStr}
+                onChange={(e) => setExtraSpendStr(e.target.value)}
                 disabled={!canWrite}
               />
             </label>
@@ -466,7 +491,10 @@ export default function ReservationEditor(props: {
   )
 }
 
-function snapshot(m: ReservationItem, drafts: { partyStr: string; nightlyStr: string; breakfastStr: string; manualTotalStr: string }) {
+function snapshot(
+  m: ReservationItem,
+  drafts: { partyStr: string; nightlyStr: string; breakfastStr: string; manualTotalStr: string; extraSpendStr: string }
+) {
   return JSON.stringify({ m, drafts })
 }
 

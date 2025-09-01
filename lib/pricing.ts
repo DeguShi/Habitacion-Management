@@ -11,7 +11,8 @@ export function calcTotal(
   breakfastIncluded: boolean,
   partySize: number,
   breakfastPerPersonPerNight: number,
-  lodgingOverride: number | null = null // NEW
+  lodgingOverride: number | null = null,
+  extraSpend: number | null = null
 ): number {
   const lodging =
     lodgingOverride != null
@@ -22,7 +23,9 @@ export function calcTotal(
     ? nights * partySize * breakfastPerPersonPerNight
     : 0;
 
-  return round2(lodging + breakfast);
+  const extra = extraSpend != null ? Number(extraSpend) : 0;
+
+  return round2(lodging + breakfast + extra);
 }
 
 function round2(n: number) {
