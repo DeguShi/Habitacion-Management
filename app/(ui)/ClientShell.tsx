@@ -23,6 +23,7 @@ type ReservationItem = {
   manualLodgingTotal?: number
   extraSpend?: number
   notes?: string
+  birthDate?: string
 }
 
 function todayISO() {
@@ -401,10 +402,10 @@ export default function ClientShell({ canWrite = false }: ClientShellProps) {
         })
         return
       } catch {
-        // fall through to download
+        // fall through to download if sharing is cancelled or unsupported
       }
     }
-    //downloadBlob(file.name, blob)
+    // Intentionally no auto-download when sharing fails; use the Download button instead.
   }
 
   async function saveReservationCard(r: ReservationItem) {
@@ -543,7 +544,6 @@ export default function ClientShell({ canWrite = false }: ClientShellProps) {
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Detalhes da reserva</h3>
               <div className="flex items-center gap-2">
-                {/* Edit kept disabled for now */}
                 {/* <IconButton title={canWrite ? 'Editar' : 'Somente leitura'} onClick={() => openEdit(selectedReservation)} disabled={!canWrite}>
                   <Settings size={18} />
                 </IconButton> */}
@@ -596,6 +596,13 @@ export default function ClientShell({ canWrite = false }: ClientShellProps) {
                     <dt className="text-gray-500">Contato</dt>
                     <dd className="font-medium">{r.phone || r.email || '-'}</dd>
                   </div>
+
+                  {r.birthDate && (
+                    <div>
+                      <dt className="text-gray-500">Aniversário</dt>
+                      <dd className="font-medium">{formatBirthForView(r.birthDate)}</dd>
+                    </div>
+                  )}
 
                   <div className="md:col-span-2 rounded-lg bg-gray-50 p-3">
                     <div className="font-medium mb-1">Valor</div>
@@ -674,4 +681,10 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.arcTo(x, y + h, x, y, rr)
   ctx.arcTo(x, y, x + w, y, rr)
   ctx.closePath()
+}
+
+function formatBirthForView(s: string) {
+  if (!s) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return formatBR(s)
+  return s
 }
