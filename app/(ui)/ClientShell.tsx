@@ -361,10 +361,10 @@ export default function ClientShell({ canWrite = false }: ClientShellProps) {
 
     row('Cliente', r.guestName)
     row('Personas', String(r.partySize))
-    row('Check-in', esDate(r.checkIn))
-    row('Check-out', esDate(r.checkOut))
+    row('Check-in', formatBR(r.checkIn))
+    row('Check-out', formatBR(r.checkOut))
     row('Desayuno', r.breakfastIncluded ? 'Sí' : 'No')
-    row('Depósito', r.depositPaid ? 'Pagado' : 'Pendiente')
+    row('Depósito (50%)', r.depositPaid ? 'Pagado' : 'Pendiente')
 
     // Total
     y += 8
