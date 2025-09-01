@@ -404,7 +404,7 @@ export default function ClientShell({ canWrite = false }: ClientShellProps) {
         // fall through to download
       }
     }
-    downloadBlob(file.name, blob)
+    //downloadBlob(file.name, blob)
   }
 
   async function saveReservationCard(r: ReservationItem) {
