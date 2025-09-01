@@ -7,7 +7,7 @@ A minimalist, single‑purpose app to register **one‑night** reservations for 
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](#)
 
 > UI branding: **“Habitación Familiar de Lisiani y Airton.”**  
-> **Access control:** Authentication is open to all Google accounts, but authorization to create [items] is restricted to an **allowlist**." 
+> **Access control:** Authentication is open to all Google accounts, but authorization to create [items] is restricted to an **allowlist**.
 
 > **Live Demo:** replace this link with your Vercel URL: `https://habitation-management.vercel.app`
 
@@ -16,50 +16,52 @@ A minimalist, single‑purpose app to register **one‑night** reservations for 
 ## Features (current)
 - **One‑step reservation:** guest name, party size, **check‑in (always 1 night)**, optional breakfast, contacts, notes.
 - **Automatic pricing** *or* **manual lodging total** (for discounts).
+- **Extra charges (consumo extra)** can be added and are **summed directly** into the total.
 - **Deposit (50%)** with **paid / pending** status.
 - **Calendar with occupancy colors** (max 3 rooms):
   - 1 reservation → pastel yellow; 2 → mellow orange; 3 → deep red (full).
 - **Day view** with all reservations and actions (👁 view, ⚙ edit, 🗑️ delete with confirmation).
 - **Upcoming list** from today onward (scroll if long).
 - **View / Edit never overlap:** prompts to save/discard changes before switching.
+- **Reservation confirmation**: share or download a styled confirmation PDF/image to send to the guest.
 
 ---
 
 ## ⚡ Quick Start
 1. **Sign in with Google**. Access is limited to allowlisted emails.
 2. **Pick a date** on the calendar.
-3. **Fill guest details** — name, party size, optional breakfast, phone/email, notes.
+3. **Fill guest details** — name, party size, optional breakfast, phone/email, notes, optional **consumo extra**.
 4. Choose **automatic** or **manual** lodging total.
 5. Set **deposit (50%)** as paid or pending.
-6. **Save** — the reservation appears in the **Day view** and the **Upcoming** list.
+6. **Save** — the reservation appears in the **Day view**, **Upcoming list**, and can generate a **confirmation** for the guest.
 
 ---
 
 ## Screenshots
 
-**Onboarding & sign‑in**
-<br/>
-<img src="./public/readme/01-onboarding.png" alt="Onboarding screen with features and Google sign-in" width="820" />
+**Onboarding & sign‑in**  
+<img src="./public/readme/01-onboarding.png" width="820" />
 
-**Calendar with occupancy colors**
-<br/>
-<img src="./public/readme/02-calendar.png" alt="Monthly calendar with colored occupancy indicators" width="820" />
+**Calendar with occupancy colors**  
+<img src="./public/readme/02-calendar.png" width="820" />
 
-**Create a new reservation**
-<br/>
-<img src="./public/readme/03-new-reservation.png" alt="New reservation modal" width="820" />
+**Create a new reservation**  
+<img src="./public/readme/03-5-new-reservation.png" width="820" />
 
-**Day view / reservation list**
-<br/>
-<img src="./public/readme/04-day-list.png" alt="Day list with actions for each reservation" width="820" />
+**Day view / reservation list**  
+<img src="./public/readme/04-day-list.png" width="820" />
 
-**Reservation details modal**
-<br/>
-<img src="./public/readme/05-reservation-details.png" alt="Reservation details read-only modal" width="820" />
+**Reservation details modal**  
+<img src="./public/readme/05-5-details.png" width="820" />
 
-**Upcoming reservations list**
-<br/>
-<img src="./public/readme/06-upcoming-list.png" alt="Upcoming reservations scrolling list" width="820" />
+**Upcoming reservations list**  
+<img src="./public/readme/06-upcoming-list.png" width="820" />
+
+**Downloadable confirmation**  
+<img src="./public/readme/07-confirmacion-download.png" width="820" />
+
+**Edit reservation with extra charges**  
+<img src="./public/readme/08-edit-reservation.png" width="820" />
 
 ---
 
@@ -151,6 +153,7 @@ type ReservationItem = {
   breakfastPerPersonPerNight: number
   manualLodgingEnabled?: boolean
   manualLodgingTotal?: number
+  extraCharges?: number
   depositPaid: boolean
   notes?: string
 }
@@ -164,7 +167,7 @@ type ReservationItem = {
 ```text
 lodging = nights * (nightlyPerPerson * partySize)
 breakfast = breakfastIncluded ? nights * partySize * breakfastPerPersonPerNight : 0
-total = lodging + breakfast
+total = lodging + breakfast + extraCharges
 deposit = 0.5 * total
 ```
 
@@ -172,7 +175,7 @@ deposit = 0.5 * total
 ```text
 lodging = manualLodgingTotal
 breakfast = breakfastIncluded ? nights * partySize * breakfastPerPersonPerNight : 0
-total = lodging + breakfast
+total = lodging + breakfast + extraCharges
 deposit = 0.5 * total
 ```
 
@@ -250,14 +253,18 @@ ALLOWED_DOMAIN=familia.com
 
 ```bash
 # Create
-curl -s -X POST https://<domain>/api/reservations \  -H "Content-Type: application/json" \  --cookie "next-auth.session-token=<SESSION_TOKEN>" \  -d '{
+curl -s -X POST https://<domain>/api/reservations \\
+  -H "Content-Type: application/json" \\
+  --cookie "next-auth.session-token=<SESSION_TOKEN>" \\
+  -d '{
     "guestName": "Familia Souza",
     "partySize": 3,
     "checkIn": "2025-09-01",
     "checkOut": "2025-09-02",
     "breakfastIncluded": true,
     "nightlyRate": 60,
-    "breakfastPerPersonPerNight": 10
+    "breakfastPerPersonPerNight": 10,
+    "extraCharges": 15
   }'
 ```
 
