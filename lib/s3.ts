@@ -57,7 +57,40 @@ export async function getJson<T>(key: string): Promise<T | null> {
   }
 }
 
-export async function listReservationKeys(prefix = "reservations/") {
-  const res = await client.send(new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefix }));
-  return (res.Contents || []).map(o => o.Key!).filter(Boolean);
+/**
+ * Lists ALL object keys under a given prefix, handling S3/R2 pagination.
+ *
+ * IMPORTANT: S3 ListObjectsV2 returns a maximum of 1000 objects per page.
+ * This function iterates through all pages using ContinuationToken to ensure
+ * no objects are silently missed. This is critical for users with large
+ * numbers of reservations and for complete backup exports.
+ *
+ * @param prefix - The S3 key prefix to list (e.g., "users/<userId>/reservations/")
+ * @returns Promise<string[]> - Array of all object keys under the prefix
+ */
+export async function listReservationKeys(prefix = "reservations/"): Promise<string[]> {
+  const allKeys: string[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const response = await client.send(
+      new ListObjectsV2Command({
+        Bucket: BUCKET,
+        Prefix: prefix,
+        ContinuationToken: continuationToken,
+      })
+    );
+
+    // Extract keys from this page, filtering out any undefined values
+    const pageKeys = (response.Contents || [])
+      .map((obj) => obj.Key)
+      .filter((key): key is string => typeof key === "string");
+
+    allKeys.push(...pageKeys);
+
+    // Continue if there are more pages
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken);
+
+  return allKeys;
 }
