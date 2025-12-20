@@ -3,11 +3,67 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSession, signIn, signOut } from 'next-auth/react'
-import { LogOut } from 'lucide-react'
+import { LogOut, Download, Loader2 } from 'lucide-react'
+import { useState } from 'react'
 
 export default function Navbar() {
   const { data: session } = useSession()
   const avatar = session?.user?.image
+  const [exporting, setExporting] = useState(false)
+  const [exportResult, setExportResult] = useState<{ success: boolean; count?: number } | null>(null)
+
+  async function handleExportBackup() {
+    if (exporting) return
+    setExporting(true)
+    setExportResult(null)
+
+    try {
+      // Fetch both CSV and NDJSON
+      const [csvRes, ndjsonRes] = await Promise.all([
+        fetch('/api/backup/reservations.csv'),
+        fetch('/api/backup/reservations.ndjson'),
+      ])
+
+      if (!csvRes.ok || !ndjsonRes.ok) {
+        throw new Error('Export failed')
+      }
+
+      // Get export count from headers
+      const count = parseInt(csvRes.headers.get('X-Export-Count') || '0', 10)
+
+      // Download CSV
+      const csvBlob = await csvRes.blob()
+      const csvFilename = csvRes.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'backup.csv'
+      downloadBlob(csvBlob, csvFilename)
+
+      // Download NDJSON
+      const ndjsonBlob = await ndjsonRes.blob()
+      const ndjsonFilename = ndjsonRes.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'backup.ndjson'
+      downloadBlob(ndjsonBlob, ndjsonFilename)
+
+      setExportResult({ success: true, count })
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setExportResult(null), 3000)
+    } catch (err) {
+      console.error('Export failed:', err)
+      setExportResult({ success: false })
+      setTimeout(() => setExportResult(null), 5000)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
@@ -19,6 +75,37 @@ export default function Navbar() {
 
         {session?.user ? (
           <div className="flex items-center gap-3">
+            {/* Export result toast */}
+            {exportResult && (
+              <span
+                className={`text-xs px-2 py-1 rounded ${exportResult.success
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-700'
+                  }`}
+              >
+                {exportResult.success
+                  ? `✓ ${exportResult.count} reservas exportadas`
+                  : 'Falha ao exportar'}
+              </span>
+            )}
+
+            {/* Export backup button */}
+            <button
+              onClick={handleExportBackup}
+              disabled={exporting}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm active:translate-y-[1px] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Exportar backup (CSV + NDJSON)"
+            >
+              {exporting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              <span className="hidden sm:inline">
+                {exporting ? 'Exportando...' : 'Backup'}
+              </span>
+            </button>
+
             <div className="hidden sm:flex items-center gap-2">
               {avatar ? (
                 <Image
