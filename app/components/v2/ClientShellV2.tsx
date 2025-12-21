@@ -10,6 +10,7 @@ import CreateLeadSheet from '@/app/components/v2/CreateLeadSheet'
 import CreateActionSheet from '@/app/components/v2/CreateActionSheet'
 import ConfirmSheet from '@/app/components/v2/ConfirmSheet'
 import EditReservationSheet from '@/app/components/v2/EditReservationSheet'
+import ViewReservationSheet from '@/app/components/v2/ViewReservationSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
 import type { Contact } from '@/lib/contacts'
 import { deleteV2Record, listV2Records } from '@/lib/data/v2'
@@ -128,23 +129,15 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     const [createConfirmedOpen, setCreateConfirmedOpen] = useState(false)
     const [confirmingItem, setConfirmingItem] = useState<ReservationV2 | null>(null)
     const [editingItem, setEditingItem] = useState<ReservationV2 | null>(null)
+    const [viewingItem, setViewingItem] = useState<ReservationV2 | null>(null)
 
     // ============================================================
     // Handlers
     // ============================================================
 
-    // View reservation details
+    // View reservation details (opens ViewSheet)
     function handleViewReservation(r: ReservationV2) {
-        const info = [
-            `Hóspede: ${r.guestName}`,
-            `Pessoas: ${r.partySize}`,
-            `Check-in: ${r.checkIn}`,
-            `Check-out: ${r.checkOut}`,
-            `Total: R$ ${r.totalPrice}`,
-            r.phone ? `Tel: ${r.phone}` : '',
-            r.email ? `Email: ${r.email}` : '',
-        ].filter(Boolean).join('\n')
-        alert(info)
+        setViewingItem(r)
     }
 
     // Edit reservation
@@ -218,9 +211,11 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                         canWrite={canWrite}
                         waitingRecords={waitingRecords}
                         rejectedRecords={rejectedRecords}
+                        confirmedRecords={confirmedRecords}
                         loading={loadingInitial}
                         onConfirmWithDetails={handleConfirmWithDetails}
                         onRefresh={() => refreshRecords('em-espera-action')}
+                        onViewReservation={handleViewReservation}
                     />
                 )}
 
@@ -271,6 +266,7 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                     setActiveTab('confirmadas')
                 }}
                 item={confirmingItem}
+                confirmedRecords={confirmedRecords}
             />
 
             <EditReservationSheet
@@ -278,6 +274,16 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                 onClose={() => setEditingItem(null)}
                 onSaved={() => refreshRecords('edit')}
                 item={editingItem}
+            />
+
+            <ViewReservationSheet
+                open={!!viewingItem}
+                onClose={() => setViewingItem(null)}
+                onEdit={(item) => {
+                    setViewingItem(null)
+                    setEditingItem(item)
+                }}
+                item={viewingItem}
             />
         </div>
     )
