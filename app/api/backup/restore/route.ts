@@ -12,7 +12,8 @@
  * - All operations scoped to authenticated user's prefix
  * - Overwrite requires confirmOverwrite=true AND confirmText="OVERWRITE"
  * - File size limited to 10MB
- * - No type coercion, preserves raw data
+ * - V1 records are normalized to V2 by default (normalize=true)
+ * - normalize=false only allowed in restore-sandbox mode
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
         const sandboxId = formData.get("sandboxId") as string | null;
         const confirmOverwrite = formData.get("confirmOverwrite");
         const confirmText = formData.get("confirmText");
+        const normalizeParam = formData.get("normalize") as string | null;
 
         // 4. Validate file
         if (!file) {
@@ -81,7 +83,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 7. Gate overwrite mode
+        // 7. Handle normalize param (default: true)
+        // normalize=false is dangerous and only allowed in sandbox mode
+        const normalize = normalizeParam !== "false";
+        if (!normalize && targetPrefixMode !== "restore-sandbox") {
+            return NextResponse.json(
+                { error: "normalize=false is only allowed in restore-sandbox mode" },
+                { status: 400 }
+            );
+        }
+
+        // 8. Gate overwrite mode
         if (mode === "overwrite") {
             const confirmation = validateOverwriteConfirmation(confirmOverwrite, confirmText);
             if (!confirmation.valid) {
@@ -92,25 +104,25 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // 8. Read and parse file content
+        // 9. Read and parse file content
         const content = await file.text();
         const parseResult = parseNDJSON(content);
 
-        // 9. Determine target prefix
+        // 10. Determine target prefix
         const targetPrefix = getTargetPrefix(
             userId,
             targetPrefixMode as TargetPrefixMode,
             sandboxId || undefined
         );
 
-        // 10. Execute based on mode
+        // 11. Execute based on mode
         if (mode === "dry-run") {
             const result = await performDryRun(parseResult, targetPrefix);
             return NextResponse.json(result);
         }
 
         // create-only or overwrite
-        const result = await executeRestore(parseResult, targetPrefix, mode);
+        const result = await executeRestore(parseResult, targetPrefix, mode, normalize);
         return NextResponse.json(result);
     } catch (error) {
         console.error("[backup/restore] Restore failed:", error);
@@ -120,3 +132,4 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+

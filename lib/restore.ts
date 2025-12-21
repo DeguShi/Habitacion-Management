@@ -12,6 +12,7 @@
  */
 
 import { keyExists, putJson } from "@/lib/s3";
+import { detectSchemaVersion, normalizeV1ToV2 } from "@/lib/normalize";
 
 // Maximum file size (10MB)
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
@@ -75,6 +76,9 @@ export interface DryRunResult {
     wouldOverwriteCount: number;
     conflicts: string[];
     targetPrefix: string;
+    v1RecordsCount: number;
+    v2RecordsCount: number;
+    wouldNormalizeCount: number;
 }
 
 /**
@@ -90,6 +94,7 @@ export interface RestoreResult {
     errorCount: number;
     errors: Array<{ id: string; error: string }>;
     targetPrefix: string;
+    normalizedCount: number;
 }
 
 /**
@@ -207,7 +212,7 @@ function generateSandboxId(): string {
 
 /**
  * Performs a dry-run analysis without writing anything.
- * Checks for conflicts with existing records.
+ * Checks for conflicts with existing records and detects schema versions.
  */
 export async function performDryRun(
     parseResult: ParseResult,
@@ -216,9 +221,11 @@ export async function performDryRun(
     const conflicts: string[] = [];
     let wouldCreateCount = 0;
     let wouldOverwriteCount = 0;
+    let v1RecordsCount = 0;
+    let v2RecordsCount = 0;
 
-    // Check each valid record for conflicts
-    for (const [id] of parseResult.validRecords) {
+    // Check each valid record for conflicts and detect schema versions
+    for (const [id, { data }] of parseResult.validRecords) {
         const key = `${targetPrefix}${id}.json`;
         const exists = await keyExists(key);
         if (exists) {
@@ -228,6 +235,14 @@ export async function performDryRun(
             }
         } else {
             wouldCreateCount++;
+        }
+
+        // Detect schema version
+        const detection = detectSchemaVersion(data);
+        if (detection.valid && detection.version === 2) {
+            v2RecordsCount++;
+        } else {
+            v1RecordsCount++;
         }
     }
 
@@ -245,6 +260,9 @@ export async function performDryRun(
         wouldOverwriteCount,
         conflicts,
         targetPrefix,
+        v1RecordsCount,
+        v2RecordsCount,
+        wouldNormalizeCount: v1RecordsCount, // All v1 records would be normalized
     };
 }
 
@@ -253,22 +271,27 @@ export async function performDryRun(
  * - create-only: Only writes records that don't exist
  * - overwrite: Writes all records, overwriting existing
  *
- * IMPORTANT: RAW OBJECT PRESERVATION
+ * V2 NORMALIZATION:
+ * - When normalize=true (default): v1 records are normalized to v2 before writing
+ * - When normalize=false: writes raw objects as-is (dangerous, use in sandbox only)
+ *
+ * IMPORTANT: RAW OBJECT PRESERVATION (when not normalizing)
  * - Writes objects EXACTLY as parsed from NDJSON
  * - NO Zod validation/parsing (would strip unknown keys)
  * - NO type coercion (preserves exact values)
  * - NO pricing recalculation
- * This guarantees lossless restoration of backup data.
  */
 export async function executeRestore(
     parseResult: ParseResult,
     targetPrefix: string,
-    mode: "create-only" | "overwrite"
+    mode: "create-only" | "overwrite",
+    normalize: boolean = true
 ): Promise<RestoreResult> {
     let createdCount = 0;
     let skippedCount = 0;
     let overwrittenCount = 0;
     let errorCount = 0;
+    let normalizedCount = 0;
     const errors: Array<{ id: string; error: string }> = [];
 
     for (const [id, { data }] of parseResult.validRecords) {
@@ -282,8 +305,21 @@ export async function executeRestore(
                 continue;
             }
 
-            // Write the record (raw, no transformation)
-            await putJson(key, data);
+            // Determine what to write
+            let dataToWrite = data as Record<string, unknown>;
+
+            if (normalize) {
+                // Detect version and normalize v1 to v2
+                const detection = detectSchemaVersion(data);
+                if (detection.valid && detection.version === 1) {
+                    dataToWrite = normalizeV1ToV2(data as Record<string, unknown>);
+                    normalizedCount++;
+                }
+                // v2 records pass through unchanged
+            }
+
+            // Write the record
+            await putJson(key, dataToWrite);
 
             if (exists) {
                 overwrittenCount++;
@@ -309,6 +345,7 @@ export async function executeRestore(
         errorCount,
         errors,
         targetPrefix,
+        normalizedCount,
     };
 }
 
