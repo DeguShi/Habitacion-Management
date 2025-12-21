@@ -8,7 +8,7 @@
  */
 
 import type { Reservation } from "@/core/entities";
-import { listReservationKeys, getJson } from "@/lib/s3";
+import { listReservationKeys, getJson, getRawJson } from "@/lib/s3";
 
 /**
  * All CSV columns in the required order.
@@ -41,10 +41,21 @@ export const CSV_COLUMNS = [
 export type CSVColumn = (typeof CSV_COLUMNS)[number];
 
 /**
- * Result of fetching all reservations for export.
+ * Result of fetching typed reservations for CSV export.
  */
 export interface ExportResult {
     reservations: Reservation[];
+    keyCount: number;
+    exportedCount: number;
+    failedKeys: string[];
+}
+
+/**
+ * Result of fetching raw objects for lossless NDJSON export.
+ * Uses unknown[] to preserve ALL fields including unknown keys.
+ */
+export interface RawExportResult {
+    rawObjects: unknown[];
     keyCount: number;
     exportedCount: number;
     failedKeys: string[];
@@ -108,11 +119,14 @@ export function generateCSV(reservations: Reservation[]): string {
 }
 
 /**
- * Generates NDJSON (Newline Delimited JSON) from reservations.
- * One JSON object per line, lossless.
+ * Generates NDJSON (Newline Delimited JSON) from raw objects.
+ * One JSON object per line, TRULY LOSSLESS.
+ *
+ * IMPORTANT: Accepts unknown[] to preserve ALL fields including
+ * unknown keys not in the current Reservation schema.
  */
-export function generateNDJSON(reservations: Reservation[]): string {
-    return reservations.map((r) => JSON.stringify(r)).join("\n");
+export function generateNDJSON(objects: unknown[]): string {
+    return objects.map((obj) => JSON.stringify(obj)).join("\n");
 }
 
 /**
@@ -132,7 +146,7 @@ export function getBackupTimestamp(): string {
 
 /**
  * Fetches all reservations for a user with controlled concurrency.
- * Uses a pool pattern to avoid overwhelming the storage backend.
+ * Returns TYPED Reservation objects for CSV export.
  *
  * @param userId - The user's storage key (from userKeyFromEmail)
  * @param concurrency - Maximum concurrent fetch operations (default: 5)
@@ -184,3 +198,65 @@ export async function fetchAllReservations(
         failedKeys,
     };
 }
+
+/**
+ * Fetches all reservations as RAW objects for lossless NDJSON export.
+ * Does NOT apply any schema validation or type coercion.
+ * Preserves ALL fields exactly as stored, including unknown keys.
+ *
+ * @param userId - The user's storage key (from userKeyFromEmail)
+ * @param concurrency - Maximum concurrent fetch operations (default: 5)
+ */
+export async function fetchAllReservationsRaw(
+    userId: string,
+    concurrency = 5
+): Promise<RawExportResult> {
+    const prefix = `users/${userId}/reservations/`;
+    const keys = await listReservationKeys(prefix);
+
+    const rawObjects: unknown[] = [];
+    const failedKeys: string[] = [];
+
+    // Process in batches for controlled concurrency
+    for (let i = 0; i < keys.length; i += concurrency) {
+        const batch = keys.slice(i, i + concurrency);
+        const results = await Promise.all(
+            batch.map(async (key) => {
+                try {
+                    const data = await getRawJson(key);
+                    return { key, data, success: true as const };
+                } catch {
+                    return { key, data: null, success: false as const };
+                }
+            })
+        );
+
+        for (const result of results) {
+            if (result.success && result.data !== null) {
+                rawObjects.push(result.data);
+            } else {
+                failedKeys.push(result.key);
+            }
+        }
+    }
+
+    // Sort by checkIn then by id for deterministic ordering
+    // Cast to any for sorting since we're dealing with unknown objects
+    rawObjects.sort((a, b) => {
+        const aObj = a as Record<string, unknown>;
+        const bObj = b as Record<string, unknown>;
+        const aCheckIn = String(aObj.checkIn || "");
+        const bCheckIn = String(bObj.checkIn || "");
+        const dateCompare = aCheckIn.localeCompare(bCheckIn);
+        if (dateCompare !== 0) return dateCompare;
+        return String(aObj.id || "").localeCompare(String(bObj.id || ""));
+    });
+
+    return {
+        rawObjects,
+        keyCount: keys.length,
+        exportedCount: rawObjects.length,
+        failedKeys,
+    };
+}
+

@@ -3,7 +3,9 @@
  *
  * Exports all reservations for the authenticated user as an NDJSON file.
  * NDJSON = Newline Delimited JSON, one object per line.
- * This format is lossless and preserves all fields exactly as stored.
+ *
+ * TRULY LOSSLESS: Uses raw JSON objects without type coercion,
+ * preserving ALL fields including unknown keys not in current schema.
  *
  * Read-only operation; does not modify any storage.
  */
@@ -12,7 +14,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth.config";
 import { userKeyFromEmail } from "@/lib/user";
-import { fetchAllReservations, generateNDJSON, getBackupTimestamp } from "@/lib/backup";
+import { fetchAllReservationsRaw, generateNDJSON, getBackupTimestamp } from "@/lib/backup";
 
 export async function GET() {
     // 1. Validate session
@@ -27,11 +29,11 @@ export async function GET() {
     const userId = userKeyFromEmail(email);
 
     try {
-        // 3. Fetch all reservations
-        const result = await fetchAllReservations(userId);
+        // 3. Fetch all reservations as RAW objects (lossless)
+        const result = await fetchAllReservationsRaw(userId);
 
-        // 4. Generate NDJSON
-        const ndjson = generateNDJSON(result.reservations);
+        // 4. Generate NDJSON from raw objects
+        const ndjson = generateNDJSON(result.rawObjects);
 
         // 5. Create filename with timestamp
         const timestamp = getBackupTimestamp();
@@ -56,3 +58,4 @@ export async function GET() {
         );
     }
 }
+

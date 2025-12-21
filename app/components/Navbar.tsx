@@ -6,11 +6,17 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 import { LogOut, Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 
+type ExportResultState = {
+  status: 'success' | 'warning' | 'error';
+  count?: number;
+  failedCount?: number;
+} | null;
+
 export default function Navbar() {
   const { data: session } = useSession()
   const avatar = session?.user?.image
   const [exporting, setExporting] = useState(false)
-  const [exportResult, setExportResult] = useState<{ success: boolean; count?: number } | null>(null)
+  const [exportResult, setExportResult] = useState<ExportResultState>(null)
 
   async function handleExportBackup() {
     if (exporting) return
@@ -18,36 +24,48 @@ export default function Navbar() {
     setExportResult(null)
 
     try {
-      // Fetch both CSV and NDJSON
-      const [csvRes, ndjsonRes] = await Promise.all([
-        fetch('/api/backup/reservations.csv'),
-        fetch('/api/backup/reservations.ndjson'),
-      ])
-
-      if (!csvRes.ok || !ndjsonRes.ok) {
-        throw new Error('Export failed')
+      // Fetch CSV first
+      const csvRes = await fetch('/api/backup/reservations.csv')
+      if (!csvRes.ok) {
+        throw new Error('CSV export failed')
       }
 
-      // Get export count from headers
+      // Get counts from CSV response
       const count = parseInt(csvRes.headers.get('X-Export-Count') || '0', 10)
+      const failedCount = parseInt(csvRes.headers.get('X-Export-Failed-Count') || '0', 10)
 
-      // Download CSV
+      // Download CSV immediately
       const csvBlob = await csvRes.blob()
       const csvFilename = csvRes.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'backup.csv'
       downloadBlob(csvBlob, csvFilename)
+
+      // Wait 500ms before second download to avoid browser blocking
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Fetch NDJSON second
+      const ndjsonRes = await fetch('/api/backup/reservations.ndjson')
+      if (!ndjsonRes.ok) {
+        throw new Error('NDJSON export failed')
+      }
 
       // Download NDJSON
       const ndjsonBlob = await ndjsonRes.blob()
       const ndjsonFilename = ndjsonRes.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'backup.ndjson'
       downloadBlob(ndjsonBlob, ndjsonFilename)
 
-      setExportResult({ success: true, count })
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setExportResult(null), 3000)
+      // Determine result status based on failed count
+      if (failedCount > 0) {
+        // Partial export: some reservations failed to fetch
+        setExportResult({ status: 'warning', count, failedCount })
+        setTimeout(() => setExportResult(null), 8000) // Longer display for warning
+      } else {
+        // Full success
+        setExportResult({ status: 'success', count })
+        setTimeout(() => setExportResult(null), 3000)
+      }
     } catch (err) {
       console.error('Export failed:', err)
-      setExportResult({ success: false })
+      setExportResult({ status: 'error' })
       setTimeout(() => setExportResult(null), 5000)
     } finally {
       setExporting(false)
@@ -78,14 +96,18 @@ export default function Navbar() {
             {/* Export result toast */}
             {exportResult && (
               <span
-                className={`text-xs px-2 py-1 rounded ${exportResult.success
+                className={`text-xs px-2 py-1 rounded ${exportResult.status === 'success'
                     ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
+                    : exportResult.status === 'warning'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-red-100 text-red-700'
                   }`}
               >
-                {exportResult.success
+                {exportResult.status === 'success'
                   ? `✓ ${exportResult.count} reservas exportadas`
-                  : 'Falha ao exportar'}
+                  : exportResult.status === 'warning'
+                    ? `⚠ Exportação parcial: ${exportResult.count} ok, ${exportResult.failedCount} falharam`
+                    : 'Falha ao exportar'}
               </span>
             )}
 
