@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
 const PROVIDER = process.env.STORAGE_PROVIDER ?? "S3";
 export const BUCKET = process.env.BUCKET_NAME || process.env.AWS_S3_BUCKET!;
@@ -69,6 +69,45 @@ export async function getRawJson(key: string): Promise<unknown | null> {
     return JSON.parse(text);
   } catch (e: any) {
     if (e?.$metadata?.httpStatusCode === 404) return null;
+    throw e;
+  }
+}
+
+/**
+ * Checks if an object exists at the given key WITHOUT fetching its content.
+ * Uses HeadObject for efficiency (no body transfer).
+ *
+ * SAFETY:
+ * - Returns false for 404/NotFound/NoSuchKey
+ * - THROWS on 401/403 (auth errors) — never silently ignore permission issues
+ *
+ * @param key - The S3 key to check
+ * @returns Promise<boolean> - true if exists, false if not found
+ */
+export async function keyExists(key: string): Promise<boolean> {
+  try {
+    await client.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
+    return true;
+  } catch (e: any) {
+    const status = e?.$metadata?.httpStatusCode;
+    const errorName = e?.name || e?.Code || "";
+
+    // 404 or NotFound/NoSuchKey = doesn't exist, return false
+    if (
+      status === 404 ||
+      errorName === "NotFound" ||
+      errorName === "NoSuchKey" ||
+      errorName === "404"
+    ) {
+      return false;
+    }
+
+    // Auth errors (401, 403) must fail hard
+    if (status === 401 || status === 403) {
+      throw new Error(`S3 auth error (${status}): check credentials and bucket permissions`);
+    }
+
+    // Any other error: propagate
     throw e;
   }
 }
