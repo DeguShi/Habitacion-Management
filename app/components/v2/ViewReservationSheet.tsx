@@ -152,15 +152,40 @@ export default function ViewReservationSheet({
                         </span>
                     </div>
                     {totalPaid > 0 && (
-                        <div className="flex justify-between items-center mt-2 text-sm">
-                            <span className="text-gray-500">Pago</span>
-                            <span className="text-green-600">{formatMoneyBRL(totalPaid)}</span>
-                        </div>
-                    )}
-                    {record.payment?.deposit?.paid && (
-                        <div className="text-xs text-green-600 mt-1">✓ Sinal pago</div>
+                        <>
+                            <div className="flex justify-between items-center mt-2 text-sm">
+                                <span className="text-gray-500">Pago</span>
+                                <span className="text-green-600">{formatMoneyBRL(totalPaid)}</span>
+                            </div>
+                            <div className="text-xs text-green-600 mt-1">✓ Sinal pago</div>
+                        </>
                     )}
                 </div>
+
+                {/* Pagamentos */}
+                {record.payment?.events && record.payment.events.length > 0 && (
+                    <div className="bg-gray-50 rounded-xl p-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Pagamentos</h4>
+                        <div className="space-y-2">
+                            {record.payment.events.map((event, idx) => (
+                                <div key={event.id || idx} className="flex justify-between text-sm">
+                                    <div>
+                                        <span className="text-gray-700">{event.note || 'Pagamento'}</span>
+                                        {event.date && (
+                                            <span className="text-gray-400 text-xs ml-2">
+                                                {formatDateBR(event.date)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="font-medium text-green-700">
+                                        {formatMoneyBRL(event.amount)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
 
                 {/* Notes */}
                 {(record.notesInternal || record.notesGuest) && (

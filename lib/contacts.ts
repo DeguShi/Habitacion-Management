@@ -167,3 +167,74 @@ export function getContactDisplay(contact: Contact): string {
     }
     return contact.name;
 }
+
+// ============================================================
+// Search Helpers (Phase 9)
+// ============================================================
+
+/**
+ * Normalizes a phone number for search (digits only)
+ */
+export function normalizePhoneForSearch(phone: string | undefined): string {
+    if (!phone) return '';
+    return phone.replace(/\D/g, '');
+}
+
+/**
+ * Builds a searchable text index from a contact
+ * Combines name, email, and phone digits for fast filtering
+ */
+export function buildContactSearchIndex(contact: Contact): string {
+    const parts: string[] = [];
+    parts.push(contact.name.toLowerCase());
+    if (contact.email) parts.push(contact.email.toLowerCase());
+    if (contact.phone) parts.push(normalizePhoneForSearch(contact.phone));
+    return parts.join(' ');
+}
+
+/**
+ * Searches contacts by query (name, phone, or email)
+ * Case-insensitive, phone matches digits-only
+ */
+export function searchContacts(contacts: Contact[], query: string): Contact[] {
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed) return contacts;
+
+    // If query looks like phone (has digits), also match digits-only
+    const queryDigits = trimmed.replace(/\D/g, '');
+
+    return contacts.filter(c => {
+        const index = buildContactSearchIndex(c);
+        // Match by text includes
+        if (index.includes(trimmed)) return true;
+        // Match by phone digits if query has digits
+        if (queryDigits && normalizePhoneForSearch(c.phone).includes(queryDigits)) return true;
+        return false;
+    });
+}
+
+/**
+ * Gets the best notes from a contact's reservations.
+ * Picks the most recent notesInternal (by checkIn date, most recent first).
+ */
+export function getBestNotesForContact(records: ReservationV2[]): string | undefined {
+    if (!records || records.length === 0) return undefined;
+
+    // Sort by checkIn date descending (most recent first)
+    // Use checkIn as the primary sort key since it's the actual stay date
+    const sorted = [...records].sort((a, b) => {
+        const dateA = a.checkIn || '';
+        const dateB = b.checkIn || '';
+        return dateB.localeCompare(dateA);
+    });
+
+    // Find first record with meaningful notes
+    for (const r of sorted) {
+        if (r.notesInternal && r.notesInternal.trim()) {
+            return r.notesInternal.trim();
+        }
+    }
+
+    return undefined;
+}
+

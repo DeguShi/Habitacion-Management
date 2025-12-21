@@ -217,3 +217,115 @@ describe("Contacts Persistence - Rejected Records", () => {
     });
 });
 
+// ============================================================
+// Search Helpers (Phase 9)
+// ============================================================
+
+import { normalizePhoneForSearch, searchContacts } from "./contacts";
+
+describe("Search Helpers - normalizePhoneForSearch", () => {
+    it("strips non-digit characters", () => {
+        assert.strictEqual(normalizePhoneForSearch("+55 11 99999-9999"), "5511999999999");
+    });
+
+    it("handles empty string", () => {
+        assert.strictEqual(normalizePhoneForSearch(""), "");
+    });
+
+    it("handles undefined", () => {
+        assert.strictEqual(normalizePhoneForSearch(undefined), "");
+    });
+});
+
+describe("Search Helpers - searchContacts", () => {
+    const testContacts = [
+        makeReservation({ id: "1", guestName: "João Silva", phone: "11999999999", email: "joao@test.com" }),
+        makeReservation({ id: "2", guestName: "Maria Santos", phone: "22888888888", email: "maria@test.com" }),
+        makeReservation({ id: "3", guestName: "Pedro Costa", phone: "33777777777" }),
+    ];
+
+    function getContacts() {
+        return deriveContacts(testContacts);
+    }
+
+    it("returns all contacts for empty query", () => {
+        const contacts = getContacts();
+        const result = searchContacts(contacts, "");
+        assert.strictEqual(result.length, contacts.length);
+    });
+
+    it("matches by name substring (case-insensitive)", () => {
+        const contacts = getContacts();
+        const result = searchContacts(contacts, "silva");
+        assert.strictEqual(result.length, 1);
+        assert.ok(result[0].name.includes("João"));
+    });
+
+    it("matches by email substring", () => {
+        const contacts = getContacts();
+        const result = searchContacts(contacts, "maria@");
+        assert.strictEqual(result.length, 1);
+        assert.ok(result[0].email?.includes("maria"));
+    });
+
+    it("matches phone by digits only", () => {
+        const contacts = getContacts();
+        const result = searchContacts(contacts, "11 999");
+        assert.strictEqual(result.length, 1);
+        assert.ok(result[0].phone?.includes("11999"));
+    });
+
+    it("rejected contacts are searchable", () => {
+        const records = [
+            makeReservation({ id: "1", guestName: "Cancelled Guest", phone: "123", status: "rejected" }),
+        ];
+        const contacts = deriveContacts(records);
+        const result = searchContacts(contacts, "cancelled");
+        assert.strictEqual(result.length, 1);
+    });
+});
+
+// ============================================================
+// Best Notes Helper (Patch 9.2)
+// ============================================================
+
+import { getBestNotesForContact } from "./contacts";
+
+describe("getBestNotesForContact", () => {
+    it("returns undefined for empty array", () => {
+        assert.strictEqual(getBestNotesForContact([]), undefined);
+    });
+
+    it("returns notesInternal when available", () => {
+        const records = [
+            makeReservation({ id: "1", notesInternal: "Dietary restrictions" }),
+        ];
+        assert.strictEqual(getBestNotesForContact(records), "Dietary restrictions");
+    });
+
+    it("picks most recent record with notes", () => {
+        const records = [
+            makeReservation({ id: "1", checkIn: "2025-01-01", notesInternal: "Old note" }),
+            makeReservation({ id: "2", checkIn: "2025-03-01", notesInternal: "Recent note" }),
+            makeReservation({ id: "3", checkIn: "2025-02-01", notesInternal: "Middle note" }),
+        ];
+        assert.strictEqual(getBestNotesForContact(records), "Recent note");
+    });
+
+    it("skips records without notes", () => {
+        const records = [
+            makeReservation({ id: "1", checkIn: "2025-03-01" }), // No notes
+            makeReservation({ id: "2", checkIn: "2025-01-01", notesInternal: "Has notes" }),
+        ];
+        assert.strictEqual(getBestNotesForContact(records), "Has notes");
+    });
+
+    it("returns undefined if no records have notes", () => {
+        const records = [
+            makeReservation({ id: "1" }),
+            makeReservation({ id: "2" }),
+        ];
+        assert.strictEqual(getBestNotesForContact(records), undefined);
+    });
+});
+

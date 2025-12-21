@@ -1,16 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import BottomSheet from './BottomSheet'
 import { createWaitingLead } from '@/lib/data/v2'
+
+interface Prefill {
+    guestName?: string
+    phone?: string
+    email?: string
+    partySize?: number
+    notesInternal?: string
+}
 
 interface CreateLeadSheetProps {
     open: boolean
     onClose: () => void
     onCreated: () => void
+    prefill?: Prefill
+    prefillKey?: string // Changes when contact changes, triggers form reset
 }
 
-export default function CreateLeadSheet({ open, onClose, onCreated }: CreateLeadSheetProps) {
+export default function CreateLeadSheet({ open, onClose, onCreated, prefill, prefillKey }: CreateLeadSheetProps) {
     const [guestName, setGuestName] = useState('')
     const [phone, setPhone] = useState('')
     const [email, setEmail] = useState('')
@@ -20,6 +30,22 @@ export default function CreateLeadSheet({ open, onClose, onCreated }: CreateLead
     const [notes, setNotes] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
+
+    // Reset form when opening with new prefill
+    // Dependencies include prefillKey to ensure form resets when contact changes
+    useEffect(() => {
+        if (open) {
+            setGuestName(prefill?.guestName || '')
+            setPhone(prefill?.phone || '')
+            setEmail(prefill?.email || '')
+            setCheckIn('')
+            setCheckOut('')
+            setPartySize(String(prefill?.partySize || 1))
+            setNotes(prefill?.notesInternal || '')
+            setError('')
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, prefillKey])
 
     function resetForm() {
         setGuestName('')

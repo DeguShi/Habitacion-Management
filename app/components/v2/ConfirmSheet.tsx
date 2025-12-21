@@ -7,12 +7,23 @@ import { getBookedRoomsByDay, MAX_ROOMS } from '@/lib/calendar-utils'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { AlertTriangle } from 'lucide-react'
 
+interface Prefill {
+    guestName?: string
+    phone?: string
+    email?: string
+    partySize?: number
+    rooms?: number
+    notesInternal?: string
+}
+
 interface ConfirmSheetProps {
     open: boolean
     onClose: () => void
     onConfirmed: () => void
-    item: ReservationV2 | null // null = create mode
-    confirmedRecords?: ReservationV2[] // For availability check
+    item: ReservationV2 | null
+    confirmedRecords?: ReservationV2[]
+    prefill?: Prefill
+    prefillKey?: string // Changes when contact changes, triggers form reset
 }
 
 const PAYMENT_METHODS = ['Pix', 'Dinheiro', 'Cartão', 'Outro']
@@ -63,7 +74,7 @@ function setStoredRate(key: string, value: string): void {
     }
 }
 
-export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirmedRecords = [] }: ConfirmSheetProps) {
+export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirmedRecords = [], prefill, prefillKey }: ConfirmSheetProps) {
     // Determine if we're in create mode (no existing item)
     const isCreateMode = item === null
 
@@ -91,6 +102,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
     const [error, setError] = useState('')
 
     // Reset/prefill from item
+    // Dependencies include prefillKey to ensure form resets when contact changes
     useEffect(() => {
         if (open) {
             if (item) {
@@ -111,19 +123,20 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 setNotesGuest(item.notesGuest || '')
             } else {
                 // Create mode: reset to defaults with today/tomorrow and localStorage rates
-                setGuestName('')
-                setPhone('')
-                setEmail('')
+                // Use prefill if available (prefillKey in deps ensures fresh prefill is used)
+                setGuestName(prefill?.guestName || '')
+                setPhone(prefill?.phone || '')
+                setEmail(prefill?.email || '')
                 setCheckIn(todayLocal())
                 setCheckOut(tomorrowLocal())
-                setPartySize('1')
-                setRooms('1')
+                setPartySize(String(prefill?.partySize || 1))
+                setRooms(String(prefill?.rooms || 1))
                 setNightlyRate(getStoredRate(LS_NIGHTLY_RATE, '250'))
                 setBreakfastIncluded(false)
                 setBreakfastRate(getStoredRate(LS_BREAKFAST_RATE, '30'))
                 setManualLodging(false)
                 setManualTotal('')
-                setNotesInternal('')
+                setNotesInternal(prefill?.notesInternal || '')
                 setNotesGuest('')
             }
             setDepositAmount('')
@@ -131,7 +144,8 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
             setDepositNote('')
             setError('')
         }
-    }, [item, open])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [item, open, prefillKey])
 
     // Auto-set checkOut if checkIn changes and checkOut is before checkIn
     useEffect(() => {
@@ -289,8 +303,8 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
             {/* Availability indicator */}
             {!isCreateMode && checkIn && checkOut && (
                 <div className={`mb-4 p-3 rounded-xl text-sm ${availability.hasFullDay
-                        ? 'bg-amber-50 border border-amber-200 text-amber-800'
-                        : 'bg-green-50 border border-green-200 text-green-800'
+                    ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                    : 'bg-green-50 border border-green-200 text-green-800'
                     }`}>
                     <div className="flex items-center gap-2">
                         {availability.hasFullDay && <AlertTriangle size={16} />}
