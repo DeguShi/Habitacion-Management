@@ -1,15 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import BottomSheet from './BottomSheet'
 import { confirmWaitingLead, createConfirmedReservation } from '@/lib/data/v2'
+import { getBookedRoomsByDay, MAX_ROOMS } from '@/lib/calendar-utils'
 import type { ReservationV2 } from '@/core/entities_v2'
+import { AlertTriangle } from 'lucide-react'
 
 interface ConfirmSheetProps {
     open: boolean
     onClose: () => void
     onConfirmed: () => void
     item: ReservationV2 | null // null = create mode
+    confirmedRecords?: ReservationV2[] // For availability check
 }
 
 const PAYMENT_METHODS = ['Pix', 'Dinheiro', 'Cartão', 'Outro']
@@ -60,7 +63,7 @@ function setStoredRate(key: string, value: string): void {
     }
 }
 
-export default function ConfirmSheet({ open, onClose, onConfirmed, item }: ConfirmSheetProps) {
+export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirmedRecords = [] }: ConfirmSheetProps) {
     // Determine if we're in create mode (no existing item)
     const isCreateMode = item === null
 
@@ -147,6 +150,33 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
         const d2 = new Date(checkOut + 'T00:00:00')
         return Math.max(1, Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)))
     })()
+
+    // Calculate availability for date range
+    const availability = useMemo(() => {
+        if (!checkIn || !checkOut || confirmedRecords.length === 0) {
+            return { minFree: MAX_ROOMS, hasFullDay: false }
+        }
+
+        const [y, m] = checkIn.split('-').map(Number)
+        const monthKey = `${y}-${String(m).padStart(2, '0')}`
+        const bookedByDay = getBookedRoomsByDay(confirmedRecords, monthKey, MAX_ROOMS)
+
+        let minFree = MAX_ROOMS
+        let hasFullDay = false
+
+        const start = new Date(checkIn + 'T00:00:00')
+        const end = new Date(checkOut + 'T00:00:00')
+
+        for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+            const booked = bookedByDay.get(key) || 0
+            const free = Math.max(0, MAX_ROOMS - booked)
+            minFree = Math.min(minFree, free)
+            if (booked >= MAX_ROOMS) hasFullDay = true
+        }
+
+        return { minFree, hasFullDay }
+    }, [checkIn, checkOut, confirmedRecords])
 
     const party = parseInt(partySize) || 1
     const roomCount = Math.min(4, Math.max(1, parseInt(rooms) || 1))
@@ -256,6 +286,21 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
 
     return (
         <BottomSheet open={open} onClose={onClose} title={title}>
+            {/* Availability indicator */}
+            {!isCreateMode && checkIn && checkOut && (
+                <div className={`mb-4 p-3 rounded-xl text-sm ${availability.hasFullDay
+                        ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                        : 'bg-green-50 border border-green-200 text-green-800'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                        {availability.hasFullDay && <AlertTriangle size={16} />}
+                        <span>
+                            Disponibilidade: <strong>{availability.minFree}/{MAX_ROOMS}</strong> quartos livres
+                            {availability.hasFullDay && ' — ⚠ Alguns dias estão lotados'}
+                        </span>
+                    </div>
+                </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Guest Info */}
                 {isCreateMode ? (
