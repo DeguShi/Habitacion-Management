@@ -16,6 +16,8 @@ interface ConfirmadasPageProps {
     refreshKey?: number
 }
 
+const UPCOMING_LIMIT = 15
+
 function todayISO() {
     const d = new Date()
     return formatDateKey(d.getFullYear(), d.getMonth() + 1, d.getDate())
@@ -33,6 +35,20 @@ function formatBR(iso: string) {
 const BRL = (n: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 
+/**
+ * Gets upcoming confirmed reservations from today onwards, sorted by checkIn.
+ */
+export function getUpcomingReservations(
+    records: ReservationV2[],
+    fromDate: string,
+    limit: number
+): ReservationV2[] {
+    return records
+        .filter((r) => r.checkIn >= fromDate)
+        .sort((a, b) => a.checkIn.localeCompare(b.checkIn))
+        .slice(0, limit)
+}
+
 export default function ConfirmadasPage({
     canWrite,
     onViewReservation,
@@ -41,16 +57,22 @@ export default function ConfirmadasPage({
     onCreateReservation,
     refreshKey = 0,
 }: ConfirmadasPageProps) {
+    const today = todayISO()
     const [month, setMonth] = useState(monthOf(new Date()))
-    const [selectedDate, setSelectedDate] = useState(todayISO())
-    const [items, setItems] = useState<ReservationV2[]>([])
+    const [selectedDate, setSelectedDate] = useState(today)
+    const [monthItems, setMonthItems] = useState<ReservationV2[]>([])
+    const [allConfirmed, setAllConfirmed] = useState<ReservationV2[]>([])
     const [loading, setLoading] = useState(true)
 
-    async function loadMonth() {
+    async function loadData() {
         setLoading(true)
         try {
-            const records = await listV2Records({ month, status: 'confirmed' })
-            setItems(records)
+            const [monthRecords, allRecords] = await Promise.all([
+                listV2Records({ month, status: 'confirmed' }),
+                listV2Records({ status: 'confirmed' }),
+            ])
+            setMonthItems(monthRecords)
+            setAllConfirmed(allRecords)
         } catch (e) {
             console.error('Failed to load confirmed records:', e)
         } finally {
@@ -59,13 +81,80 @@ export default function ConfirmadasPage({
     }
 
     useEffect(() => {
-        loadMonth()
+        loadData()
     }, [month, refreshKey])
 
     const dayItems = useMemo(
-        () => items.filter((i) => i.checkIn === selectedDate),
-        [items, selectedDate]
+        () => monthItems.filter((i) => i.checkIn === selectedDate),
+        [monthItems, selectedDate]
     )
+
+    const upcomingItems = useMemo(
+        () => getUpcomingReservations(allConfirmed, today, UPCOMING_LIMIT),
+        [allConfirmed, today]
+    )
+
+    const isToday = selectedDate === today
+
+    // Reservation card component for reuse
+    function ReservationCard({ item, showDate = false }: { item: ReservationV2; showDate?: boolean }) {
+        return (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-white shadow-sm">
+                <button
+                    onClick={() => onViewReservation(item)}
+                    className="text-left flex-1"
+                >
+                    <div className="font-medium text-gray-900">
+                        {showDate && (
+                            <span className="text-blue-600 mr-2">{formatBR(item.checkIn)}</span>
+                        )}
+                        {item.guestName}{' '}
+                        <span className="text-gray-500">({item.partySize})</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                        {!showDate && `Check-in ${formatBR(item.checkIn)} • `}Check-out {formatBR(item.checkOut)}
+                    </div>
+                </button>
+
+                <div className="flex items-center gap-3">
+                    <div className="text-right hidden sm:block">
+                        <div className="text-sm">{BRL(item.totalPrice)}</div>
+                        <div className="text-xs text-gray-500">
+                            {item.payment?.deposit?.paid ? 'Depósito pago' : 'Pendente'}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => onViewReservation(item)}
+                            className="btn-icon"
+                            title="Ver"
+                        >
+                            <Eye size={16} />
+                        </button>
+                        {canWrite && (
+                            <>
+                                <button
+                                    onClick={() => onEditReservation(item)}
+                                    className="btn-icon"
+                                    title="Editar"
+                                >
+                                    <Settings size={16} />
+                                </button>
+                                <button
+                                    onClick={() => onDeleteReservation(item)}
+                                    className="btn-icon text-red-500"
+                                    title="Excluir"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="pb-20">
@@ -80,15 +169,17 @@ export default function ConfirmadasPage({
                     onSelectDate={(d) => {
                         setSelectedDate(d)
                     }}
-                    items={items}
+                    items={monthItems}
                     roomsTotal={3}
                 />
             </section>
 
-            {/* Day List Section */}
-            <section className="card">
+            {/* Selected Day Section */}
+            <section className="card mb-4">
                 <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-semibold">{formatBR(selectedDate)}</h2>
+                    <h2 className="text-lg font-semibold">
+                        {isToday ? 'Hoje' : formatBR(selectedDate)}
+                    </h2>
                     {canWrite && (
                         <button
                             onClick={() => onCreateReservation(selectedDate)}
@@ -103,64 +194,30 @@ export default function ConfirmadasPage({
                 {loading ? (
                     <div className="text-sm text-gray-500">Carregando...</div>
                 ) : dayItems.length === 0 ? (
-                    <p className="text-sm text-gray-500">Sem reservas confirmadas para este dia.</p>
+                    <p className="text-sm text-gray-500">
+                        Sem reservas confirmadas para {isToday ? 'hoje' : 'este dia'}.
+                    </p>
                 ) : (
                     <div className="space-y-2">
                         {dayItems.map((item) => (
-                            <div
-                                key={item.id}
-                                className="flex items-center justify-between p-3 rounded-xl bg-white shadow-sm"
-                            >
-                                <button
-                                    onClick={() => onViewReservation(item)}
-                                    className="text-left flex-1"
-                                >
-                                    <div className="font-medium text-gray-900">
-                                        {item.guestName}{' '}
-                                        <span className="text-gray-500">({item.partySize})</span>
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                        Check-in {formatBR(item.checkIn)} • Check-out {formatBR(item.checkOut)}
-                                    </div>
-                                </button>
+                            <ReservationCard key={item.id} item={item} />
+                        ))}
+                    </div>
+                )}
+            </section>
 
-                                <div className="flex items-center gap-4">
-                                    <div className="text-right">
-                                        <div className="text-sm">{BRL(item.totalPrice)}</div>
-                                        <div className="text-xs text-gray-500">
-                                            {item.payment?.deposit?.paid ? 'Depósito pago' : 'Depósito pendente'}
-                                        </div>
-                                    </div>
+            {/* Upcoming Section */}
+            <section className="card">
+                <h2 className="text-lg font-semibold mb-3">Próximas</h2>
 
-                                    <div className="flex items-center gap-1">
-                                        <button
-                                            onClick={() => onViewReservation(item)}
-                                            className="btn-icon"
-                                            title="Ver"
-                                        >
-                                            <Eye size={16} />
-                                        </button>
-                                        {canWrite && (
-                                            <>
-                                                <button
-                                                    onClick={() => onEditReservation(item)}
-                                                    className="btn-icon"
-                                                    title="Editar"
-                                                >
-                                                    <Settings size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => onDeleteReservation(item)}
-                                                    className="btn-icon text-red-500"
-                                                    title="Excluir"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                {loading ? (
+                    <div className="text-sm text-gray-500">Carregando...</div>
+                ) : upcomingItems.length === 0 ? (
+                    <p className="text-sm text-gray-500">Sem próximas reservas confirmadas.</p>
+                ) : (
+                    <div className="space-y-2">
+                        {upcomingItems.map((item) => (
+                            <ReservationCard key={item.id} item={item} showDate />
                         ))}
                     </div>
                 )}
@@ -168,3 +225,4 @@ export default function ConfirmadasPage({
         </div>
     )
 }
+
