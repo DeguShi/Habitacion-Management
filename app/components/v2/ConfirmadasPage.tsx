@@ -60,35 +60,41 @@ export default function ConfirmadasPage({
     const today = todayISO()
     const [month, setMonth] = useState(monthOf(new Date()))
     const [selectedDate, setSelectedDate] = useState(today)
-    const [monthItems, setMonthItems] = useState<ReservationV2[]>([])
     const [allConfirmed, setAllConfirmed] = useState<ReservationV2[]>([])
-    const [loading, setLoading] = useState(true)
+    const [initialLoading, setInitialLoading] = useState(true)
 
-    async function loadData() {
-        setLoading(true)
+    // Fetch allConfirmed ONCE on initial load (and on refreshKey change)
+    // Month navigation does NOT trigger refetch
+    async function loadAllConfirmed() {
+        setInitialLoading(true)
         try {
-            const [monthRecords, allRecords] = await Promise.all([
-                listV2Records({ month, status: 'confirmed' }),
-                listV2Records({ status: 'confirmed' }),
-            ])
-            setMonthItems(monthRecords)
-            setAllConfirmed(allRecords)
+            const records = await listV2Records({ status: 'confirmed' })
+            setAllConfirmed(records)
         } catch (e) {
             console.error('Failed to load confirmed records:', e)
         } finally {
-            setLoading(false)
+            setInitialLoading(false)
         }
     }
 
     useEffect(() => {
-        loadData()
-    }, [month, refreshKey])
+        loadAllConfirmed()
+    }, [refreshKey]) // Only refreshKey, NOT month
 
+    // Derive month items from allConfirmed (for calendar indicators)
+    const monthItems = useMemo(() => {
+        const [y, m] = month.split('-')
+        const prefix = `${y}-${m}`
+        return allConfirmed.filter((r) => r.checkIn.startsWith(prefix))
+    }, [allConfirmed, month])
+
+    // Derive day items from allConfirmed (for selected day list)
     const dayItems = useMemo(
-        () => monthItems.filter((i) => i.checkIn === selectedDate),
-        [monthItems, selectedDate]
+        () => allConfirmed.filter((i) => i.checkIn === selectedDate),
+        [allConfirmed, selectedDate]
     )
 
+    // Derive upcoming from allConfirmed (stable, no refetch)
     const upcomingItems = useMemo(
         () => getUpcomingReservations(allConfirmed, today, UPCOMING_LIMIT),
         [allConfirmed, today]
@@ -191,7 +197,7 @@ export default function ConfirmadasPage({
                     )}
                 </div>
 
-                {loading ? (
+                {initialLoading ? (
                     <div className="text-sm text-gray-500">Carregando...</div>
                 ) : dayItems.length === 0 ? (
                     <p className="text-sm text-gray-500">
@@ -210,7 +216,7 @@ export default function ConfirmadasPage({
             <section className="card">
                 <h2 className="text-lg font-semibold mb-3">Próximas</h2>
 
-                {loading ? (
+                {initialLoading ? (
                     <div className="text-sm text-gray-500">Carregando...</div>
                 ) : upcomingItems.length === 0 ? (
                     <p className="text-sm text-gray-500">Sem próximas reservas confirmadas.</p>
