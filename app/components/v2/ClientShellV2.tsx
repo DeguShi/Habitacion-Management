@@ -11,8 +11,10 @@ import CreateActionSheet from '@/app/components/v2/CreateActionSheet'
 import ConfirmSheet from '@/app/components/v2/ConfirmSheet'
 import EditReservationSheet from '@/app/components/v2/EditReservationSheet'
 import ViewReservationSheet from '@/app/components/v2/ViewReservationSheet'
+import ContactDetailSheet from '@/app/components/v2/ContactDetailSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
 import type { Contact } from '@/lib/contacts'
+import { getBestNotesForContact } from '@/lib/contacts'
 import { deleteV2Record, listV2Records } from '@/lib/data/v2'
 
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_FETCH === '1'
@@ -138,6 +140,19 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     const [editingItem, setEditingItem] = useState<ReservationV2 | null>(null)
     const [viewingItem, setViewingItem] = useState<ReservationV2 | null>(null)
 
+    // Contact detail state
+    const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
+    const [contactReservations, setContactReservations] = useState<ReservationV2[]>([])
+
+    // Prefill for create-from-contact
+    const [contactPrefill, setContactPrefill] = useState<{
+        guestName?: string
+        phone?: string
+        email?: string
+        notesInternal?: string
+    } | null>(null)
+    const [prefillKey, setPrefillKey] = useState('')
+
     // ============================================================
     // Handlers
     // ============================================================
@@ -179,16 +194,44 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
         setConfirmingItem(r)
     }
 
-    // View contact
+    // View contact (open detail sheet)
     function handleViewContact(contact: Contact, reservations: ReservationV2[]) {
-        const info = [
-            `Contato: ${contact.name}`,
-            contact.phone ? `Tel: ${contact.phone}` : '',
-            contact.email ? `Email: ${contact.email}` : '',
-            `Reservas: ${contact.totalBookings}`,
-            `Última: ${contact.lastStayDate}`,
-        ].filter(Boolean).join('\n')
-        alert(info)
+        setSelectedContact(contact)
+        setContactReservations(reservations)
+    }
+
+    // Create reservation from contact
+    function handleCreateReservationFromContact(contact: Contact) {
+        const notes = getBestNotesForContact(contactReservations)
+        setContactPrefill({
+            guestName: contact.name,
+            phone: contact.phone,
+            email: contact.email,
+            notesInternal: notes,
+        })
+        setPrefillKey(`${contact.id}:${Date.now()}`)
+        setSelectedContact(null) // Close contact sheet
+        setCreateConfirmedOpen(true)
+    }
+
+    // Create lead from contact
+    function handleCreateLeadFromContact(contact: Contact) {
+        const notes = getBestNotesForContact(contactReservations)
+        setContactPrefill({
+            guestName: contact.name,
+            phone: contact.phone,
+            email: contact.email,
+            notesInternal: notes,
+        })
+        setPrefillKey(`${contact.id}:${Date.now()}`)
+        setSelectedContact(null) // Close contact sheet
+        setCreateLeadOpen(true)
+    }
+
+    // View reservation from contact detail
+    function handleViewReservationFromContact(r: ReservationV2) {
+        setSelectedContact(null) // Close contact sheet
+        setViewingItem(r)
     }
 
     return (
@@ -255,11 +298,17 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
 
             <CreateLeadSheet
                 open={createLeadOpen}
-                onClose={() => setCreateLeadOpen(false)}
+                onClose={() => {
+                    setCreateLeadOpen(false)
+                    setContactPrefill(null)
+                }}
                 onCreated={() => {
                     refreshRecords('create-lead')
                     setActiveTab('em-espera')
+                    setContactPrefill(null)
                 }}
+                prefill={contactPrefill || undefined}
+                prefillKey={prefillKey}
             />
 
             <ConfirmSheet
@@ -267,13 +316,17 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                 onClose={() => {
                     setCreateConfirmedOpen(false)
                     setConfirmingItem(null)
+                    setContactPrefill(null)
                 }}
                 onConfirmed={() => {
                     refreshRecords('confirm')
                     setActiveTab('confirmadas')
+                    setContactPrefill(null)
                 }}
                 item={confirmingItem}
                 confirmedRecords={confirmedRecords}
+                prefill={contactPrefill || undefined}
+                prefillKey={prefillKey}
             />
 
             <EditReservationSheet
@@ -291,6 +344,16 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                     setEditingItem(item)
                 }}
                 item={viewingItem}
+            />
+
+            <ContactDetailSheet
+                open={!!selectedContact}
+                onClose={() => setSelectedContact(null)}
+                contact={selectedContact}
+                reservations={contactReservations}
+                onViewReservation={handleViewReservationFromContact}
+                onCreateReservation={handleCreateReservationFromContact}
+                onCreateLead={handleCreateLeadFromContact}
             />
         </div>
     )

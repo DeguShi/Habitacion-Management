@@ -179,6 +179,12 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 totalPrice: totalPreview,
                 notesInternal: notesInternal.trim() || undefined,
                 notesGuest: notesGuest.trim() || undefined,
+                // Preserve payment events - this is critical!
+                payment: {
+                    ...item.payment,
+                    events: paymentEvents,
+                    deposit: totalPaid > 0 ? { paid: true, due: totalPaid } : item.payment?.deposit,
+                },
             })
             onSaved()
             onClose()
