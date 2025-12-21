@@ -14,7 +14,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth.config";
 import { userKeyFromEmail } from "@/lib/user";
-import { fetchAllReservationsRaw, generateNDJSON, getBackupTimestamp } from "@/lib/backup";
+import { fetchAllReservationsRaw, generateNDJSONV2, getBackupTimestamp } from "@/lib/backup";
 
 export async function GET() {
     // 1. Validate session
@@ -32,8 +32,8 @@ export async function GET() {
         // 3. Fetch all reservations as RAW objects (lossless)
         const result = await fetchAllReservationsRaw(userId);
 
-        // 4. Generate NDJSON from raw objects
-        const ndjson = generateNDJSON(result.rawObjects);
+        // 4. Generate NDJSON from raw objects (normalizes v1 → v2 on-the-fly)
+        const ndjson = generateNDJSONV2(result.rawObjects);
 
         // 5. Create filename with timestamp
         const timestamp = getBackupTimestamp();
