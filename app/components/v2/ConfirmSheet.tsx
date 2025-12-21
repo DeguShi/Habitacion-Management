@@ -2,23 +2,33 @@
 
 import { useState, useEffect } from 'react'
 import BottomSheet from './BottomSheet'
-import { confirmWaitingLead } from '@/lib/data/v2'
+import { confirmWaitingLead, createV2Record } from '@/lib/data/v2'
 import type { ReservationV2 } from '@/core/entities_v2'
 
 interface ConfirmSheetProps {
     open: boolean
     onClose: () => void
     onConfirmed: () => void
-    item: ReservationV2 | null
+    item: ReservationV2 | null // null = create mode
 }
 
 const PAYMENT_METHODS = ['Pix', 'Dinheiro', 'Cartão', 'Outro']
+const ROOMS_OPTIONS = [1, 2, 3, 4]
 
 export default function ConfirmSheet({ open, onClose, onConfirmed, item }: ConfirmSheetProps) {
+    // Determine if we're in create mode (no existing item)
+    const isCreateMode = item === null
+
+    // Guest info (editable in create mode)
+    const [guestName, setGuestName] = useState('')
+    const [phone, setPhone] = useState('')
+    const [email, setEmail] = useState('')
+
     // Form state
     const [checkIn, setCheckIn] = useState('')
     const [checkOut, setCheckOut] = useState('')
     const [partySize, setPartySize] = useState('2')
+    const [rooms, setRooms] = useState('1')
     const [nightlyRate, setNightlyRate] = useState('250')
     const [breakfastIncluded, setBreakfastIncluded] = useState(false)
     const [breakfastRate, setBreakfastRate] = useState('30')
@@ -32,19 +42,42 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
 
-    // Prefill from item
+    // Reset/prefill from item
     useEffect(() => {
-        if (item && open) {
-            setCheckIn(item.checkIn || '')
-            setCheckOut(item.checkOut || '')
-            setPartySize(String(item.partySize || 2))
-            setNightlyRate(String(item.nightlyRate || 250))
-            setBreakfastIncluded(item.breakfastIncluded || false)
-            setBreakfastRate(String(item.breakfastPerPersonPerNight || 30))
-            setManualLodging(item.manualLodgingEnabled || false)
-            setManualTotal(item.manualLodgingTotal ? String(item.manualLodgingTotal) : '')
-            setNotesInternal(item.notesInternal || '')
-            setNotesGuest(item.notesGuest || '')
+        if (open) {
+            if (item) {
+                // Confirm mode: prefill from existing item
+                setGuestName(item.guestName || '')
+                setPhone(item.phone || '')
+                setEmail(item.email || '')
+                setCheckIn(item.checkIn || '')
+                setCheckOut(item.checkOut || '')
+                setPartySize(String(item.partySize || 2))
+                setRooms(String(item.rooms ?? 1))
+                setNightlyRate(String(item.nightlyRate || 250))
+                setBreakfastIncluded(item.breakfastIncluded || false)
+                setBreakfastRate(String(item.breakfastPerPersonPerNight || 30))
+                setManualLodging(item.manualLodgingEnabled || false)
+                setManualTotal(item.manualLodgingTotal ? String(item.manualLodgingTotal) : '')
+                setNotesInternal(item.notesInternal || '')
+                setNotesGuest(item.notesGuest || '')
+            } else {
+                // Create mode: reset to defaults
+                setGuestName('')
+                setPhone('')
+                setEmail('')
+                setCheckIn('')
+                setCheckOut('')
+                setPartySize('2')
+                setRooms('1')
+                setNightlyRate('250')
+                setBreakfastIncluded(false)
+                setBreakfastRate('30')
+                setManualLodging(false)
+                setManualTotal('')
+                setNotesInternal('')
+                setNotesGuest('')
+            }
             setDepositAmount('')
             setDepositMethod('Pix')
             setDepositNote('')
@@ -70,6 +103,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
     })()
 
     const party = parseInt(partySize) || 1
+    const roomCount = Math.min(4, Math.max(1, parseInt(rooms) || 1))
     const rate = parseFloat(nightlyRate) || 0
     const bRate = parseFloat(breakfastRate) || 0
     const mTotal = parseFloat(manualTotal) || 0
@@ -82,9 +116,13 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
         e.preventDefault()
         setError('')
 
-        if (!item) return
+        // Validate guest name (required for create mode)
+        if (isCreateMode && !guestName.trim()) {
+            setError('Nome do hóspede é obrigatório')
+            return
+        }
 
-        // Validate
+        // Validate dates
         if (!checkIn) {
             setError('Check-in é obrigatório')
             return
@@ -96,25 +134,60 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
 
         setSaving(true)
         try {
-            await confirmWaitingLead(item.id, {
-                checkIn,
-                checkOut,
-                partySize: party,
-                nightlyRate: rate,
-                breakfastIncluded,
-                breakfastPerPersonPerNight: bRate,
-                manualLodgingEnabled: manualLodging,
-                manualLodgingTotal: manualLodging ? mTotal : undefined,
-                depositPaidAmount: parseFloat(depositAmount) || undefined,
-                depositMethod: depositMethod || undefined,
-                depositNote: depositNote.trim() || undefined,
-                notesInternal: notesInternal.trim() || undefined,
-                notesGuest: notesGuest.trim() || undefined,
-            })
+            if (isCreateMode) {
+                // Create new confirmed reservation directly
+                await createV2Record({
+                    guestName: guestName.trim(),
+                    phone: phone.trim() || undefined,
+                    email: email.trim() || undefined,
+                    checkIn,
+                    checkOut,
+                    partySize: party,
+                    rooms: roomCount,
+                    status: 'confirmed',
+                    nightlyRate: rate,
+                    breakfastIncluded,
+                    breakfastPerPersonPerNight: bRate,
+                    manualLodgingEnabled: manualLodging,
+                    manualLodgingTotal: manualLodging ? mTotal : undefined,
+                    totalNights: nights,
+                    totalPrice: totalPreview,
+                    notesInternal: notesInternal.trim() || undefined,
+                    notesGuest: notesGuest.trim() || undefined,
+                    payment: parseFloat(depositAmount) > 0 ? {
+                        deposit: { paid: true, due: totalPreview * 0.5 },
+                        events: [{
+                            id: crypto.randomUUID(),
+                            amount: parseFloat(depositAmount),
+                            date: new Date().toISOString().slice(0, 10),
+                            method: depositMethod,
+                            note: depositNote.trim() || 'Depósito',
+                        }],
+                    } : {},
+                })
+            } else {
+                // Confirm existing waiting item
+                await confirmWaitingLead(item!.id, {
+                    checkIn,
+                    checkOut,
+                    partySize: party,
+                    rooms: roomCount,
+                    nightlyRate: rate,
+                    breakfastIncluded,
+                    breakfastPerPersonPerNight: bRate,
+                    manualLodgingEnabled: manualLodging,
+                    manualLodgingTotal: manualLodging ? mTotal : undefined,
+                    depositPaidAmount: parseFloat(depositAmount) || undefined,
+                    depositMethod: depositMethod || undefined,
+                    depositNote: depositNote.trim() || undefined,
+                    notesInternal: notesInternal.trim() || undefined,
+                    notesGuest: notesGuest.trim() || undefined,
+                })
+            }
             onConfirmed()
             onClose()
         } catch (err: any) {
-            setError(err.message || 'Erro ao confirmar')
+            setError(err.message || 'Erro ao salvar')
         } finally {
             setSaving(false)
         }
@@ -123,15 +196,57 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
     const BRL = (n: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 
+    const title = isCreateMode ? 'Nova Reserva Confirmada' : 'Confirmar Reserva'
+
     return (
-        <BottomSheet open={open} onClose={onClose} title="Confirmar Reserva">
+        <BottomSheet open={open} onClose={onClose} title={title}>
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Guest Info (read-only summary) */}
-                {item && (
+                {/* Guest Info */}
+                {isCreateMode ? (
+                    <>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Nome do hóspede *
+                            </label>
+                            <input
+                                type="text"
+                                value={guestName}
+                                onChange={(e) => setGuestName(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="João Silva"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Telefone
+                                </label>
+                                <input
+                                    type="tel"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+                    </>
+                ) : (
                     <div className="bg-gray-50 rounded-lg p-3">
-                        <div className="font-medium text-gray-900">{item.guestName}</div>
+                        <div className="font-medium text-gray-900">{item?.guestName}</div>
                         <div className="text-sm text-gray-500">
-                            {item.phone || item.email || 'Sem contato'}
+                            {item?.phone || item?.email || 'Sem contato'}
                         </div>
                     </div>
                 )}
@@ -164,8 +279,8 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                     </div>
                 </div>
 
-                {/* Party Size & Rate */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Party Size, Rooms & Rate */}
+                <div className="grid grid-cols-3 gap-3">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Pessoas
@@ -180,7 +295,21 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Diária (R$)
+                            Quartos
+                        </label>
+                        <select
+                            value={rooms}
+                            onChange={(e) => setRooms(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            {ROOMS_OPTIONS.map((r) => (
+                                <option key={r} value={r}>{r}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Diária
                         </label>
                         <input
                             type="number"
@@ -208,18 +337,14 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                     </label>
                 </div>
                 {manualLodging && (
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Total hospedagem (R$)
-                        </label>
-                        <input
-                            type="number"
-                            value={manualTotal}
-                            onChange={(e) => setManualTotal(e.target.value)}
-                            min="0"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
+                    <input
+                        type="number"
+                        value={manualTotal}
+                        onChange={(e) => setManualTotal(e.target.value)}
+                        min="0"
+                        placeholder="Total hospedagem"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
                 )}
 
                 {/* Breakfast */}
@@ -236,18 +361,14 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                     </label>
                 </div>
                 {breakfastIncluded && (
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Café por pessoa/noite (R$)
-                        </label>
-                        <input
-                            type="number"
-                            value={breakfastRate}
-                            onChange={(e) => setBreakfastRate(e.target.value)}
-                            min="0"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
+                    <input
+                        type="number"
+                        value={breakfastRate}
+                        onChange={(e) => setBreakfastRate(e.target.value)}
+                        min="0"
+                        placeholder="Café por pessoa/noite"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
                 )}
 
                 {/* Price Preview */}
@@ -274,7 +395,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Valor pago (R$)
+                                Valor pago
                             </label>
                             <input
                                 type="number"
@@ -300,15 +421,13 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                             </select>
                         </div>
                     </div>
-                    <div className="mt-3">
-                        <input
-                            type="text"
-                            value={depositNote}
-                            onChange={(e) => setDepositNote(e.target.value)}
-                            placeholder="Nota do pagamento (opcional)"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
+                    <input
+                        type="text"
+                        value={depositNote}
+                        onChange={(e) => setDepositNote(e.target.value)}
+                        placeholder="Nota do pagamento"
+                        className="w-full mt-3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
                 </div>
 
                 {/* Notes */}
@@ -361,7 +480,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                         className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                         disabled={saving}
                     >
-                        {saving ? 'Confirmando...' : 'Confirmar Reserva'}
+                        {saving ? 'Salvando...' : isCreateMode ? 'Criar Reserva' : 'Confirmar'}
                     </button>
                 </div>
             </form>

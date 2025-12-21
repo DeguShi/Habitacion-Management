@@ -74,6 +74,7 @@ export interface ReservationV2 {
     phone?: string;
     email?: string;
     partySize: number;
+    rooms?: number; // 1-4, default 1 (for occupancy calculation)
 
     checkIn: string; // YYYY-MM-DD
     checkOut: string; // YYYY-MM-DD
@@ -124,6 +125,7 @@ export const V1_KNOWN_FIELDS = new Set([
     "phone",
     "email",
     "partySize",
+    "rooms", // added in v2 but needs to be recognized
     "checkIn",
     "checkOut",
     "breakfastIncluded",

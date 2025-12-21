@@ -174,3 +174,100 @@ describe("WEEKDAY_LABELS_EN", () => {
         assert.strictEqual(WEEKDAY_LABELS_EN[6], "Su");
     });
 });
+
+// ============================================================
+// Rooms-based Occupancy Tests
+// ============================================================
+
+describe("getBookedRoomsByDay", () => {
+    const { getBookedRoomsByDay, isDateInStayPeriod, MAX_ROOMS } = require("./calendar-utils");
+
+    describe("isDateInStayPeriod", () => {
+        it("returns true for dates within stay period", () => {
+            assert.strictEqual(isDateInStayPeriod("2025-01-15", "2025-01-15", "2025-01-18"), true);
+            assert.strictEqual(isDateInStayPeriod("2025-01-16", "2025-01-15", "2025-01-18"), true);
+            assert.strictEqual(isDateInStayPeriod("2025-01-17", "2025-01-15", "2025-01-18"), true);
+        });
+
+        it("returns false for checkout date (guest leaves)", () => {
+            assert.strictEqual(isDateInStayPeriod("2025-01-18", "2025-01-15", "2025-01-18"), false);
+        });
+
+        it("returns false for dates before checkin", () => {
+            assert.strictEqual(isDateInStayPeriod("2025-01-14", "2025-01-15", "2025-01-18"), false);
+        });
+    });
+
+    describe("single reservation", () => {
+        it("counts rooms for each night of stay", () => {
+            const records = [
+                { checkIn: "2025-01-15", checkOut: "2025-01-18", status: "confirmed", rooms: 2 }
+            ];
+            const booked = getBookedRoomsByDay(records, "2025-01");
+
+            assert.strictEqual(booked.get("2025-01-15"), 2); // checkin night
+            assert.strictEqual(booked.get("2025-01-16"), 2);
+            assert.strictEqual(booked.get("2025-01-17"), 2);
+            assert.strictEqual(booked.get("2025-01-18"), 0); // checkout - no longer occupied
+            assert.strictEqual(booked.get("2025-01-14"), 0); // before checkin
+        });
+
+        it("defaults rooms to 1 when missing", () => {
+            const records = [
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "confirmed" } // no rooms
+            ];
+            const booked = getBookedRoomsByDay(records, "2025-01");
+
+            assert.strictEqual(booked.get("2025-01-15"), 1);
+            assert.strictEqual(booked.get("2025-01-16"), 1);
+        });
+    });
+
+    describe("multiple reservations", () => {
+        it("sums rooms from overlapping reservations", () => {
+            const records = [
+                { checkIn: "2025-01-15", checkOut: "2025-01-18", status: "confirmed", rooms: 1 },
+                { checkIn: "2025-01-16", checkOut: "2025-01-19", status: "confirmed", rooms: 2 }
+            ];
+            const booked = getBookedRoomsByDay(records, "2025-01");
+
+            assert.strictEqual(booked.get("2025-01-15"), 1); // only first
+            assert.strictEqual(booked.get("2025-01-16"), 3); // both overlap (1+2)
+            assert.strictEqual(booked.get("2025-01-17"), 3); // both overlap
+            assert.strictEqual(booked.get("2025-01-18"), 2); // only second (first checked out)
+        });
+
+        it("caps at maxRooms", () => {
+            const records = [
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "confirmed", rooms: 2 },
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "confirmed", rooms: 2 }
+            ];
+            const booked = getBookedRoomsByDay(records, "2025-01", 3); // maxRooms = 3
+
+            assert.strictEqual(booked.get("2025-01-15"), 3); // capped at 3 instead of 4
+            assert.strictEqual(booked.get("2025-01-16"), 3);
+        });
+    });
+
+    describe("status filtering", () => {
+        it("only counts confirmed reservations", () => {
+            const records = [
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "confirmed", rooms: 1 },
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "waiting", rooms: 1 },
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "rejected", rooms: 1 }
+            ];
+            const booked = getBookedRoomsByDay(records, "2025-01");
+
+            // Only confirmed should count
+            assert.strictEqual(booked.get("2025-01-15"), 1);
+            assert.strictEqual(booked.get("2025-01-16"), 1);
+        });
+    });
+
+    describe("MAX_ROOMS constant", () => {
+        it("is defined and equals 3", () => {
+            assert.strictEqual(MAX_ROOMS, 3);
+        });
+    });
+});
+

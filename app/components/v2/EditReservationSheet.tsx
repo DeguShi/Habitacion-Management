@@ -14,6 +14,7 @@ interface EditReservationSheetProps {
 }
 
 const PAYMENT_METHODS = ['Pix', 'Dinheiro', 'Cartão', 'Outro']
+const ROOMS_OPTIONS = [1, 2, 3, 4]
 
 export default function EditReservationSheet({ open, onClose, onSaved, item }: EditReservationSheetProps) {
     // Guest info
@@ -25,6 +26,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
     const [checkIn, setCheckIn] = useState('')
     const [checkOut, setCheckOut] = useState('')
     const [partySize, setPartySize] = useState('2')
+    const [rooms, setRooms] = useState('1')
 
     // Pricing
     const [nightlyRate, setNightlyRate] = useState('250')
@@ -58,6 +60,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
             setCheckIn(item.checkIn || '')
             setCheckOut(item.checkOut || '')
             setPartySize(String(item.partySize || 2))
+            setRooms(String(item.rooms ?? 1))
             setNightlyRate(String(item.nightlyRate || 250))
             setBreakfastIncluded(item.breakfastIncluded || false)
             setBreakfastRate(String(item.breakfastPerPersonPerNight || 30))
@@ -83,6 +86,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
     })()
 
     const party = parseInt(partySize) || 1
+    const roomCount = Math.min(4, Math.max(1, parseInt(rooms) || 1))
     const rate = parseFloat(nightlyRate) || 0
     const bRate = parseFloat(breakfastRate) || 0
     const mTotal = parseFloat(manualTotal) || 0
@@ -164,6 +168,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 checkIn,
                 checkOut,
                 partySize: party,
+                rooms: roomCount,
                 nightlyRate: rate,
                 breakfastIncluded,
                 breakfastPerPersonPerNight: bRate,
@@ -257,8 +262,8 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                     </div>
                 </div>
 
-                {/* Party Size & Rate */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Party Size, Rooms & Rate */}
+                <div className="grid grid-cols-3 gap-3">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Pessoas
@@ -273,7 +278,21 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Diária (R$)
+                            Quartos
+                        </label>
+                        <select
+                            value={rooms}
+                            onChange={(e) => setRooms(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                            {ROOMS_OPTIONS.map((r) => (
+                                <option key={r} value={r}>{r}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Diária
                         </label>
                         <input
                             type="number"

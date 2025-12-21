@@ -130,6 +130,7 @@ export function normalizeV1ToV2(v1: Record<string, unknown>): Record<string, unk
         phone: v1.phone,
         email: v1.email,
         partySize: v1.partySize,
+        rooms: typeof v1.rooms === "number" ? Math.min(4, Math.max(1, v1.rooms)) : 1, // default 1, clamp 1-4
         checkIn: v1.checkIn,
         checkOut: v1.checkOut,
         breakfastIncluded: v1.breakfastIncluded,

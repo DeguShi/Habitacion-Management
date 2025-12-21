@@ -7,6 +7,7 @@ import EmEsperaPage from '@/app/components/v2/EmEsperaPage'
 import ContatosPage from '@/app/components/v2/ContatosPage'
 import FerramentasPage from '@/app/components/v2/FerramentasPage'
 import CreateLeadSheet from '@/app/components/v2/CreateLeadSheet'
+import CreateActionSheet from '@/app/components/v2/CreateActionSheet'
 import ConfirmSheet from '@/app/components/v2/ConfirmSheet'
 import EditReservationSheet from '@/app/components/v2/EditReservationSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
@@ -22,7 +23,9 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     const [refreshKey, setRefreshKey] = useState(0)
 
     // Sheet states
-    const [createOpen, setCreateOpen] = useState(false)
+    const [actionSheetOpen, setActionSheetOpen] = useState(false)
+    const [createLeadOpen, setCreateLeadOpen] = useState(false)
+    const [createConfirmedOpen, setCreateConfirmedOpen] = useState(false)
     const [confirmingItem, setConfirmingItem] = useState<ReservationV2 | null>(null)
     const [editingItem, setEditingItem] = useState<ReservationV2 | null>(null)
 
@@ -68,8 +71,8 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     // Create reservation for specific date
     function handleCreateReservation(date: string) {
         if (!canWrite) return
-        // Open create sheet - could prefill date but keeping simple
-        setCreateOpen(true)
+        // Open action sheet to choose lead vs confirmed
+        setActionSheetOpen(true)
     }
 
     // Confirm waiting item
@@ -129,13 +132,20 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
             <BottomNav
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
-                onCreateClick={canWrite ? () => setCreateOpen(true) : undefined}
+                onCreateClick={canWrite ? () => setActionSheetOpen(true) : undefined}
             />
 
             {/* Sheets */}
+            <CreateActionSheet
+                open={actionSheetOpen}
+                onClose={() => setActionSheetOpen(false)}
+                onCreateLead={() => setCreateLeadOpen(true)}
+                onCreateConfirmed={() => setCreateConfirmedOpen(true)}
+            />
+
             <CreateLeadSheet
-                open={createOpen}
-                onClose={() => setCreateOpen(false)}
+                open={createLeadOpen}
+                onClose={() => setCreateLeadOpen(false)}
                 onCreated={() => {
                     refresh()
                     setActiveTab('em-espera')
@@ -143,9 +153,15 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
             />
 
             <ConfirmSheet
-                open={!!confirmingItem}
-                onClose={() => setConfirmingItem(null)}
-                onConfirmed={refresh}
+                open={createConfirmedOpen || !!confirmingItem}
+                onClose={() => {
+                    setCreateConfirmedOpen(false)
+                    setConfirmingItem(null)
+                }}
+                onConfirmed={() => {
+                    refresh()
+                    setActiveTab('confirmadas')
+                }}
                 item={confirmingItem}
             />
 

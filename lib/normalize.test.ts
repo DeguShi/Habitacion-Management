@@ -124,6 +124,28 @@ describe("V1 to V2 Normalization - normalizeV1ToV2", () => {
         assert.strictEqual(v2.totalPrice, 450);
     });
 
+    it("defaults rooms to 1 when missing", () => {
+        const v2 = normalizeV1ToV2(minimalV1);
+        assert.strictEqual(v2.rooms, 1);
+    });
+
+    it("preserves rooms if present", () => {
+        const v1WithRooms = { ...minimalV1, rooms: 2 };
+        const v2 = normalizeV1ToV2(v1WithRooms);
+        assert.strictEqual(v2.rooms, 2);
+    });
+
+    it("clamps rooms to [1,4] range", () => {
+        const v1TooLow = { ...minimalV1, rooms: 0 };
+        const v1TooHigh = { ...minimalV1, rooms: 10 };
+
+        const v2Low = normalizeV1ToV2(v1TooLow);
+        const v2High = normalizeV1ToV2(v1TooHigh);
+
+        assert.strictEqual(v2Low.rooms, 1);
+        assert.strictEqual(v2High.rooms, 4);
+    });
+
     it("adds _importMeta with normalizedFrom=1", () => {
         const v2 = normalizeV1ToV2(minimalV1);
         const meta = v2._importMeta as Record<string, unknown>;

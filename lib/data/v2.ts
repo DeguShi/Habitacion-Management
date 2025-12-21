@@ -311,6 +311,7 @@ export interface ConfirmLeadInput {
     checkIn: string;
     checkOut: string;
     partySize: number;
+    rooms?: number; // 1-4, default 1
     nightlyRate: number;
     breakfastIncluded: boolean;
     breakfastPerPersonPerNight: number;
@@ -420,6 +421,7 @@ export async function confirmWaitingLead(
         checkIn: details.checkIn,
         checkOut: details.checkOut,
         partySize: details.partySize,
+        rooms: Math.min(4, Math.max(1, details.rooms ?? current.rooms ?? 1)),
         nightlyRate: details.nightlyRate,
         breakfastIncluded: details.breakfastIncluded,
         breakfastPerPersonPerNight: details.breakfastPerPersonPerNight,
