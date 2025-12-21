@@ -269,5 +269,76 @@ describe("getBookedRoomsByDay", () => {
             assert.strictEqual(MAX_ROOMS, 3);
         });
     });
+
+    // ============================================================
+    // Occupancy Edge Cases (Phase 7.2)
+    // ============================================================
+
+    describe("cross-month stays", () => {
+        it("counts rooms for stay spanning month boundary", () => {
+            const records = [
+                { checkIn: "2026-01-30", checkOut: "2026-02-02", status: "confirmed", rooms: 2 }
+            ];
+
+            // Check January (last two days)
+            const jan = getBookedRoomsByDay(records, "2026-01");
+            assert.strictEqual(jan.get("2026-01-30"), 2);
+            assert.strictEqual(jan.get("2026-01-31"), 2);
+            assert.strictEqual(jan.get("2026-01-29"), 0); // before checkin
+
+            // Check February (first day only - checkout is Feb 2)
+            const feb = getBookedRoomsByDay(records, "2026-02");
+            assert.strictEqual(feb.get("2026-02-01"), 2); // still there
+            assert.strictEqual(feb.get("2026-02-02"), 0); // checkout day - guest leaves
+        });
+    });
+
+    describe("status exclusion edge cases", () => {
+        it("waiting reservations are excluded from occupancy", () => {
+            const records = [
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "waiting", rooms: 2 }
+            ];
+            const booked = getBookedRoomsByDay(records, "2025-01");
+
+            assert.strictEqual(booked.get("2025-01-15"), 0);
+            assert.strictEqual(booked.get("2025-01-16"), 0);
+        });
+
+        it("rejected reservations are excluded from occupancy", () => {
+            const records = [
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "rejected", rooms: 2 }
+            ];
+            const booked = getBookedRoomsByDay(records, "2025-01");
+
+            assert.strictEqual(booked.get("2025-01-15"), 0);
+            assert.strictEqual(booked.get("2025-01-16"), 0);
+        });
+
+        it("legacy v1 missing status counts as confirmed", () => {
+            // V1 records don't have status field - should be treated as confirmed
+            const records = [
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", rooms: 2 } // no status
+            ];
+            const booked = getBookedRoomsByDay(records, "2025-01");
+
+            assert.strictEqual(booked.get("2025-01-15"), 2);
+            assert.strictEqual(booked.get("2025-01-16"), 2);
+        });
+    });
+
+    describe("cap behavior", () => {
+        it("caps occupancy at MAX_ROOMS when sum exceeds", () => {
+            const records = [
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "confirmed", rooms: 2 },
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "confirmed", rooms: 2 },
+                { checkIn: "2025-01-15", checkOut: "2025-01-17", status: "confirmed", rooms: 1 }
+            ];
+            // Total = 5 rooms, should cap at MAX_ROOMS (3)
+            const booked = getBookedRoomsByDay(records, "2025-01");
+
+            assert.strictEqual(booked.get("2025-01-15"), 3); // capped
+            assert.strictEqual(booked.get("2025-01-16"), 3); // capped
+        });
+    });
 });
 

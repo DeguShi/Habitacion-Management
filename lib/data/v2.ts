@@ -355,6 +355,157 @@ function calculateTotalPrice(
 }
 
 /**
+ * Gets today's date in YYYY-MM-DD format (local timezone).
+ * Avoids timezone shift issues with new Date().toISOString().
+ */
+function todayISO(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+// ============================================================
+// Create Confirmed Reservation
+// ============================================================
+
+/**
+ * Input for creating a new confirmed reservation directly.
+ */
+export interface CreateConfirmedInput {
+    // Guest info (required)
+    guestName: string;
+    phone?: string;
+    email?: string;
+
+    // Dates (required)
+    checkIn: string;
+    checkOut: string;
+
+    // Occupancy
+    partySize: number;
+    rooms?: number; // 1-4, default 1
+
+    // Pricing (at least one required)
+    nightlyRate?: number;
+    breakfastIncluded?: boolean;
+    breakfastPerPersonPerNight?: number;
+    manualLodgingEnabled?: boolean;
+    manualLodgingTotal?: number;
+
+    // Payment (optional)
+    depositPaidAmount?: number;
+    depositMethod?: string;
+    depositNote?: string;
+
+    // Notes (optional)
+    notesInternal?: string;
+    notesGuest?: string;
+}
+
+/**
+ * Creates a new confirmed reservation directly.
+ *
+ * VALIDATION:
+ * - guestName required
+ * - checkIn & checkOut required
+ * - checkOut must be after checkIn
+ * - partySize >= 1
+ * - nightlyRate OR manualLodgingTotal required
+ * - if breakfastIncluded, breakfastPerPersonPerNight defaults to 30
+ *
+ * @param input - Reservation details
+ * @returns Promise<ReservationV2>
+ */
+export async function createConfirmedReservation(
+    input: CreateConfirmedInput
+): Promise<ReservationV2> {
+    // Validate required fields
+    if (!input.guestName?.trim()) {
+        throw new Error("guestName is required");
+    }
+    if (!input.checkIn) {
+        throw new Error("checkIn is required");
+    }
+    if (!input.checkOut) {
+        throw new Error("checkOut is required");
+    }
+    if (input.checkOut <= input.checkIn) {
+        throw new Error("checkOut must be after checkIn");
+    }
+
+    const partySize = Math.max(1, input.partySize || 1);
+    const rooms = Math.min(4, Math.max(1, input.rooms || 1));
+    const nightlyRate = input.nightlyRate ?? 0;
+    const breakfastIncluded = input.breakfastIncluded ?? false;
+    const breakfastRate = input.breakfastPerPersonPerNight ?? (breakfastIncluded ? 30 : 0);
+    const manualLodgingEnabled = input.manualLodgingEnabled ?? false;
+    const manualLodgingTotal = input.manualLodgingTotal;
+
+    // Validate pricing
+    if (!manualLodgingEnabled && nightlyRate <= 0) {
+        throw new Error("nightlyRate or manualLodgingTotal is required");
+    }
+    if (manualLodgingEnabled && (manualLodgingTotal == null || manualLodgingTotal <= 0)) {
+        throw new Error("manualLodgingTotal is required when manualLodgingEnabled is true");
+    }
+
+    // Calculate totals
+    const nights = calculateNights(input.checkIn, input.checkOut);
+    const totalPrice = calculateTotalPrice(
+        nights,
+        partySize,
+        nightlyRate,
+        breakfastIncluded,
+        breakfastRate,
+        manualLodgingEnabled,
+        manualLodgingTotal
+    );
+
+    // Build payment object
+    const payment: Record<string, unknown> = {};
+    if (input.depositPaidAmount && input.depositPaidAmount > 0) {
+        const depositDue = totalPrice * 0.5; // default 50%
+        payment.deposit = {
+            paid: true,
+            due: depositDue,
+        };
+        payment.events = [
+            {
+                id: crypto.randomUUID(),
+                amount: input.depositPaidAmount,
+                date: todayISO(),
+                method: input.depositMethod || "Pix",
+                note: input.depositNote?.trim() || "Depósito",
+            },
+        ];
+    }
+
+    // Build full record
+    const record = {
+        guestName: input.guestName.trim(),
+        phone: input.phone?.trim(),
+        email: input.email?.trim(),
+        checkIn: input.checkIn,
+        checkOut: input.checkOut,
+        partySize,
+        rooms,
+        nightlyRate,
+        breakfastIncluded,
+        breakfastPerPersonPerNight: breakfastRate,
+        manualLodgingEnabled,
+        manualLodgingTotal: manualLodgingEnabled ? manualLodgingTotal : undefined,
+        totalNights: nights,
+        totalPrice,
+        status: "confirmed" as const,
+        payment: Object.keys(payment).length > 0 ? payment : {},
+        notesInternal: input.notesInternal?.trim(),
+        notesGuest: input.notesGuest?.trim(),
+    };
+
+    return createV2Record(record);
+}
+
+
+/**
  * Confirms a waiting lead with full details.
  * 
  * IMPORTANT: Preserves all existing fields including _importMeta and unknown keys.

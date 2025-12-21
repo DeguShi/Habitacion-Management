@@ -68,7 +68,7 @@ export default function CreateLeadSheet({ open, onClose, onCreated }: CreateLead
     }
 
     return (
-        <BottomSheet open={open} onClose={handleClose} title="Novo Lead">
+        <BottomSheet open={open} onClose={handleClose} title="Novo Pedido de Reserva">
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Guest Name */}
                 <div>
@@ -190,7 +190,7 @@ export default function CreateLeadSheet({ open, onClose, onCreated }: CreateLead
                         className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                         disabled={saving}
                     >
-                        {saving ? 'Salvando...' : 'Adicionar Lead'}
+                        {saving ? 'Salvando...' : 'Salvar pedido'}
                     </button>
                 </div>
             </form>

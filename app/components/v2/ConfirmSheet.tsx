@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import BottomSheet from './BottomSheet'
-import { confirmWaitingLead, createV2Record } from '@/lib/data/v2'
+import { confirmWaitingLead, createConfirmedReservation } from '@/lib/data/v2'
 import type { ReservationV2 } from '@/core/entities_v2'
 
 interface ConfirmSheetProps {
@@ -14,6 +14,51 @@ interface ConfirmSheetProps {
 
 const PAYMENT_METHODS = ['Pix', 'Dinheiro', 'Cartão', 'Outro']
 const ROOMS_OPTIONS = [1, 2, 3, 4]
+
+// localStorage keys
+const LS_NIGHTLY_RATE = 'hab:lastNightlyRate'
+const LS_BREAKFAST_RATE = 'hab:lastBreakfastRate'
+
+/**
+ * Gets today's date in YYYY-MM-DD format (local timezone).
+ */
+function todayLocal(): string {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Gets tomorrow's date in YYYY-MM-DD format (local timezone).
+ */
+function tomorrowLocal(): string {
+    const now = new Date()
+    now.setDate(now.getDate() + 1)
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Safely reads from localStorage (client-only).
+ */
+function getStoredRate(key: string, fallback: string): string {
+    if (typeof window === 'undefined') return fallback
+    try {
+        return localStorage.getItem(key) || fallback
+    } catch {
+        return fallback
+    }
+}
+
+/**
+ * Safely writes to localStorage (client-only).
+ */
+function setStoredRate(key: string, value: string): void {
+    if (typeof window === 'undefined') return
+    try {
+        localStorage.setItem(key, value)
+    } catch {
+        // ignore
+    }
+}
 
 export default function ConfirmSheet({ open, onClose, onConfirmed, item }: ConfirmSheetProps) {
     // Determine if we're in create mode (no existing item)
@@ -27,7 +72,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
     // Form state
     const [checkIn, setCheckIn] = useState('')
     const [checkOut, setCheckOut] = useState('')
-    const [partySize, setPartySize] = useState('2')
+    const [partySize, setPartySize] = useState('1')
     const [rooms, setRooms] = useState('1')
     const [nightlyRate, setNightlyRate] = useState('250')
     const [breakfastIncluded, setBreakfastIncluded] = useState(false)
@@ -52,27 +97,27 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                 setEmail(item.email || '')
                 setCheckIn(item.checkIn || '')
                 setCheckOut(item.checkOut || '')
-                setPartySize(String(item.partySize || 2))
+                setPartySize(String(item.partySize || 1))
                 setRooms(String(item.rooms ?? 1))
-                setNightlyRate(String(item.nightlyRate || 250))
+                setNightlyRate(String(item.nightlyRate || getStoredRate(LS_NIGHTLY_RATE, '250')))
                 setBreakfastIncluded(item.breakfastIncluded || false)
-                setBreakfastRate(String(item.breakfastPerPersonPerNight || 30))
+                setBreakfastRate(String(item.breakfastPerPersonPerNight || getStoredRate(LS_BREAKFAST_RATE, '30')))
                 setManualLodging(item.manualLodgingEnabled || false)
                 setManualTotal(item.manualLodgingTotal ? String(item.manualLodgingTotal) : '')
                 setNotesInternal(item.notesInternal || '')
                 setNotesGuest(item.notesGuest || '')
             } else {
-                // Create mode: reset to defaults
+                // Create mode: reset to defaults with today/tomorrow and localStorage rates
                 setGuestName('')
                 setPhone('')
                 setEmail('')
-                setCheckIn('')
-                setCheckOut('')
-                setPartySize('2')
+                setCheckIn(todayLocal())
+                setCheckOut(tomorrowLocal())
+                setPartySize('1')
                 setRooms('1')
-                setNightlyRate('250')
+                setNightlyRate(getStoredRate(LS_NIGHTLY_RATE, '250'))
                 setBreakfastIncluded(false)
-                setBreakfastRate('30')
+                setBreakfastRate(getStoredRate(LS_BREAKFAST_RATE, '30'))
                 setManualLodging(false)
                 setManualTotal('')
                 setNotesInternal('')
@@ -85,20 +130,21 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
         }
     }, [item, open])
 
-    // Auto-set checkOut if missing
+    // Auto-set checkOut if checkIn changes and checkOut is before checkIn
     useEffect(() => {
-        if (checkIn && !checkOut) {
-            const d = new Date(checkIn)
+        if (checkIn && checkOut && checkOut <= checkIn) {
+            const d = new Date(checkIn + 'T00:00:00') // Parse as local
             d.setDate(d.getDate() + 1)
-            setCheckOut(d.toISOString().slice(0, 10))
+            const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+            setCheckOut(next)
         }
     }, [checkIn, checkOut])
 
     // Calculate preview
     const nights = (() => {
         if (!checkIn || !checkOut) return 0
-        const d1 = new Date(checkIn)
-        const d2 = new Date(checkOut)
+        const d1 = new Date(checkIn + 'T00:00:00')
+        const d2 = new Date(checkOut + 'T00:00:00')
         return Math.max(1, Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)))
     })()
 
@@ -132,11 +178,21 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
             return
         }
 
+        // Validate pricing
+        if (!manualLodging && rate <= 0) {
+            setError('Diária deve ser maior que zero')
+            return
+        }
+        if (manualLodging && mTotal <= 0) {
+            setError('Valor manual deve ser maior que zero')
+            return
+        }
+
         setSaving(true)
         try {
             if (isCreateMode) {
-                // Create new confirmed reservation directly
-                await createV2Record({
+                // Create new confirmed reservation via helper
+                await createConfirmedReservation({
                     guestName: guestName.trim(),
                     phone: phone.trim() || undefined,
                     email: email.trim() || undefined,
@@ -144,26 +200,16 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                     checkOut,
                     partySize: party,
                     rooms: roomCount,
-                    status: 'confirmed',
-                    nightlyRate: rate,
+                    nightlyRate: manualLodging ? 0 : rate,
                     breakfastIncluded,
                     breakfastPerPersonPerNight: bRate,
                     manualLodgingEnabled: manualLodging,
                     manualLodgingTotal: manualLodging ? mTotal : undefined,
-                    totalNights: nights,
-                    totalPrice: totalPreview,
+                    depositPaidAmount: parseFloat(depositAmount) || undefined,
+                    depositMethod: depositMethod,
+                    depositNote: depositNote.trim() || undefined,
                     notesInternal: notesInternal.trim() || undefined,
                     notesGuest: notesGuest.trim() || undefined,
-                    payment: parseFloat(depositAmount) > 0 ? {
-                        deposit: { paid: true, due: totalPreview * 0.5 },
-                        events: [{
-                            id: crypto.randomUUID(),
-                            amount: parseFloat(depositAmount),
-                            date: new Date().toISOString().slice(0, 10),
-                            method: depositMethod,
-                            note: depositNote.trim() || 'Depósito',
-                        }],
-                    } : {},
                 })
             } else {
                 // Confirm existing waiting item
@@ -184,6 +230,15 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                     notesGuest: notesGuest.trim() || undefined,
                 })
             }
+
+            // Persist last-used rates after successful save
+            if (!manualLodging && rate > 0) {
+                setStoredRate(LS_NIGHTLY_RATE, String(rate))
+            }
+            if (breakfastIncluded && bRate > 0) {
+                setStoredRate(LS_BREAKFAST_RATE, String(bRate))
+            }
+
             onConfirmed()
             onClose()
         } catch (err: any) {
@@ -196,7 +251,8 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
     const BRL = (n: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 
-    const title = isCreateMode ? 'Nova Reserva Confirmada' : 'Confirmar Reserva'
+    const title = isCreateMode ? 'Nova Reserva' : 'Confirmar Reserva'
+    const submitLabel = isCreateMode ? 'Salvar reserva' : 'Confirmar'
 
     return (
         <BottomSheet open={open} onClose={onClose} title={title}>
@@ -480,7 +536,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item }: Confi
                         className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                         disabled={saving}
                     >
-                        {saving ? 'Salvando...' : isCreateMode ? 'Criar Reserva' : 'Confirmar'}
+                        {saving ? 'Salvando...' : submitLabel}
                     </button>
                 </div>
             </form>
