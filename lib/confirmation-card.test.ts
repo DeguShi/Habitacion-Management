@@ -4,7 +4,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { formatDateBR, formatMoneyBRL, getStatusLabel, getStatusColor, clampDevicePixelRatio } from './confirmation-card'
+import { formatDateBR, formatMoneyBRL, getStatusLabel, getStatusColor, clampDevicePixelRatio, getDepositLabel } from './confirmation-card'
 
 describe('Confirmation Card Helpers', () => {
     describe('formatDateBR', () => {
@@ -79,6 +79,31 @@ describe('Confirmation Card Helpers', () => {
         it('returns 1 in Node (no window)', () => {
             // In Node, window is undefined, so it returns 1
             assert.strictEqual(clampDevicePixelRatio(), 1)
+        })
+    })
+
+    describe('getDepositLabel', () => {
+        it('returns Pendente for undefined payment', () => {
+            assert.strictEqual(getDepositLabel(undefined), 'Pendente')
+        })
+
+        it('returns Pago for deposit.paid = true', () => {
+            const result = getDepositLabel({ deposit: { paid: true } } as any)
+            assert.strictEqual(result, 'Pago')
+        })
+
+        it('returns Pago with amount for deposit.paid + due', () => {
+            const result = getDepositLabel({ deposit: { paid: true, due: 500 } } as any)
+            assert.ok(result.includes('Pago'))
+            assert.ok(result.includes('500'))
+        })
+
+        it('returns Pago with sum for payment events', () => {
+            const result = getDepositLabel({
+                events: [{ amount: 100 }, { amount: 200 }]
+            } as any)
+            assert.ok(result.includes('Pago'))
+            assert.ok(result.includes('300'))
         })
     })
 })
