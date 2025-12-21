@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Check, X, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import type { ReservationV2 } from '@/core/entities_v2'
-import { listV2Records, confirmRecord, rejectRecord, restoreToWaiting } from '@/lib/data/v2'
+import { rejectRecord, restoreToWaiting } from '@/lib/data/v2'
 
 interface EmEsperaPageProps {
     canWrite: boolean
+    waitingRecords: ReservationV2[]   // Passed from parent
+    rejectedRecords: ReservationV2[]  // Passed from parent
+    loading: boolean
     onConfirmWithDetails: (r: ReservationV2) => void
-    refreshKey?: number
     onRefresh: () => void
 }
 
@@ -19,40 +21,24 @@ function formatBR(iso: string) {
 
 export default function EmEsperaPage({
     canWrite,
+    waitingRecords,
+    rejectedRecords,
+    loading,
     onConfirmWithDetails,
-    refreshKey = 0,
     onRefresh,
 }: EmEsperaPageProps) {
-    const [waitingItems, setWaitingItems] = useState<ReservationV2[]>([])
-    const [rejectedItems, setRejectedItems] = useState<ReservationV2[]>([])
-    const [loading, setLoading] = useState(true)
     const [showRejected, setShowRejected] = useState(false)
     const [swipeId, setSwipeId] = useState<string | null>(null)
     const [swipeOffset, setSwipeOffset] = useState(0)
     const touchStartX = useRef(0)
 
-    async function loadItems() {
-        setLoading(true)
-        try {
-            const [waiting, rejected] = await Promise.all([
-                listV2Records({ status: 'waiting' }),
-                listV2Records({ status: 'rejected' }),
-            ])
-            // Sort by checkIn
-            waiting.sort((a, b) => a.checkIn.localeCompare(b.checkIn))
-            rejected.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-            setWaitingItems(waiting)
-            setRejectedItems(rejected)
-        } catch (e) {
-            console.error('Failed to load waiting items:', e)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        loadItems()
-    }, [refreshKey])
+    // Sort locally (data already filtered by parent)
+    const waitingItems = [...waitingRecords].sort(
+        (a, b) => a.checkIn.localeCompare(b.checkIn)
+    )
+    const rejectedItems = [...rejectedRecords].sort(
+        (a, b) => b.updatedAt.localeCompare(a.updatedAt)
+    )
 
     async function handleConfirm(item: ReservationV2) {
         if (!canWrite) return

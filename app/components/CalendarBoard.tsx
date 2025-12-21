@@ -1,10 +1,15 @@
 'use client'
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
-import { WEEKDAY_LABELS, generateMonthGrid, formatDateKey } from '@/lib/calendar-utils'
+import { useState, useMemo } from 'react'
+import { WEEKDAY_LABELS, generateMonthGrid, formatDateKey, getBookedRoomsByDay, MAX_ROOMS } from '@/lib/calendar-utils'
 
-type Item = { checkIn: string }
+interface OccupancyItem {
+  checkIn: string
+  checkOut: string
+  status?: string // optional for backward compatibility
+  rooms?: number
+}
 
 export default function CalendarBoard({
   month,                // "YYYY-MM"
@@ -12,13 +17,13 @@ export default function CalendarBoard({
   selectedDate,         // "YYYY-MM-DD"
   onSelectDate,
   items,
-  roomsTotal = 3,
+  roomsTotal = MAX_ROOMS,
 }: {
   month: string
   onMonthChange: (m: string) => void
   selectedDate: string
   onSelectDate: (iso: string) => void
-  items: Item[]
+  items: OccupancyItem[]
   roomsTotal?: number
 }) {
   const [y, m] = month.split('-').map(Number)
@@ -34,24 +39,25 @@ export default function CalendarBoard({
     setDraft(toDraft(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`))
   }
 
-  // ----- occupancy
-  const counts: Record<string, number> = {}
-  for (const it of items) counts[it.checkIn] = (counts[it.checkIn] || 0) + 1
+  // ----- occupancy (rooms-based, multi-night aware)
+  const bookedRooms = useMemo(() =>
+    getBookedRoomsByDay(items, month, roomsTotal),
+    [items, month, roomsTotal]
+  )
 
   const keyFor = (day: number) => formatDateKey(y, m, day)
 
-  // Softer, clearer palette:
-  // 1 = pastel yellow, 2 = softened orange, 3+ = dark red
-  const tint = (c: number) =>
-    c >= roomsTotal ? '!bg-red-200'
-      : c === 2 ? '!bg-orange-100'
-        : c === 1 ? '!bg-yellow-100'
+  // Occupancy-based palette: intensity by rooms ratio
+  const tint = (rooms: number) =>
+    rooms >= roomsTotal ? '!bg-red-200'
+      : rooms >= 2 ? '!bg-orange-100'
+        : rooms >= 1 ? '!bg-yellow-100'
           : 'bg-white'
 
-  const dot = (c: number) =>
-    c >= roomsTotal ? 'bg-red-700'
-      : c === 2 ? 'bg-orange-500'
-        : c === 1 ? 'bg-yellow-500' : 'bg-transparent'
+  const dot = (rooms: number) =>
+    rooms >= roomsTotal ? 'bg-red-700'
+      : rooms >= 2 ? 'bg-orange-500'
+        : rooms >= 1 ? 'bg-yellow-500' : 'bg-transparent'
 
   // ----- free-text month input (dd-mm-yyyy) with parse on blur/Enter
   const [draft, setDraft] = useState<string>(toDraft(month))
@@ -130,23 +136,23 @@ export default function CalendarBoard({
         {grid.map((day, idx) => {
           if (day === null) return <div key={idx} />
           const key = keyFor(day)
-          const count = counts[key] || 0
+          const rooms = bookedRooms.get(key) || 0
           const isSelected = selectedDate === key
           return (
             <button
               key={idx}
               onClick={() => onSelectDate(key)}
-              title={count ? `${count}/${roomsTotal} reservas` : 'Sem reservas'}
+              title={rooms ? `${rooms}/${roomsTotal} quartos` : 'Livre'}
               className={[
                 'relative h-11 w-full rounded-xl text-sm text-gray-900',
                 'bg-white', // force light base
-                tint(count),
+                tint(rooms),
                 isSelected ? 'ring-2 ring-blue-600' : 'ring-1 ring-gray-200',
                 'transition transform-gpu hover:-translate-y-0.5 hover:shadow-sm',
               ].join(' ')}
             >
               {day}
-              <span className={`absolute right-1 top-1 h-2 w-2 rounded-full ${dot(count)}`} />
+              <span className={`absolute right-1 top-1 h-2 w-2 rounded-full ${dot(rooms)}`} />
             </button>
           )
         })}

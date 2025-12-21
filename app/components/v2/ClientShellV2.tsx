@@ -1,14 +1,42 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import BottomNav, { type TabId } from '@/app/components/v2/BottomNav'
 import ConfirmadasPage from '@/app/components/v2/ConfirmadasPage'
 import EmEsperaPage from '@/app/components/v2/EmEsperaPage'
 import ContatosPage from '@/app/components/v2/ContatosPage'
 import FerramentasPage from '@/app/components/v2/FerramentasPage'
+import CreateLeadSheet from '@/app/components/v2/CreateLeadSheet'
+import CreateActionSheet from '@/app/components/v2/CreateActionSheet'
+import ConfirmSheet from '@/app/components/v2/ConfirmSheet'
+import EditReservationSheet from '@/app/components/v2/EditReservationSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
 import type { Contact } from '@/lib/contacts'
-import { confirmRecord } from '@/lib/data/v2'
+import { deleteV2Record, listV2Records } from '@/lib/data/v2'
+
+const DEBUG = process.env.NEXT_PUBLIC_DEBUG_FETCH === '1'
+
+// ============================================================
+// Module-level guard to prevent double initial fetch
+// (React StrictMode remounts effects in dev, this persists)
+// ============================================================
+let v2InitialFetchStarted = false
+
+function shouldStartV2InitialFetch(): boolean {
+    if (v2InitialFetchStarted) {
+        if (DEBUG) console.log('[fetch] Initial fetch already started, skipping (StrictMode guard)')
+        return false
+    }
+    v2InitialFetchStarted = true
+    return true
+}
+
+// Reset on hot reload in dev (optional, helps with HMR)
+if (typeof window !== 'undefined' && (module as any).hot) {
+    (module as any).hot.dispose(() => {
+        v2InitialFetchStarted = false
+    })
+}
 
 interface ClientShellV2Props {
     canWrite?: boolean
@@ -16,94 +44,191 @@ interface ClientShellV2Props {
 
 export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) {
     const [activeTab, setActiveTab] = useState<TabId>('confirmadas')
-    const [refreshKey, setRefreshKey] = useState(0)
 
-    // Modal states
-    const [confirmingItem, setConfirmingItem] = useState<ReservationV2 | null>(null)
-    const [viewingContact, setViewingContact] = useState<{
-        contact: Contact
-        reservations: ReservationV2[]
-    } | null>(null)
+    // ============================================================
+    // Centralized Records Store
+    // ============================================================
+    const [records, setRecords] = useState<ReservationV2[]>([])
+    const [loadingInitial, setLoadingInitial] = useState(true)
+    const [refreshing, setRefreshing] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-    const refresh = useCallback(() => {
-        setRefreshKey((k) => k + 1)
+    // Dedupe guards
+    const refreshingRef = useRef(false)
+    const queuedRef = useRef(false)
+
+    /**
+     * Deduped refresh: only one fetch in-flight, queued requests coalesce.
+     */
+    const refreshRecords = useCallback(async (reason?: string) => {
+        if (DEBUG) console.log('[fetch] refreshRecords called:', reason || '(no reason)')
+
+        if (refreshingRef.current) {
+            queuedRef.current = true
+            if (DEBUG) console.log('[fetch] Already refreshing, queued for later')
+            return
+        }
+
+        refreshingRef.current = true
+        setRefreshing(true)
+        setError(null)
+
+        try {
+            if (DEBUG) console.log('[fetch] Starting fetch...')
+            const next = await listV2Records() // Fetch ALL, normalized
+            setRecords(next)
+            if (DEBUG) console.log('[fetch] Fetched', next.length, 'records')
+        } catch (e: any) {
+            console.error('Failed to fetch records:', e)
+            setError(e?.message || 'Erro ao carregar')
+        } finally {
+            setRefreshing(false)
+            setLoadingInitial(false)
+            refreshingRef.current = false
+
+            // If another refresh was requested while we were fetching, do it now
+            if (queuedRef.current) {
+                queuedRef.current = false
+                if (DEBUG) console.log('[fetch] Processing queued refresh')
+                void refreshRecords('queued')
+            }
+        }
     }, [])
 
-    // Placeholder handlers - these will be implemented with proper modals later
+    // Load once on mount (with StrictMode guard)
+    useEffect(() => {
+        if (!shouldStartV2InitialFetch()) return
+        if (DEBUG) console.log('[fetch] Initial fetch starting')
+        refreshRecords('initial')
+    }, [refreshRecords])
+
+    // ============================================================
+    // Derived Data for Tabs (useMemo = no refetch on tab switch)
+    // ============================================================
+    const confirmedRecords = useMemo(
+        () => records.filter((r) => r.status === 'confirmed' || !r.status),
+        [records]
+    )
+
+    const waitingRecords = useMemo(
+        () => records.filter((r) => r.status === 'waiting'),
+        [records]
+    )
+
+    const rejectedRecords = useMemo(
+        () => records.filter((r) => r.status === 'rejected'),
+        [records]
+    )
+
+    // ============================================================
+    // Sheet States
+    // ============================================================
+    const [actionSheetOpen, setActionSheetOpen] = useState(false)
+    const [createLeadOpen, setCreateLeadOpen] = useState(false)
+    const [createConfirmedOpen, setCreateConfirmedOpen] = useState(false)
+    const [confirmingItem, setConfirmingItem] = useState<ReservationV2 | null>(null)
+    const [editingItem, setEditingItem] = useState<ReservationV2 | null>(null)
+
+    // ============================================================
+    // Handlers
+    // ============================================================
+
+    // View reservation details
     function handleViewReservation(r: ReservationV2) {
-        // For now, just log - full modal implementation later
-        console.log('View reservation:', r.id)
-        alert(`Reserva: ${r.guestName}\nCheck-in: ${r.checkIn}\nCheck-out: ${r.checkOut}`)
+        const info = [
+            `Hóspede: ${r.guestName}`,
+            `Pessoas: ${r.partySize}`,
+            `Check-in: ${r.checkIn}`,
+            `Check-out: ${r.checkOut}`,
+            `Total: R$ ${r.totalPrice}`,
+            r.phone ? `Tel: ${r.phone}` : '',
+            r.email ? `Email: ${r.email}` : '',
+        ].filter(Boolean).join('\n')
+        alert(info)
     }
 
+    // Edit reservation
     function handleEditReservation(r: ReservationV2) {
-        console.log('Edit reservation:', r.id)
-        alert('Editor em desenvolvimento')
+        if (!canWrite) return
+        setEditingItem(r)
     }
 
-    function handleDeleteReservation(r: ReservationV2) {
+    // Delete reservation
+    async function handleDeleteReservation(r: ReservationV2) {
         if (!canWrite) return
         const ok = confirm(`Excluir reserva de ${r.guestName}?`)
         if (!ok) return
-        // For now, just refresh - full delete implementation needed
-        console.log('Delete reservation:', r.id)
-    }
-
-    function handleCreateReservation(date: string) {
-        if (!canWrite) return
-        console.log('Create reservation for:', date)
-        alert('Criação em desenvolvimento')
-    }
-
-    async function handleConfirmWithDetails(r: ReservationV2) {
-        setConfirmingItem(r)
-        // For now, quick confirm without sheet
         try {
-            await confirmRecord(r.id)
-            refresh()
-            setConfirmingItem(null)
+            await deleteV2Record(r.id)
+            refreshRecords('delete')
         } catch (e) {
-            console.error('Failed to confirm:', e)
-            alert('Erro ao confirmar')
+            console.error('Delete failed:', e)
+            alert('Erro ao excluir')
         }
     }
 
+    // Create reservation for specific date
+    function handleCreateReservation(date: string) {
+        if (!canWrite) return
+        setActionSheetOpen(true)
+    }
+
+    // Confirm waiting item
+    function handleConfirmWithDetails(r: ReservationV2) {
+        if (!canWrite) return
+        setConfirmingItem(r)
+    }
+
+    // View contact
     function handleViewContact(contact: Contact, reservations: ReservationV2[]) {
-        setViewingContact({ contact, reservations })
-        // For now, just show alert - proper modal later
-        alert(
-            `Contato: ${contact.name}\nBookings: ${contact.totalBookings}\nReservas: ${reservations.map((r) => r.checkIn).join(', ')}`
-        )
-        setViewingContact(null)
+        const info = [
+            `Contato: ${contact.name}`,
+            contact.phone ? `Tel: ${contact.phone}` : '',
+            contact.email ? `Email: ${contact.email}` : '',
+            `Reservas: ${contact.totalBookings}`,
+            `Última: ${contact.lastStayDate}`,
+        ].filter(Boolean).join('\n')
+        alert(info)
     }
 
     return (
         <div className="min-h-screen bg-gray-50">
             <main className="max-w-lg mx-auto px-4 py-4">
+                {/* Sync indicator */}
+                {refreshing && !loadingInitial && (
+                    <div className="fixed top-2 right-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full z-50">
+                        Atualizando...
+                    </div>
+                )}
+
                 {activeTab === 'confirmadas' && (
                     <ConfirmadasPage
                         canWrite={canWrite}
+                        records={confirmedRecords}
+                        loading={loadingInitial}
                         onViewReservation={handleViewReservation}
                         onEditReservation={handleEditReservation}
                         onDeleteReservation={handleDeleteReservation}
                         onCreateReservation={handleCreateReservation}
-                        refreshKey={refreshKey}
                     />
                 )}
 
                 {activeTab === 'em-espera' && (
                     <EmEsperaPage
                         canWrite={canWrite}
+                        waitingRecords={waitingRecords}
+                        rejectedRecords={rejectedRecords}
+                        loading={loadingInitial}
                         onConfirmWithDetails={handleConfirmWithDetails}
-                        refreshKey={refreshKey}
-                        onRefresh={refresh}
+                        onRefresh={() => refreshRecords('em-espera-action')}
                     />
                 )}
 
                 {activeTab === 'contatos' && (
                     <ContatosPage
+                        records={records}
+                        loading={loadingInitial}
                         onViewContact={handleViewContact}
-                        refreshKey={refreshKey}
                     />
                 )}
 
@@ -112,7 +237,48 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                 )}
             </main>
 
-            <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+            <BottomNav
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                onCreateClick={canWrite ? () => setActionSheetOpen(true) : undefined}
+            />
+
+            {/* Sheets */}
+            <CreateActionSheet
+                open={actionSheetOpen}
+                onClose={() => setActionSheetOpen(false)}
+                onCreateLead={() => setCreateLeadOpen(true)}
+                onCreateConfirmed={() => setCreateConfirmedOpen(true)}
+            />
+
+            <CreateLeadSheet
+                open={createLeadOpen}
+                onClose={() => setCreateLeadOpen(false)}
+                onCreated={() => {
+                    refreshRecords('create-lead')
+                    setActiveTab('em-espera')
+                }}
+            />
+
+            <ConfirmSheet
+                open={createConfirmedOpen || !!confirmingItem}
+                onClose={() => {
+                    setCreateConfirmedOpen(false)
+                    setConfirmingItem(null)
+                }}
+                onConfirmed={() => {
+                    refreshRecords('confirm')
+                    setActiveTab('confirmadas')
+                }}
+                item={confirmingItem}
+            />
+
+            <EditReservationSheet
+                open={!!editingItem}
+                onClose={() => setEditingItem(null)}
+                onSaved={() => refreshRecords('edit')}
+                item={editingItem}
+            />
         </div>
     )
 }

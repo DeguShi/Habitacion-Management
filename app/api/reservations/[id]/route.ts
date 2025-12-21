@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth.config'
 import { userKeyFromEmail } from '@/lib/user'
 import { updateReservation, deleteReservation } from '@/core/usecases'
+import { getJson } from '@/lib/s3'
 
 // allowlist logic, just the same
 const allowedSet = new Set(
@@ -15,6 +16,41 @@ function isAllowed(email: string) {
   if (allowedSet.size === 0) return false
   return allowedSet.has(email.trim().toLowerCase())
 }
+
+// ID safety check - reject path traversal attempts
+function isValidId(id: string): boolean {
+  if (!id || typeof id !== 'string') return false
+  // Only allow alphanumeric, hyphens, underscores
+  return /^[\w-]+$/.test(id)
+}
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  const email = session?.user?.email
+  if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const userId = userKeyFromEmail(email)
+  const { id } = params
+
+  // Validate ID safety
+  if (!isValidId(id)) {
+    return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
+  }
+
+  try {
+    const key = `users/${userId}/reservations/${id}.json`
+    const data = await getJson<Record<string, unknown>>(key)
+
+    if (!data) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(data)
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Failed to load' }, { status: 500 })
+  }
+}
+
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)

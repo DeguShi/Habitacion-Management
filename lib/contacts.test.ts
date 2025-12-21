@@ -171,3 +171,49 @@ describe("getContactsWithWaiting", () => {
         assert.strictEqual(withWaiting[0].phone, "222");
     });
 });
+
+// ============================================================
+// Contacts Persistence for Rejected Records
+// ============================================================
+
+describe("Contacts Persistence - Rejected Records", () => {
+    it("rejected records are included in contact derivation", () => {
+        const records = [
+            makeReservation({ id: "1", phone: "123", status: "rejected", guestName: "Rejected Guest" }),
+        ];
+
+        const contacts = deriveContacts(records);
+
+        assert.strictEqual(contacts.length, 1);
+        assert.strictEqual(contacts[0].phone, "123");
+        assert.strictEqual(contacts[0].name, "Rejected Guest");
+    });
+
+    it("rejected records count toward totalBookings", () => {
+        const records = [
+            makeReservation({ id: "1", phone: "123", status: "confirmed" }),
+            makeReservation({ id: "2", phone: "123", status: "rejected" }),
+            makeReservation({ id: "3", phone: "123", status: "waiting" }),
+        ];
+
+        const contacts = deriveContacts(records);
+
+        assert.strictEqual(contacts.length, 1);
+        assert.strictEqual(contacts[0].totalBookings, 3); // All 3 count
+        assert.deepStrictEqual(contacts[0].reservationIds.sort(), ["1", "2", "3"]);
+    });
+
+    it("only rejected records still create a contact", () => {
+        // When a lead is rejected, the guest should still be findable
+        const records = [
+            makeReservation({ id: "1", phone: "999", status: "rejected", guestName: "Only Rejected" }),
+        ];
+
+        const contacts = deriveContacts(records);
+
+        assert.strictEqual(contacts.length, 1);
+        assert.strictEqual(contacts[0].hasRejected, true);
+        assert.strictEqual(contacts[0].hasWaiting, false);
+    });
+});
+

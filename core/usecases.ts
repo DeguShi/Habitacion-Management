@@ -55,7 +55,7 @@ function normalizeBirthDate(raw: unknown): string | undefined {
 export async function createReservation(
   userId: string,
   input: unknown
-): Promise<Reservation> {
+): Promise<Record<string, unknown>> {
   const data = reservationInputSchema.parse(input);
   const id = data.id ?? uuid();
   const now = new Date().toISOString();
@@ -75,33 +75,30 @@ export async function createReservation(
     data.extraSpend ?? 0
   );
 
-  const reservation: Reservation = {
+  // Clamp rooms to [1,4] if present
+  const rooms = data.rooms != null ? Math.min(4, Math.max(1, data.rooms)) : undefined;
+
+  // Merge all validated data with computed fields
+  // This preserves v2 fields (status, rooms, payment, etc.) and unknown keys
+  const reservation: Record<string, unknown> = {
+    ...data,                          // All validated fields including v2
     id,
-    guestName: data.guestName,
-    phone: data.phone || undefined,
-    email: data.email || undefined,
-    partySize: data.partySize,
-    checkIn: data.checkIn,
     checkOut,
-    breakfastIncluded: data.breakfastIncluded,
-    nightlyRate: data.nightlyRate,
-    breakfastPerPersonPerNight: data.breakfastPerPersonPerNight,
-
-    manualLodgingEnabled: data.manualLodgingEnabled ?? false,
-    manualLodgingTotal: data.manualLodgingEnabled ? (data.manualLodgingTotal ?? 0) : undefined,
-
-    extraSpend: data.extraSpend ?? 0,
-    birthDate: data.birthDate || undefined,
-    // birthDate: birthDateISO,
-
+    birthDate: birthDateISO,
+    rooms,                            // Clamped rooms (or undefined)
     totalNights: nights,
     totalPrice: total,
     depositDue: Math.round(total * 0.5 * 100) / 100,
-    depositPaid: data.depositPaid ?? false,
-    notes: data.notes,
     createdAt: now,
     updatedAt: now,
   };
+
+  // Clean up undefined values to keep JSON clean
+  for (const key of Object.keys(reservation)) {
+    if (reservation[key] === undefined) {
+      delete reservation[key];
+    }
+  }
 
   await putJson(`${prefix(userId)}${id}.json`, reservation);
   return reservation;
@@ -111,52 +108,62 @@ export async function updateReservation(
   userId: string,
   id: string,
   input: unknown
-): Promise<Reservation> {
+): Promise<Record<string, unknown>> {
   const key = `${prefix(userId)}${id}.json`;
-  const existing = await getJson<Reservation>(key);
-  if (!existing) throw new Error("Reservation not found");
+
+  // Load existing as raw object to preserve ALL keys
+  const existingRaw = await getJson<Record<string, unknown>>(key);
+  if (!existingRaw) throw new Error("Reservation not found");
 
   const partial: Record<string, unknown> =
     typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
 
-  const merged = reservationInputSchema.parse({ ...existing, ...partial, id });
+  // Validate merged input (schema now includes v2 fields + passthrough)
+  const validated = reservationInputSchema.parse({ ...existingRaw, ...partial, id });
 
-  // normalize birth date only if explicitly provided; otherwise keep existing
-  const incomingBirth = (partial as any)?.birthDate;
+  // Normalize birth date only if explicitly provided; otherwise keep existing
+  const incomingBirth = partial?.birthDate;
   const birthDateISO =
-    incomingBirth !== undefined ? normalizeBirthDate(incomingBirth) : (existing as any).birthDate;
+    incomingBirth !== undefined ? normalizeBirthDate(incomingBirth) : existingRaw.birthDate;
 
-  const checkOut = merged.checkOut ?? addDaysISO(merged.checkIn, 1);
-  const nights = calcNights(merged.checkIn, checkOut);
+  const checkOut = validated.checkOut ?? addDaysISO(validated.checkIn, 1);
+  const nights = calcNights(validated.checkIn, checkOut);
 
   const total = calcTotal(
     nights,
-    merged.nightlyRate,
-    merged.breakfastIncluded,
-    merged.partySize,
-    merged.breakfastPerPersonPerNight,
-    merged.manualLodgingEnabled ? (merged.manualLodgingTotal ?? 0) : null,
-    merged.extraSpend ?? 0
+    validated.nightlyRate,
+    validated.breakfastIncluded,
+    validated.partySize,
+    validated.breakfastPerPersonPerNight,
+    validated.manualLodgingEnabled ? (validated.manualLodgingTotal ?? 0) : null,
+    validated.extraSpend ?? 0
   );
 
-  const updated: Reservation = {
-    ...existing,
-    ...merged,
+  // Clamp rooms to [1,4] if present
+  const rooms = validated.rooms != null
+    ? Math.min(4, Math.max(1, validated.rooms))
+    : existingRaw.rooms;
+
+  // Merge: existingRaw (preserves all keys) → validated → computed fields
+  const updated: Record<string, unknown> = {
+    ...existingRaw,           // Preserves _importMeta, unknown keys, etc.
+    ...validated,             // Validated input (includes v2 fields)
+    id,
     checkOut,
-
-    manualLodgingEnabled: merged.manualLodgingEnabled ?? false,
-    manualLodgingTotal: merged.manualLodgingEnabled ? (merged.manualLodgingTotal ?? 0) : undefined,
-
-    extraSpend: merged.extraSpend ?? 0,
-
-    // New (optional)
     birthDate: birthDateISO,
-
+    rooms,
     totalNights: nights,
     totalPrice: total,
     depositDue: Math.round(total * 0.5 * 100) / 100,
     updatedAt: new Date().toISOString(),
   };
+
+  // Clean up undefined values to keep JSON clean
+  for (const k of Object.keys(updated)) {
+    if (updated[k] === undefined) {
+      delete updated[k];
+    }
+  }
 
   await putJson(key, updated);
   return updated;

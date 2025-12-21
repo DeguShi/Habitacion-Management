@@ -34,6 +34,7 @@ export interface PaymentDeposit {
  * date format: ISO 8601 (e.g., "2025-01-15" or "2025-01-15T14:30:00Z")
  */
 export interface PaymentEvent {
+    id?: string;    // UUID for tracking/deletion
     amount: number;
     date: string; // ISO 8601 format
     method?: string;
@@ -73,6 +74,7 @@ export interface ReservationV2 {
     phone?: string;
     email?: string;
     partySize: number;
+    rooms?: number; // 1-4, default 1 (for occupancy calculation)
 
     checkIn: string; // YYYY-MM-DD
     checkOut: string; // YYYY-MM-DD
@@ -123,6 +125,7 @@ export const V1_KNOWN_FIELDS = new Set([
     "phone",
     "email",
     "partySize",
+    "rooms", // added in v2 but needs to be recognized
     "checkIn",
     "checkOut",
     "breakfastIncluded",
