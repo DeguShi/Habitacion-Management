@@ -168,8 +168,8 @@ describe('Confirmation Card Helpers', () => {
     })
 
     describe('LABELS_ES constants', () => {
-        it('has Spanish title', () => {
-            assert.strictEqual(LABELS_ES.title, 'Confirmación de Reserva')
+        it('has neutral Spanish title (avoids redundancy with status)', () => {
+            assert.strictEqual(LABELS_ES.title, 'Detalle de Reserva')
         })
 
         it('keeps Check-in/Check-out in English', () => {

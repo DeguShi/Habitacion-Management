@@ -12,7 +12,7 @@ import type { ReservationV2, Payment } from '@/core/entities_v2'
 // ============================================================
 
 export const LABELS_ES = {
-    title: 'Confirmación de Reserva',
+    title: 'Detalle de Reserva',
     client: 'Cliente',
     persons: 'Personas',
     rooms: 'Habitaciones',
