@@ -25,13 +25,13 @@ export default function Navbar() {
 
         {session?.user ? (
           <div className="flex items-center gap-3">
-            {/* Link to v2 (tools are there now) */}
+            {/* Link to tools */}
             <Link
               href="/"
               className="inline-flex items-center gap-2 rounded-full bg-blue-600 text-white px-4 py-1.5 hover:bg-blue-700 transition font-medium text-sm"
             >
               <Wrench size={16} />
-              <span>Ir para v2</span>
+              <span>Ferramentas</span>
             </Link>
 
             {/* User info (hidden on mobile) */}
