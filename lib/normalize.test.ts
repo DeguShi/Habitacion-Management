@@ -229,3 +229,102 @@ describe("normalizeRecord", () => {
         assert.throws(() => normalizeRecord(bad), /unsupported schemaVersion/);
     });
 });
+
+// ============================================================
+// Phase 9.3: v1 Deposit → v2 Payment Event Tests
+// ============================================================
+
+describe("v1 Deposit to v2 Payment Event (Phase 9.3)", () => {
+    it("creates payment event when depositPaid=true and depositDue>0", () => {
+        const v1 = {
+            id: "test-deposit",
+            guestName: "Test",
+            depositPaid: true,
+            depositDue: 150,
+            createdAt: "2025-01-15T10:00:00Z",
+        };
+        const v2 = normalizeV1ToV2(v1);
+
+        const payment = v2.payment as { events?: Array<{ id: string; amount: number; note: string }> };
+        assert.ok(payment.events);
+        assert.strictEqual(payment.events.length, 1);
+        assert.strictEqual(payment.events[0].id, "legacy-deposit:test-deposit");
+        assert.strictEqual(payment.events[0].amount, 150);
+        assert.strictEqual(payment.events[0].note, "Sinal pago");
+    });
+
+    it("does NOT create event when depositPaid=false", () => {
+        const v1 = {
+            id: "test-no-deposit",
+            guestName: "Test",
+            depositPaid: false,
+            depositDue: 150,
+        };
+        const v2 = normalizeV1ToV2(v1);
+
+        const payment = v2.payment as { events?: unknown[] };
+        assert.ok(!payment.events || payment.events.length === 0);
+    });
+
+    it("appends note when depositPaid=true but depositDue is missing", () => {
+        const v1 = {
+            id: "test-paid-no-amount",
+            guestName: "Test",
+            depositPaid: true,
+            // depositDue missing
+        };
+        const v2 = normalizeV1ToV2(v1);
+
+        const payment = v2.payment as { events?: unknown[] };
+        assert.ok(!payment.events || payment.events.length === 0);
+        assert.ok((v2.notesInternal as string)?.includes("[IMPORTADO]"));
+    });
+
+    it("appends note when depositPaid=true but depositDue=0", () => {
+        const v1 = {
+            id: "test-paid-zero",
+            guestName: "Test",
+            depositPaid: true,
+            depositDue: 0,
+        };
+        const v2 = normalizeV1ToV2(v1);
+
+        assert.ok((v2.notesInternal as string)?.includes("[IMPORTADO]"));
+    });
+
+    it("does NOT add duplicate events on second normalization", () => {
+        const v1 = {
+            id: "test-no-dupe",
+            guestName: "Test",
+            depositPaid: true,
+            depositDue: 100,
+            createdAt: "2025-01-15T10:00:00Z",
+        };
+
+        // First normalization
+        const v2First = normalizeV1ToV2(v1);
+        const paymentFirst = v2First.payment as { events?: unknown[] };
+        assert.strictEqual(paymentFirst.events?.length, 1);
+
+        // v2 records pass through unchanged (no synthetic event added)
+        const v2Second = { ...v2First, schemaVersion: 2 } as Record<string, unknown>;
+        const detection = detectSchemaVersion(v2Second);
+        assert.strictEqual(detection.version, 2);
+        // v2 records are not re-normalized, so no duplicate
+    });
+
+    it("v2 records are returned unchanged (no synthetic event)", () => {
+        const v2Input = {
+            schemaVersion: 2,
+            id: "test-v2",
+            guestName: "Test",
+            status: "confirmed",
+            payment: { deposit: { paid: true, due: 100 } },
+        };
+        const { normalized, wasNormalized } = normalizeRecord(v2Input);
+
+        assert.strictEqual(wasNormalized, false);
+        const payment = normalized.payment as { events?: unknown[] };
+        assert.ok(!payment.events); // No synthetic event added
+    });
+});

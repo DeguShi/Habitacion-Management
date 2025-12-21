@@ -61,6 +61,24 @@ export interface ImportMeta {
 }
 
 /**
+ * Stay review state for post-checkout review (Phase 9.3)
+ * - pending: stay finished but not yet reviewed
+ * - ok: stay completed successfully
+ * - issue: problem occurred (didn't show up, dispute, etc.)
+ */
+export type StayReviewState = "pending" | "ok" | "issue";
+
+/**
+ * Stay review information (Phase 9.3)
+ * Tracks whether a finished stay has been reviewed by staff
+ */
+export interface StayReview {
+    state: StayReviewState;
+    reviewedAt?: string; // ISO timestamp when reviewed
+    note?: string; // Internal note about review outcome
+}
+
+/**
  * V2 Reservation Schema
  *
  * schemaVersion=2 indicates this is a v2 record.
@@ -105,6 +123,12 @@ export interface ReservationV2 {
      * Notes intended for/from guest
      */
     notesGuest?: string;
+
+    /**
+     * Post-checkout review status (Phase 9.3)
+     * Missing = pending (for backwards compat)
+     */
+    stayReview?: StayReview;
 
     createdAt: string; // ISO
     updatedAt: string; // ISO

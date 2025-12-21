@@ -6,16 +6,20 @@ import ConfirmadasPage from '@/app/components/v2/ConfirmadasPage'
 import EmEsperaPage from '@/app/components/v2/EmEsperaPage'
 import ContatosPage from '@/app/components/v2/ContatosPage'
 import FerramentasPage from '@/app/components/v2/FerramentasPage'
+import FinalizadasPage from '@/app/components/v2/FinalizadasPage'
 import CreateLeadSheet from '@/app/components/v2/CreateLeadSheet'
 import CreateActionSheet from '@/app/components/v2/CreateActionSheet'
 import ConfirmSheet from '@/app/components/v2/ConfirmSheet'
 import EditReservationSheet from '@/app/components/v2/EditReservationSheet'
 import ViewReservationSheet from '@/app/components/v2/ViewReservationSheet'
 import ContactDetailSheet from '@/app/components/v2/ContactDetailSheet'
+import FinalizeOkSheet from '@/app/components/v2/FinalizeOkSheet'
+import FinalizeIssueSheet from '@/app/components/v2/FinalizeIssueSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
 import type { Contact } from '@/lib/contacts'
 import { getBestNotesForContact } from '@/lib/contacts'
-import { deleteV2Record, listV2Records } from '@/lib/data/v2'
+import { getFinishedPending, appendInternalNote } from '@/lib/finished-utils'
+import { deleteV2Record, listV2Records, updateV2Record } from '@/lib/data/v2'
 
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_FETCH === '1'
 
@@ -130,6 +134,12 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
         [records]
     )
 
+    // Phase 9.3: Finished stays pending review
+    const finishedRecords = useMemo(
+        () => getFinishedPending(records),
+        [records]
+    )
+
     // ============================================================
     // Sheet States
     // ============================================================
@@ -152,6 +162,10 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
         notesInternal?: string
     } | null>(null)
     const [prefillKey, setPrefillKey] = useState('')
+
+    // Finalizadas sheet state (Phase 9.3)
+    const [finalizeOkItem, setFinalizeOkItem] = useState<ReservationV2 | null>(null)
+    const [finalizeIssueItem, setFinalizeIssueItem] = useState<ReservationV2 | null>(null)
 
     // ============================================================
     // Handlers
@@ -234,6 +248,66 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
         setViewingItem(r)
     }
 
+    // Phase 9.3: Finalizadas handlers
+    function handleMarkOk(r: ReservationV2) {
+        setFinalizeOkItem(r)
+    }
+
+    function handleMarkIssue(r: ReservationV2) {
+        setFinalizeIssueItem(r)
+    }
+
+    async function handleFinalizeOkSave(extraSpend: number, notes?: string) {
+        if (!finalizeOkItem) return
+
+        try {
+            const now = new Date().toISOString()
+            const updatedNotes = notes
+                ? appendInternalNote(finalizeOkItem.notesInternal, `[CHECKOUT OK] ${notes}`)
+                : finalizeOkItem.notesInternal
+
+            await updateV2Record(finalizeOkItem.id, {
+                ...finalizeOkItem,
+                extraSpend: extraSpend || finalizeOkItem.extraSpend,
+                notesInternal: updatedNotes,
+                stayReview: {
+                    state: 'ok',
+                    reviewedAt: now,
+                },
+            })
+            setFinalizeOkItem(null)
+            refreshRecords('finalize-ok')
+        } catch (err) {
+            console.error('Failed to finalize OK:', err)
+        }
+    }
+
+    async function handleFinalizeIssueSave(reason: string) {
+        if (!finalizeIssueItem) return
+
+        try {
+            const now = new Date().toISOString()
+            const updatedNotes = appendInternalNote(
+                finalizeIssueItem.notesInternal,
+                `[CHECKOUT PROBLEMA] ${reason}`
+            )
+
+            await updateV2Record(finalizeIssueItem.id, {
+                ...finalizeIssueItem,
+                notesInternal: updatedNotes,
+                stayReview: {
+                    state: 'issue',
+                    reviewedAt: now,
+                    note: reason,
+                },
+            })
+            setFinalizeIssueItem(null)
+            refreshRecords('finalize-issue')
+        } catch (err) {
+            console.error('Failed to finalize issue:', err)
+        }
+    }
+
     return (
         <div className="min-h-screen bg-gray-50">
             <main className="max-w-lg mx-auto px-4 py-4">
@@ -280,12 +354,22 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                 {activeTab === 'ferramentas' && (
                     <FerramentasPage canWrite={canWrite} />
                 )}
+
+                {activeTab === 'finalizadas' && (
+                    <FinalizadasPage
+                        records={finishedRecords}
+                        loading={loadingInitial}
+                        onMarkOk={handleMarkOk}
+                        onMarkIssue={handleMarkIssue}
+                    />
+                )}
             </main>
 
             <BottomNav
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 onCreateClick={canWrite ? () => setActionSheetOpen(true) : undefined}
+                finishedCount={finishedRecords.length}
             />
 
             {/* Sheets */}
@@ -354,6 +438,20 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                 onViewReservation={handleViewReservationFromContact}
                 onCreateReservation={handleCreateReservationFromContact}
                 onCreateLead={handleCreateLeadFromContact}
+            />
+
+            <FinalizeOkSheet
+                open={!!finalizeOkItem}
+                onClose={() => setFinalizeOkItem(null)}
+                onSave={handleFinalizeOkSave}
+                item={finalizeOkItem}
+            />
+
+            <FinalizeIssueSheet
+                open={!!finalizeIssueItem}
+                onClose={() => setFinalizeIssueItem(null)}
+                onSave={handleFinalizeIssueSave}
+                item={finalizeIssueItem}
             />
         </div>
     )

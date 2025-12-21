@@ -90,6 +90,7 @@ function findUnknownKeys(v1: Record<string, unknown>): string[] {
  * - status → "confirmed" (default)
  * - depositDue → payment.deposit.due
  * - depositPaid → payment.deposit.paid
+ * - depositPaid=true + depositDue>0 → payment.events[] with legacy deposit event (Phase 9.3)
  * - notes → notesInternal
  * - Unknown keys → listed in _importMeta.unknownKeys (keys only, values preserved at top level)
  *
@@ -101,6 +102,8 @@ export function normalizeV1ToV2(v1: Record<string, unknown>): Record<string, unk
 
     // Build payment object from v1 deposit fields
     const payment: Record<string, unknown> = {};
+    const paymentEvents: Array<Record<string, unknown>> = [];
+
     if (typeof v1.depositDue === "number" || typeof v1.depositPaid === "boolean") {
         payment.deposit = {};
         if (typeof v1.depositDue === "number") {
@@ -111,6 +114,35 @@ export function normalizeV1ToV2(v1: Record<string, unknown>): Record<string, unk
         }
     }
 
+    // Phase 9.3: Create legacy deposit payment event if depositPaid=true
+    let notesAppend = "";
+    if (v1.depositPaid === true) {
+        const depositDue = typeof v1.depositDue === "number" ? v1.depositDue : 0;
+        const recordId = typeof v1.id === "string" ? v1.id : "unknown";
+
+        if (depositDue > 0) {
+            // Create payment event with deterministic ID
+            const legacyEventId = `legacy-deposit:${recordId}`;
+            const createdAt = typeof v1.createdAt === "string" ? v1.createdAt : new Date().toISOString();
+            const eventDate = createdAt.slice(0, 10); // YYYY-MM-DD
+
+            paymentEvents.push({
+                id: legacyEventId,
+                amount: depositDue,
+                date: eventDate,
+                method: undefined, // unknown from v1
+                note: "Sinal pago",
+            });
+        } else {
+            // Paid but no amount - append to notes
+            notesAppend = "[IMPORTADO] Sinal pago (valor não informado no v1).";
+        }
+    }
+
+    if (paymentEvents.length > 0) {
+        payment.events = paymentEvents;
+    }
+
     // Build _importMeta only if normalization occurred
     const importMeta: Record<string, unknown> = {
         normalizedFrom: 1,
@@ -118,6 +150,16 @@ export function normalizeV1ToV2(v1: Record<string, unknown>): Record<string, unk
     };
     if (unknownKeys.length > 0) {
         importMeta.unknownKeys = unknownKeys;
+    }
+
+    // Build notes (preserve existing + append if needed)
+    let notesInternal = v1.notes;
+    if (notesAppend) {
+        if (typeof notesInternal === "string" && notesInternal.trim()) {
+            notesInternal = `${notesInternal}\n${notesAppend}`;
+        } else {
+            notesInternal = notesAppend;
+        }
     }
 
     // Build v2 record
@@ -148,7 +190,7 @@ export function normalizeV1ToV2(v1: Record<string, unknown>): Record<string, unk
         // New v2 fields
         status: "confirmed", // Default for migrated records
         payment,
-        notesInternal: v1.notes, // notes → notesInternal
+        notesInternal, // notes → notesInternal (+ possible append)
 
         // Import metadata
         _importMeta: importMeta,
