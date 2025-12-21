@@ -21,7 +21,6 @@ export default function Navbar() {
         <Link href="/v1" className="flex items-center gap-3">
           <Image src="/logo-hab.png" alt="" width={32} height={32} className="rounded-md" priority />
           <span className="font-semibold">Habitación Familiar</span>
-          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded">v1</span>
         </Link>
 
         {session?.user ? (
