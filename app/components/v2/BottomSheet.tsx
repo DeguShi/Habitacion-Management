@@ -15,6 +15,7 @@ interface BottomSheetProps {
  * - Max height with internal scroll
  * - Backdrop click to close
  * - Prevents background scroll when open
+ * - Dark mode compatible
  */
 export default function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
     const sheetRef = useRef<HTMLDivElement>(null)
@@ -47,25 +48,25 @@ export default function BottomSheet({ open, onClose, title, children }: BottomSh
         <div className="fixed inset-0 z-50 flex items-end justify-center">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/40 transition-opacity"
+                className="absolute inset-0 bg-black/50 dark:bg-black/70 transition-opacity"
                 onClick={onClose}
             />
 
             {/* Sheet */}
             <div
                 ref={sheetRef}
-                className="relative z-10 w-full max-w-lg bg-white rounded-t-2xl shadow-xl max-h-[85vh] flex flex-col animate-slide-up"
+                className="relative z-10 w-full max-w-lg bg-token-surface rounded-t-2xl shadow-xl max-h-[85vh] flex flex-col animate-slide-up"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
-                    <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-token shrink-0">
+                    <h2 className="text-lg font-semibold text-token">{title}</h2>
                     <button
                         onClick={onClose}
-                        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                        className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         aria-label="Fechar"
                     >
-                        <X size={20} className="text-gray-500" />
+                        <X size={20} className="text-token-muted" />
                     </button>
                 </div>
 
@@ -77,3 +78,4 @@ export default function BottomSheet({ open, onClose, title, children }: BottomSh
         </div>
     )
 }
+
