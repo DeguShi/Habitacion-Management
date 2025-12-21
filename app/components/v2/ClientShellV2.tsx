@@ -6,9 +6,12 @@ import ConfirmadasPage from '@/app/components/v2/ConfirmadasPage'
 import EmEsperaPage from '@/app/components/v2/EmEsperaPage'
 import ContatosPage from '@/app/components/v2/ContatosPage'
 import FerramentasPage from '@/app/components/v2/FerramentasPage'
+import CreateLeadSheet from '@/app/components/v2/CreateLeadSheet'
+import ConfirmSheet from '@/app/components/v2/ConfirmSheet'
+import EditReservationSheet from '@/app/components/v2/EditReservationSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
 import type { Contact } from '@/lib/contacts'
-import { confirmRecord } from '@/lib/data/v2'
+import { deleteV2Record } from '@/lib/data/v2'
 
 interface ClientShellV2Props {
     canWrite?: boolean
@@ -18,63 +21,74 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     const [activeTab, setActiveTab] = useState<TabId>('confirmadas')
     const [refreshKey, setRefreshKey] = useState(0)
 
-    // Modal states
+    // Sheet states
+    const [createOpen, setCreateOpen] = useState(false)
     const [confirmingItem, setConfirmingItem] = useState<ReservationV2 | null>(null)
-    const [viewingContact, setViewingContact] = useState<{
-        contact: Contact
-        reservations: ReservationV2[]
-    } | null>(null)
+    const [editingItem, setEditingItem] = useState<ReservationV2 | null>(null)
 
     const refresh = useCallback(() => {
         setRefreshKey((k) => k + 1)
     }, [])
 
-    // Placeholder handlers - these will be implemented with proper modals later
+    // View reservation details
     function handleViewReservation(r: ReservationV2) {
-        // For now, just log - full modal implementation later
-        console.log('View reservation:', r.id)
-        alert(`Reserva: ${r.guestName}\nCheck-in: ${r.checkIn}\nCheck-out: ${r.checkOut}`)
+        // Simple alert for now - could open a ViewSheet later
+        const info = [
+            `Hóspede: ${r.guestName}`,
+            `Pessoas: ${r.partySize}`,
+            `Check-in: ${r.checkIn}`,
+            `Check-out: ${r.checkOut}`,
+            `Total: R$ ${r.totalPrice}`,
+            r.phone ? `Tel: ${r.phone}` : '',
+            r.email ? `Email: ${r.email}` : '',
+        ].filter(Boolean).join('\n')
+        alert(info)
     }
 
+    // Edit reservation
     function handleEditReservation(r: ReservationV2) {
-        console.log('Edit reservation:', r.id)
-        alert('Editor em desenvolvimento')
+        if (!canWrite) return
+        setEditingItem(r)
     }
 
-    function handleDeleteReservation(r: ReservationV2) {
+    // Delete reservation
+    async function handleDeleteReservation(r: ReservationV2) {
         if (!canWrite) return
         const ok = confirm(`Excluir reserva de ${r.guestName}?`)
         if (!ok) return
-        // For now, just refresh - full delete implementation needed
-        console.log('Delete reservation:', r.id)
-    }
-
-    function handleCreateReservation(date: string) {
-        if (!canWrite) return
-        console.log('Create reservation for:', date)
-        alert('Criação em desenvolvimento')
-    }
-
-    async function handleConfirmWithDetails(r: ReservationV2) {
-        setConfirmingItem(r)
-        // For now, quick confirm without sheet
         try {
-            await confirmRecord(r.id)
+            await deleteV2Record(r.id)
             refresh()
-            setConfirmingItem(null)
         } catch (e) {
-            console.error('Failed to confirm:', e)
-            alert('Erro ao confirmar')
+            console.error('Delete failed:', e)
+            alert('Erro ao excluir')
         }
     }
 
+    // Create reservation for specific date
+    function handleCreateReservation(date: string) {
+        if (!canWrite) return
+        // Open create sheet - could prefill date but keeping simple
+        setCreateOpen(true)
+    }
+
+    // Confirm waiting item
+    function handleConfirmWithDetails(r: ReservationV2) {
+        if (!canWrite) return
+        setConfirmingItem(r)
+    }
+
+    // View contact
     function handleViewContact(contact: Contact, reservations: ReservationV2[]) {
-        setViewingContact({ contact, reservations })
-        // For now, just show alert - proper modal later
-        alert(
-            `Contato: ${contact.name}\nBookings: ${contact.totalBookings}\nReservas: ${reservations.map((r) => r.checkIn).join(', ')}`
-        )
-        setViewingContact(null)
+        // Simple alert for now
+        const info = [
+            `Contato: ${contact.name}`,
+            contact.phone ? `Tel: ${contact.phone}` : '',
+            contact.email ? `Email: ${contact.email}` : '',
+            `Reservas: ${contact.totalBookings}`,
+            `Última: ${contact.lastStayDate}`,
+        ].filter(Boolean).join('\n')
+        alert(info)
     }
 
     return (
@@ -112,7 +126,36 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                 )}
             </main>
 
-            <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+            <BottomNav
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                onCreateClick={canWrite ? () => setCreateOpen(true) : undefined}
+            />
+
+            {/* Sheets */}
+            <CreateLeadSheet
+                open={createOpen}
+                onClose={() => setCreateOpen(false)}
+                onCreated={() => {
+                    refresh()
+                    setActiveTab('em-espera')
+                }}
+            />
+
+            <ConfirmSheet
+                open={!!confirmingItem}
+                onClose={() => setConfirmingItem(null)}
+                onConfirmed={refresh}
+                item={confirmingItem}
+            />
+
+            <EditReservationSheet
+                open={!!editingItem}
+                onClose={() => setEditingItem(null)}
+                onSaved={refresh}
+                item={editingItem}
+            />
         </div>
     )
 }
+

@@ -224,3 +224,295 @@ export async function rejectRecord(id: string): Promise<ReservationV2> {
 export async function restoreToWaiting(id: string): Promise<ReservationV2> {
     return updateRecordStatus(id, "waiting");
 }
+
+// ============================================================
+// Phase 7: Lead Creation & Confirmation Helpers
+// ============================================================
+
+/**
+ * Input for creating a minimal waiting lead.
+ * Only guestName is required; other fields are optional.
+ */
+export interface CreateLeadInput {
+    guestName: string;
+    phone?: string;
+    email?: string;
+    checkIn?: string;
+    checkOut?: string;
+    partySize?: number;
+    notesInternal?: string;
+}
+
+/**
+ * Creates a minimal waiting lead.
+ * 
+ * @param input - Lead data (only guestName required)
+ * @returns Promise<ReservationV2>
+ */
+export async function createWaitingLead(input: CreateLeadInput): Promise<ReservationV2> {
+    if (!input.guestName?.trim()) {
+        throw new Error("guestName is required");
+    }
+
+    const now = new Date().toISOString();
+    const today = now.slice(0, 10);
+
+    // Default checkOut to checkIn + 1 day if checkIn provided but not checkOut
+    let checkOut = input.checkOut;
+    if (input.checkIn && !checkOut) {
+        const d = new Date(input.checkIn);
+        d.setDate(d.getDate() + 1);
+        checkOut = d.toISOString().slice(0, 10);
+    }
+
+    const payload = {
+        id: crypto.randomUUID(),
+        schemaVersion: 2 as const,
+        guestName: input.guestName.trim(),
+        phone: input.phone?.trim() || undefined,
+        email: input.email?.trim() || undefined,
+        checkIn: input.checkIn || today,
+        checkOut: checkOut || today,
+        partySize: input.partySize || 1,
+        status: "waiting" as const,
+        breakfastIncluded: false,
+        nightlyRate: 0,
+        breakfastPerPersonPerNight: 0,
+        totalNights: 0,
+        totalPrice: 0,
+        payment: {},
+        notesInternal: input.notesInternal?.trim() || undefined,
+        createdAt: now,
+        updatedAt: now,
+    };
+
+    const res = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    if (res.status === 403) {
+        throw new Error("Permission denied: write access required");
+    }
+
+    if (!res.ok) {
+        throw new Error(`Failed to create lead: ${res.status}`);
+    }
+
+    const raw = await res.json();
+    return toV2(raw);
+}
+
+/**
+ * Input for confirming a waiting lead.
+ */
+export interface ConfirmLeadInput {
+    checkIn: string;
+    checkOut: string;
+    partySize: number;
+    nightlyRate: number;
+    breakfastIncluded: boolean;
+    breakfastPerPersonPerNight: number;
+    manualLodgingEnabled?: boolean;
+    manualLodgingTotal?: number;
+    depositPaidAmount?: number;
+    depositMethod?: string;
+    depositNote?: string;
+    notesInternal?: string;
+    notesGuest?: string;
+}
+
+/**
+ * Calculates total nights between two dates.
+ */
+function calculateNights(checkIn: string, checkOut: string): number {
+    const d1 = new Date(checkIn);
+    const d2 = new Date(checkOut);
+    return Math.max(1, Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+/**
+ * Calculates total price from reservation details.
+ */
+function calculateTotalPrice(
+    nights: number,
+    partySize: number,
+    nightlyRate: number,
+    breakfastIncluded: boolean,
+    breakfastPerPersonPerNight: number,
+    manualLodgingEnabled?: boolean,
+    manualLodgingTotal?: number
+): number {
+    const lodging = manualLodgingEnabled && manualLodgingTotal != null
+        ? manualLodgingTotal
+        : nights * nightlyRate * partySize;
+    const breakfast = breakfastIncluded
+        ? nights * partySize * breakfastPerPersonPerNight
+        : 0;
+    return lodging + breakfast;
+}
+
+/**
+ * Confirms a waiting lead with full details.
+ * 
+ * IMPORTANT: Preserves all existing fields including _importMeta and unknown keys.
+ * 
+ * @param id - Record ID
+ * @param details - Confirmation details
+ * @returns Promise<ReservationV2>
+ */
+export async function confirmWaitingLead(
+    id: string,
+    details: ConfirmLeadInput
+): Promise<ReservationV2> {
+    // Validate dates
+    if (!details.checkIn || !details.checkOut) {
+        throw new Error("checkIn and checkOut are required");
+    }
+    if (details.checkOut <= details.checkIn) {
+        throw new Error("checkOut must be after checkIn");
+    }
+
+    // Fetch current record to preserve all fields
+    const current = await getV2Record(id);
+
+    // Calculate derived fields
+    const nights = calculateNights(details.checkIn, details.checkOut);
+    const totalPrice = calculateTotalPrice(
+        nights,
+        details.partySize,
+        details.nightlyRate,
+        details.breakfastIncluded,
+        details.breakfastPerPersonPerNight,
+        details.manualLodgingEnabled,
+        details.manualLodgingTotal
+    );
+
+    // Build payment object, preserving existing events
+    const existingEvents = current.payment?.events || [];
+    const newEvents = [...existingEvents];
+
+    // Add deposit payment event if amount > 0
+    if (details.depositPaidAmount && details.depositPaidAmount > 0) {
+        newEvents.push({
+            id: crypto.randomUUID(),
+            amount: details.depositPaidAmount,
+            date: new Date().toISOString().slice(0, 10),
+            method: details.depositMethod || "Pix",
+            note: details.depositNote || "Depósito",
+        });
+    }
+
+    const payment = {
+        ...current.payment,
+        deposit: {
+            ...current.payment?.deposit,
+            due: totalPrice * 0.5, // Default 50% deposit due
+            paid: (details.depositPaidAmount && details.depositPaidAmount > 0) || current.payment?.deposit?.paid || false,
+        },
+        events: newEvents.length > 0 ? newEvents : undefined,
+    };
+
+    // Merge with current record (preserves _importMeta and unknown keys)
+    const updated = {
+        ...current,
+        checkIn: details.checkIn,
+        checkOut: details.checkOut,
+        partySize: details.partySize,
+        nightlyRate: details.nightlyRate,
+        breakfastIncluded: details.breakfastIncluded,
+        breakfastPerPersonPerNight: details.breakfastPerPersonPerNight,
+        manualLodgingEnabled: details.manualLodgingEnabled,
+        manualLodgingTotal: details.manualLodgingTotal,
+        totalNights: nights,
+        totalPrice,
+        payment,
+        notesInternal: details.notesInternal ?? current.notesInternal,
+        notesGuest: details.notesGuest ?? current.notesGuest,
+        status: "confirmed" as const,
+    };
+
+    return updateV2Record(id, updated);
+}
+
+/**
+ * Input for adding a payment event.
+ */
+export interface PaymentEventInput {
+    amount: number;
+    date: string;
+    method?: string;
+    note?: string;
+}
+
+/**
+ * Adds a payment event to an existing record.
+ * 
+ * @param id - Record ID
+ * @param event - Payment event data
+ * @returns Promise<ReservationV2>
+ */
+export async function addPaymentEvent(
+    id: string,
+    event: PaymentEventInput
+): Promise<ReservationV2> {
+    // Validate
+    if (typeof event.amount !== "number" || event.amount <= 0) {
+        throw new Error("amount must be a positive number");
+    }
+    if (!event.date || !/^\d{4}-\d{2}-\d{2}/.test(event.date)) {
+        throw new Error("date must be in ISO format (YYYY-MM-DD)");
+    }
+
+    // Fetch current record
+    const current = await getV2Record(id);
+
+    // Build new events array
+    const existingEvents = current.payment?.events || [];
+    const newEvent = {
+        id: crypto.randomUUID(),
+        amount: event.amount,
+        date: event.date.slice(0, 10),
+        method: event.method,
+        note: event.note,
+    };
+
+    const payment = {
+        ...current.payment,
+        events: [...existingEvents, newEvent],
+    };
+
+    return updateV2Record(id, {
+        ...current,
+        payment,
+    });
+}
+
+/**
+ * Removes a payment event from a record.
+ * 
+ * @param id - Record ID
+ * @param eventId - Event ID to remove
+ * @returns Promise<ReservationV2>
+ */
+export async function removePaymentEvent(
+    id: string,
+    eventId: string
+): Promise<ReservationV2> {
+    const current = await getV2Record(id);
+
+    const existingEvents = current.payment?.events || [];
+    const filteredEvents = existingEvents.filter((e: any) => e.id !== eventId);
+
+    const payment = {
+        ...current.payment,
+        events: filteredEvents.length > 0 ? filteredEvents : undefined,
+    };
+
+    return updateV2Record(id, {
+        ...current,
+        payment,
+    });
+}
+
