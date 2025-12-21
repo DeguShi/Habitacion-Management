@@ -3,13 +3,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSession, signIn, signOut } from 'next-auth/react'
-import { LogOut, Wrench } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 /**
- * v1 Navbar - Simplified (Phase 8.2)
- * 
- * Backup/restore actions removed (now exclusively in v2 Ferramentas).
- * Shows "Ir para v2" link to guide users to the new experience.
+ * v1 Navbar - Clean minimal version (Phase 8.2)
+ * Shows only logo, user info, and signout.
  */
 export default function Navbar() {
   const { data: session } = useSession()
@@ -25,15 +23,6 @@ export default function Navbar() {
 
         {session?.user ? (
           <div className="flex items-center gap-3">
-            {/* Link to tools */}
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 rounded-full bg-blue-600 text-white px-4 py-1.5 hover:bg-blue-700 transition font-medium text-sm"
-            >
-              <Wrench size={16} />
-              <span>Ferramentas</span>
-            </Link>
-
             {/* User info (hidden on mobile) */}
             <div className="hidden sm:flex items-center gap-2">
               {avatar ? (
