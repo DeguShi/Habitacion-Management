@@ -4,7 +4,7 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { formatDateBR, formatMoneyBRL, getStatusLabel, getStatusColor } from './confirmation-card'
+import { formatDateBR, formatMoneyBRL, getStatusLabel, getStatusColor, clampDevicePixelRatio } from './confirmation-card'
 
 describe('Confirmation Card Helpers', () => {
     describe('formatDateBR', () => {
@@ -72,6 +72,13 @@ describe('Confirmation Card Helpers', () => {
 
         it('returns red for rejected', () => {
             assert.strictEqual(getStatusColor('rejected'), '#dc2626')
+        })
+    })
+
+    describe('clampDevicePixelRatio', () => {
+        it('returns 1 in Node (no window)', () => {
+            // In Node, window is undefined, so it returns 1
+            assert.strictEqual(clampDevicePixelRatio(), 1)
         })
     })
 })

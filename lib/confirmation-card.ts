@@ -95,6 +95,15 @@ const CARD_PADDING = 60
 const CONTENT_WIDTH = CARD_WIDTH - (CARD_PADDING * 2)
 
 /**
+ * Clamps devicePixelRatio for HiDPI rendering
+ * Cap at 2 to prevent huge file sizes on 3x+ displays
+ */
+export function clampDevicePixelRatio(): number {
+    if (typeof window === 'undefined') return 1
+    return Math.min(Math.max(window.devicePixelRatio || 1, 1), 2)
+}
+
+/**
  * Loads an image with timeout fallback
  */
 async function loadImage(src: string, timeoutMs = 2000): Promise<HTMLImageElement | null> {
@@ -116,6 +125,7 @@ async function loadImage(src: string, timeoutMs = 2000): Promise<HTMLImageElemen
 
 /**
  * Renders a confirmation card as PNG Blob
+ * Uses HiDPI rendering for sharp output on retina displays
  */
 export async function renderConfirmationCard(record: ReservationV2): Promise<Blob> {
     // Calculate nights
@@ -126,24 +136,37 @@ export async function renderConfirmationCard(record: ReservationV2): Promise<Blo
         return Math.max(1, Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)))
     })()
 
-    // Create canvas
-    const canvas = document.createElement('canvas')
-    canvas.width = CARD_WIDTH
+    // HiDPI scale factor
+    const scale = clampDevicePixelRatio()
 
     // Pre-calculate height based on content
     const baseHeight = 600
     const notesHeight = (record.notesGuest ? 80 : 0)
-    canvas.height = baseHeight + notesHeight
+    const logicalHeight = baseHeight + notesHeight
+
+    // Create canvas with HiDPI support
+    const canvas = document.createElement('canvas')
+    canvas.width = CARD_WIDTH * scale
+    canvas.height = logicalHeight * scale
 
     const ctx = canvas.getContext('2d')!
 
+    // Scale context for HiDPI
+    ctx.scale(scale, scale)
+
+    // Enable high-quality image rendering
+    ctx.imageSmoothingEnabled = true
+    if ('imageSmoothingQuality' in ctx) {
+        (ctx as any).imageSmoothingQuality = 'high'
+    }
+
     // Background
     ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillRect(0, 0, CARD_WIDTH, logicalHeight)
 
     // Header accent bar
     ctx.fillStyle = getStatusColor(record.status)
-    ctx.fillRect(0, 0, canvas.width, 8)
+    ctx.fillRect(0, 0, CARD_WIDTH, 8)
 
     let y = 50
 
@@ -237,7 +260,7 @@ export async function renderConfirmationCard(record: ReservationV2): Promise<Blo
     }
 
     // Footer
-    y = canvas.height - 40
+    y = logicalHeight - 40
     ctx.fillStyle = '#d1d5db'
     ctx.font = '18px system-ui, sans-serif'
     ctx.fillText('Habitación Management', CARD_PADDING, y)
@@ -271,26 +294,24 @@ export function downloadBlob(blob: Blob, filename: string): void {
 
 /**
  * Shares a file via navigator.share (if available)
+ * Throws AbortError on user cancel, throws Error on unsupported
  */
-export async function shareFile(blob: Blob, filename: string, title: string): Promise<boolean> {
-    if (!navigator.share || !navigator.canShare) {
-        return false
-    }
-
+export async function shareFile(blob: Blob, filename: string, title: string): Promise<void> {
     const file = new File([blob], filename, { type: 'image/png' })
 
-    if (!navigator.canShare({ files: [file] })) {
-        return false
+    // Check if share is supported
+    if (!navigator.share) {
+        throw new Error('SHARE_NOT_SUPPORTED')
     }
 
-    try {
-        await navigator.share({
-            title,
-            files: [file]
-        })
-        return true
-    } catch (e) {
-        // User cancelled or error
-        return false
+    // Check if file sharing is supported
+    if (!navigator.canShare || !navigator.canShare({ files: [file] })) {
+        throw new Error('SHARE_NOT_SUPPORTED')
     }
+
+    // This will throw AbortError if user cancels
+    await navigator.share({
+        title,
+        files: [file]
+    })
 }

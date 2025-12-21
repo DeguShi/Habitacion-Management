@@ -79,6 +79,13 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
             const next = await listV2Records() // Fetch ALL, normalized
             setRecords(next)
             if (DEBUG) console.log('[fetch] Fetched', next.length, 'records')
+
+            // Update viewingItem if it exists in the new records
+            setViewingItem(prev => {
+                if (!prev) return null
+                const updated = next.find(r => r.id === prev.id)
+                return updated || null
+            })
         } catch (e: any) {
             console.error('Failed to fetch records:', e)
             setError(e?.message || 'Erro ao carregar')

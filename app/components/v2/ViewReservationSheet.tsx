@@ -71,15 +71,17 @@ export default function ViewReservationSheet({
         try {
             const blob = await renderConfirmationCard(record)
             const filename = `reserva-${record.guestName.replace(/\s+/g, '-').toLowerCase()}.png`
-            const success = await shareFile(blob, filename, `Reserva - ${record.guestName}`)
-
-            if (!success) {
-                // Fallback to download
-                downloadBlob(blob, filename)
-            }
+            await shareFile(blob, filename, `Reserva - ${record.guestName}`)
         } catch (e: any) {
-            console.error('Failed to share:', e)
-            setError('Erro ao compartilhar')
+            // AbortError = user cancelled, do nothing
+            if (e.name === 'AbortError') {
+                // User cancelled sharing - do nothing
+            } else if (e.message === 'SHARE_NOT_SUPPORTED') {
+                setError('Compartilhamento não suportado. Use "Baixar imagem".')
+            } else {
+                console.error('Failed to share:', e)
+                setError('Erro ao compartilhar')
+            }
         } finally {
             setGenerating(false)
         }
