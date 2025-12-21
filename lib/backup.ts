@@ -9,6 +9,7 @@
 
 import type { Reservation } from "@/core/entities";
 import { listReservationKeys, getJson, getRawJson } from "@/lib/s3";
+import { detectSchemaVersion, normalizeV1ToV2, isV2Record } from "@/lib/normalize";
 
 /**
  * All CSV columns in the required order.
@@ -127,6 +128,29 @@ export function generateCSV(reservations: Reservation[]): string {
  */
 export function generateNDJSON(objects: unknown[]): string {
     return objects.map((obj) => JSON.stringify(obj)).join("\n");
+}
+
+/**
+ * Generates NDJSON with v2 normalization.
+ * - V1 records are normalized to V2 on-the-fly
+ * - V2 records are exported as-is
+ * - All exported records will have schemaVersion=2
+ */
+export function generateNDJSONV2(objects: unknown[]): string {
+    return objects
+        .map((obj) => {
+            if (!obj || typeof obj !== "object") return JSON.stringify(obj);
+
+            const detection = detectSchemaVersion(obj);
+            if (detection.valid && detection.version === 1) {
+                // Normalize v1 to v2
+                return JSON.stringify(normalizeV1ToV2(obj as Record<string, unknown>));
+            }
+
+            // Already v2 or pass through
+            return JSON.stringify(obj);
+        })
+        .join("\n");
 }
 
 /**
