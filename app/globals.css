@@ -1,58 +1,244 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Design Tokens (Phase 10.0)
+   ============================================================ */
+
 @layer base {
-  :root { color-scheme: light; }
-  body { @apply bg-white text-gray-900 antialiased; }
-  a { @apply text-gray-900 hover:underline; }
+  :root {
+    /* Light mode tokens */
+    --color-bg: 249 250 251;
+    /* gray-50 */
+    --color-surface: 255 255 255;
+    /* white */
+    --color-surface-alt: 243 244 246;
+    /* gray-100 */
+    --color-text: 17 24 39;
+    /* gray-900 */
+    --color-text-muted: 107 114 128;
+    /* gray-500 */
+    --color-border: 229 231 235;
+    /* gray-200 */
+    --color-primary: 37 99 235;
+    /* blue-600 */
+    --color-primary-hover: 29 78 216;
+    /* blue-700 */
+    --color-danger: 220 38 38;
+    /* red-600 */
+    --color-success: 22 163 74;
+    /* green-600 */
+    --color-warning: 234 179 8;
+    /* yellow-500 */
+
+    color-scheme: light;
+  }
+
+  .dark {
+    /* Dark mode tokens */
+    --color-bg: 17 24 39;
+    /* gray-900 */
+    --color-surface: 31 41 55;
+    /* gray-800 */
+    --color-surface-alt: 55 65 81;
+    /* gray-700 */
+    --color-text: 249 250 251;
+    /* gray-50 */
+    --color-text-muted: 156 163 175;
+    /* gray-400 */
+    --color-border: 75 85 99;
+    /* gray-600 */
+    --color-primary: 59 130 246;
+    /* blue-500 */
+    --color-primary-hover: 96 165 250;
+    /* blue-400 */
+    --color-danger: 239 68 68;
+    /* red-500 */
+    --color-success: 34 197 94;
+    /* green-500 */
+    --color-warning: 250 204 21;
+    /* yellow-400 */
+
+    color-scheme: dark;
+  }
+
+  body {
+    @apply antialiased;
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-text));
+  }
+
+  a {
+    color: rgb(var(--color-text));
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
 
   /* Form controls */
-  input, textarea, select {
-    @apply border border-gray-300 rounded-lg px-3 py-2 outline-none
-           focus:ring-2 focus:ring-gray-900/10;
+  input,
+  textarea,
+  select {
+    @apply rounded-lg px-3 py-2 outline-none;
+    border: 1px solid rgb(var(--color-border));
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-text));
   }
-  label { @apply text-sm font-medium text-gray-700; }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply ring-2;
+    --tw-ring-color: rgb(var(--color-primary) / 0.3);
+  }
+
+  label {
+    @apply text-sm font-medium;
+    color: rgb(var(--color-text-muted));
+  }
 }
 
 @layer components {
-  .btn       { @apply rounded-xl px-4 py-2 bg-gray-900 text-white hover:bg-black transition; }
-  .btn-ghost { @apply rounded-lg border border-gray-200 bg-white text-gray-700 hover:shadow-sm transition; }
-  .btn-danger{ @apply rounded-lg border border-red-200 text-red-600 bg-white hover:border-red-300 hover:shadow-sm transition; }
-  .btn-icon  { @apply rounded-lg border border-gray-200 bg-white text-gray-700 p-2 hover:shadow-sm transition; }
+  .btn {
+    @apply rounded-xl px-4 py-2 transition;
+    background-color: rgb(var(--color-primary));
+    color: white;
+  }
 
-  .card { @apply rounded-2xl p-5 bg-white shadow-sm; }
+  .btn:hover {
+    background-color: rgb(var(--color-primary-hover));
+  }
 
-  .calendar-board button { @apply bg-white text-gray-900; }
+  .btn-ghost {
+    @apply rounded-lg px-4 py-2 transition;
+    border: 1px solid rgb(var(--color-border));
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-text));
+  }
+
+  .btn-ghost:hover {
+    @apply shadow-sm;
+  }
+
+  .btn-danger {
+    @apply rounded-lg px-4 py-2 transition;
+    border: 1px solid rgb(var(--color-danger) / 0.3);
+    color: rgb(var(--color-danger));
+    background-color: rgb(var(--color-surface));
+  }
+
+  .btn-danger:hover {
+    border-color: rgb(var(--color-danger) / 0.5);
+    @apply shadow-sm;
+  }
+
+  .btn-icon {
+    @apply rounded-lg p-2 transition;
+    border: 1px solid rgb(var(--color-border));
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-text));
+  }
+
+  .btn-icon:hover {
+    @apply shadow-sm;
+  }
+
+  .card {
+    @apply rounded-2xl p-5 shadow-sm;
+    background-color: rgb(var(--color-surface));
+  }
+
+  .calendar-board button {
+    background-color: rgb(var(--color-surface));
+    color: rgb(var(--color-text));
+  }
 }
 
 @layer utilities {
-  .lift { @apply transition transform-gpu hover:-translate-y-0.5 hover:shadow-md; }
-  .scroll-soft { @apply pr-1; }
+  .lift {
+    @apply transition transform-gpu hover:-translate-y-0.5 hover:shadow-md;
+  }
+
+  .scroll-soft {
+    @apply pr-1;
+  }
+
+  /* Text color utilities using tokens */
+  .text-token {
+    color: rgb(var(--color-text));
+  }
+
+  .text-token-muted {
+    color: rgb(var(--color-text-muted));
+  }
+
+  .text-token-primary {
+    color: rgb(var(--color-primary));
+  }
+
+  .text-token-danger {
+    color: rgb(var(--color-danger));
+  }
+
+  .text-token-success {
+    color: rgb(var(--color-success));
+  }
+
+  /* Background utilities using tokens */
+  .bg-token {
+    background-color: rgb(var(--color-bg));
+  }
+
+  .bg-token-surface {
+    background-color: rgb(var(--color-surface));
+  }
+
+  .bg-token-surface-alt {
+    background-color: rgb(var(--color-surface-alt));
+  }
+
+  .bg-token-primary {
+    background-color: rgb(var(--color-primary));
+  }
+
+  /* Border utilities */
+  .border-token {
+    border-color: rgb(var(--color-border));
+  }
 
   /* Google sign-in */
-    .btn-google {
-    @apply inline-flex items-center gap-3 rounded-full bg-[#1a73e8] text-white
-            px-6 py-3 shadow-sm hover:brightness-110 active:translate-y-[1px]
-            transition;
-    }
+  .btn-google {
+    @apply inline-flex items-center gap-3 rounded-full bg-[#1a73e8] text-white px-6 py-3 shadow-sm hover:brightness-110 active:translate-y-[1px] transition;
+  }
 
-    .google-chip {
+  .google-chip {
     @apply h-7 w-7 grid place-items-center rounded-full bg-white;
-    }
+  }
 
-    .google-chip svg { display: block; width: 18px; height: 18px; }
+  .google-chip svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+  }
 
-    header a { text-decoration: none; }
-    header a:hover, header a:focus { text-decoration: none; }
+  header a {
+    text-decoration: none;
+  }
 
-    /* Bottom sheet animation */
-    .animate-slide-up {
-      animation: slideUp 0.25s ease-out;
-    }
+  header a:hover,
+  header a:focus {
+    text-decoration: none;
+  }
 
-    /* Safe area for iOS */
-    .safe-area-bottom {
-      padding-bottom: env(safe-area-inset-bottom, 0);
-    }
+  /* Bottom sheet animation */
+  .animate-slide-up {
+    animation: slideUp 0.25s ease-out;
+  }
+
+  /* Safe area for iOS */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
 }
 
 @keyframes slideUp {
@@ -60,6 +246,7 @@
     transform: translateY(100%);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;

@@ -40,7 +40,7 @@ export default function BottomNav({ activeTab, onTabChange, onCreateClick, finis
             )}
 
             {/* Nav Bar */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-bottom z-50">
+            <nav className="fixed bottom-0 left-0 right-0 bg-token-surface border-t border-token safe-area-bottom z-50">
                 <div className="flex justify-around items-center h-16">
                     {tabs.map((tab) => {
                         const isActive = activeTab === tab.id
@@ -53,8 +53,8 @@ export default function BottomNav({ activeTab, onTabChange, onCreateClick, finis
                                     flex flex-col items-center justify-center flex-1 h-full relative
                                     transition-colors
                                     ${isActive
-                                        ? 'text-blue-600'
-                                        : 'text-gray-500 hover:text-gray-700'}
+                                        ? 'text-blue-600 dark:text-blue-400'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}
                                 `}
                                 aria-current={isActive ? 'page' : undefined}
                             >

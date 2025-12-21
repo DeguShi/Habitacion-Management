@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, Upload, FileSpreadsheet, FileJson } from 'lucide-react'
+import { Download, Upload, FileSpreadsheet, FileJson, Sun, Moon, Monitor } from 'lucide-react'
 import RestoreModal from '@/app/components/RestoreModal'
+import { useTheme } from '@/app/components/ThemeProvider'
 
 interface FerramentasPageProps {
     canWrite: boolean
@@ -11,6 +12,7 @@ interface FerramentasPageProps {
 export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
     const [restoreOpen, setRestoreOpen] = useState(false)
     const [exporting, setExporting] = useState<'csv' | 'ndjson' | null>(null)
+    const { theme, setTheme, resolvedTheme } = useTheme()
 
     async function handleExportCSV() {
         setExporting('csv')
@@ -59,9 +61,48 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
     }
 
     return (
-        <div className="pb-20">
+        <div className="pb-20 space-y-4">
+            {/* Theme Section */}
+            <section className="card">
+                <h2 className="text-lg font-semibold mb-3">Aparência</h2>
+                <div className="grid grid-cols-3 gap-2">
+                    <button
+                        onClick={() => setTheme('light')}
+                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'light'
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                            }`}
+                    >
+                        <Sun size={20} className={theme === 'light' ? 'text-blue-600' : 'text-gray-500'} />
+                        <span className="text-xs font-medium">Claro</span>
+                    </button>
+                    <button
+                        onClick={() => setTheme('dark')}
+                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'dark'
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                            }`}
+                    >
+                        <Moon size={20} className={theme === 'dark' ? 'text-blue-600' : 'text-gray-500'} />
+                        <span className="text-xs font-medium">Escuro</span>
+                    </button>
+                    <button
+                        onClick={() => setTheme('system')}
+                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'system'
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                            }`}
+                    >
+                        <Monitor size={20} className={theme === 'system' ? 'text-blue-600' : 'text-gray-500'} />
+                        <span className="text-xs font-medium">Sistema</span>
+                    </button>
+                </div>
+            </section>
+
+            {/* Tools Section */}
             <section className="card">
                 <h2 className="text-lg font-semibold mb-4">Ferramentas</h2>
+
 
                 <div className="space-y-3">
                     {/* Export CSV */}

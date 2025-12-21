@@ -309,11 +309,11 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <main className="max-w-lg mx-auto px-4 py-4">
+        <div className="min-h-screen bg-token">
+            <main className="mx-auto px-4 py-4 max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl">
                 {/* Sync indicator */}
                 {refreshing && !loadingInitial && (
-                    <div className="fixed top-2 right-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full z-50">
+                    <div className="fixed top-2 right-2 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full z-50">
                         Atualizando...
                     </div>
                 )}
