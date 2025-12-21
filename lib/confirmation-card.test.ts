@@ -4,7 +4,18 @@
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { formatDateBR, formatMoneyBRL, getStatusLabel, getStatusColor, clampDevicePixelRatio, getDepositLabel } from './confirmation-card'
+import {
+    formatDateBR,
+    formatMoneyBRL,
+    getStatusLabel,
+    getStatusLabelES,
+    getStatusColor,
+    clampDevicePixelRatio,
+    getDepositLabel,
+    getDepositLabelES,
+    formatYesNoES,
+    LABELS_ES
+} from './confirmation-card'
 
 describe('Confirmation Card Helpers', () => {
     describe('formatDateBR', () => {
@@ -43,7 +54,7 @@ describe('Confirmation Card Helpers', () => {
         })
     })
 
-    describe('getStatusLabel', () => {
+    describe('getStatusLabel (PT)', () => {
         it('returns Confirmada for confirmed', () => {
             assert.strictEqual(getStatusLabel('confirmed'), 'Confirmada')
         })
@@ -58,6 +69,24 @@ describe('Confirmation Card Helpers', () => {
 
         it('defaults to Confirmada for undefined', () => {
             assert.strictEqual(getStatusLabel(undefined), 'Confirmada')
+        })
+    })
+
+    describe('getStatusLabelES (Spanish)', () => {
+        it('returns Confirmada for confirmed', () => {
+            assert.strictEqual(getStatusLabelES('confirmed'), 'Confirmada')
+        })
+
+        it('returns En espera for waiting', () => {
+            assert.strictEqual(getStatusLabelES('waiting'), 'En espera')
+        })
+
+        it('returns Cancelada for rejected', () => {
+            assert.strictEqual(getStatusLabelES('rejected'), 'Cancelada')
+        })
+
+        it('defaults to Confirmada for undefined', () => {
+            assert.strictEqual(getStatusLabelES(undefined), 'Confirmada')
         })
     })
 
@@ -82,7 +111,7 @@ describe('Confirmation Card Helpers', () => {
         })
     })
 
-    describe('getDepositLabel', () => {
+    describe('getDepositLabel (PT)', () => {
         it('returns Pendente for undefined payment', () => {
             assert.strictEqual(getDepositLabel(undefined), 'Pendente')
         })
@@ -104,6 +133,66 @@ describe('Confirmation Card Helpers', () => {
             } as any)
             assert.ok(result.includes('Pago'))
             assert.ok(result.includes('300'))
+        })
+    })
+
+    describe('getDepositLabelES (Spanish)', () => {
+        it('returns Pendiente for undefined payment', () => {
+            assert.strictEqual(getDepositLabelES(undefined), 'Pendiente')
+        })
+
+        it('returns Pagado for deposit.paid = true', () => {
+            const result = getDepositLabelES({ deposit: { paid: true } } as any)
+            assert.strictEqual(result, 'Pagado')
+        })
+
+        it('returns Pagado with amount for deposit.paid + due', () => {
+            const result = getDepositLabelES({ deposit: { paid: true, due: 500 } } as any)
+            assert.ok(result.includes('Pagado'))
+            assert.ok(result.includes('500'))
+        })
+    })
+
+    describe('formatYesNoES', () => {
+        it('returns Sí for true', () => {
+            assert.strictEqual(formatYesNoES(true), 'Sí')
+        })
+
+        it('returns No for false', () => {
+            assert.strictEqual(formatYesNoES(false), 'No')
+        })
+
+        it('returns No for undefined', () => {
+            assert.strictEqual(formatYesNoES(undefined), 'No')
+        })
+    })
+
+    describe('LABELS_ES constants', () => {
+        it('has Spanish title', () => {
+            assert.strictEqual(LABELS_ES.title, 'Confirmación de Reserva')
+        })
+
+        it('keeps Check-in/Check-out in English', () => {
+            assert.strictEqual(LABELS_ES.checkIn, 'Check-in')
+            assert.strictEqual(LABELS_ES.checkOut, 'Check-out')
+        })
+
+        it('has Spanish labels', () => {
+            assert.strictEqual(LABELS_ES.persons, 'Personas')
+            assert.strictEqual(LABELS_ES.rooms, 'Habitaciones')
+            assert.strictEqual(LABELS_ES.nights, 'Noches')
+            assert.strictEqual(LABELS_ES.breakfast, 'Desayuno')
+        })
+
+        it('has Spanish yes/no', () => {
+            assert.strictEqual(LABELS_ES.yes, 'Sí')
+            assert.strictEqual(LABELS_ES.no, 'No')
+        })
+
+        it('has Spanish status labels', () => {
+            assert.strictEqual(LABELS_ES.statusWaiting, 'En espera')
+            assert.strictEqual(LABELS_ES.paid, 'Pagado')
+            assert.strictEqual(LABELS_ES.pending, 'Pendiente')
         })
     })
 })

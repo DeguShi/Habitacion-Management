@@ -1,11 +1,36 @@
 /**
- * Confirmation Card Generator v2
+ * Confirmation Card Generator v2 (ES, v1-Style)
  * 
  * Generates a professional PNG image for reservation confirmation cards.
- * Vertical 1080×1500 layout with HiDPI support.
+ * Portrait 1080×1920 layout with centered logo, Spanish labels, v1-style symmetric design.
  */
 
 import type { ReservationV2, Payment } from '@/core/entities_v2'
+
+// ============================================================
+// Spanish Labels (ES)
+// ============================================================
+
+export const LABELS_ES = {
+    title: 'Confirmación de Reserva',
+    client: 'Cliente',
+    persons: 'Personas',
+    rooms: 'Habitaciones',
+    checkIn: 'Check-in',       // Keep in English per user request
+    checkOut: 'Check-out',     // Keep in English per user request
+    nights: 'Noches',
+    breakfast: 'Desayuno',
+    deposit: 'Depósito',
+    total: 'Total',
+    footer: 'Habitación • Confirmación para el huésped',
+    yes: 'Sí',
+    no: 'No',
+    paid: 'Pagado',
+    pending: 'Pendiente',
+    statusConfirmed: 'Confirmada',
+    statusWaiting: 'En espera',
+    statusRejected: 'Cancelada',
+}
 
 // ============================================================
 // Formatting Helpers
@@ -63,14 +88,26 @@ export function wrapText(
 }
 
 /**
- * Gets status label in Portuguese
+ * Gets status label in Spanish
+ */
+export function getStatusLabelES(status?: string): string {
+    switch (status) {
+        case 'confirmed': return LABELS_ES.statusConfirmed
+        case 'waiting': return LABELS_ES.statusWaiting
+        case 'rejected': return LABELS_ES.statusRejected
+        default: return LABELS_ES.statusConfirmed // Legacy v1 records
+    }
+}
+
+/**
+ * Gets status label in Portuguese (for UI, kept for backward compatibility)
  */
 export function getStatusLabel(status?: string): string {
     switch (status) {
         case 'confirmed': return 'Confirmada'
         case 'waiting': return 'Em Espera'
         case 'rejected': return 'Cancelada'
-        default: return 'Confirmada' // Legacy v1 records
+        default: return 'Confirmada'
     }
 }
 
@@ -87,15 +124,35 @@ export function getStatusColor(status?: string): string {
 }
 
 /**
- * Gets deposit status label
+ * Formats boolean as Sí/No in Spanish
+ */
+export function formatYesNoES(value: boolean | undefined): string {
+    return value ? LABELS_ES.yes : LABELS_ES.no
+}
+
+/**
+ * Gets deposit status label in Spanish
+ */
+export function getDepositLabelES(payment?: Payment): string {
+    // Check if deposit marked as paid
+    if (payment?.deposit?.paid) {
+        const amount = payment.deposit.due
+        return amount ? `${LABELS_ES.paid} (${formatMoneyBRL(amount)})` : LABELS_ES.paid
+    }
+    // Check if any payment events exist
+    const totalPaid = payment?.events?.reduce((s, e) => s + (e.amount || 0), 0) || 0
+    if (totalPaid > 0) return `${LABELS_ES.paid} (${formatMoneyBRL(totalPaid)})`
+    return LABELS_ES.pending
+}
+
+/**
+ * Gets deposit status label (Portuguese, for backward compat)
  */
 export function getDepositLabel(payment?: Payment): string {
-    // Check if deposit marked as paid
     if (payment?.deposit?.paid) {
         const amount = payment.deposit.due
         return amount ? `Pago (${formatMoneyBRL(amount)})` : 'Pago'
     }
-    // Check if any payment events exist
     const totalPaid = payment?.events?.reduce((s, e) => s + (e.amount || 0), 0) || 0
     if (totalPaid > 0) return `Pago (${formatMoneyBRL(totalPaid)})`
     return 'Pendente'
@@ -106,7 +163,7 @@ export function getDepositLabel(payment?: Payment): string {
 // ============================================================
 
 const CARD_WIDTH = 1080
-const CARD_HEIGHT = 1500
+const CARD_HEIGHT = 1920
 const CARD_PADDING = 80
 const CONTENT_WIDTH = CARD_WIDTH - (CARD_PADDING * 2)
 
@@ -140,7 +197,7 @@ async function loadImage(src: string, timeoutMs = 2000): Promise<HTMLImageElemen
 }
 
 /**
- * Draws a rounded rectangle
+ * Draws a rounded rectangle path
  */
 function roundRect(
     ctx: CanvasRenderingContext2D,
@@ -163,7 +220,7 @@ function roundRect(
 
 /**
  * Renders a confirmation card as PNG Blob
- * Professional vertical layout 1080×1500 with HiDPI
+ * Professional v1-style layout: 1080×1920 portrait, centered logo, Spanish labels
  */
 export async function renderConfirmationCard(record: ReservationV2): Promise<Blob> {
     // Wait for fonts to load (browser only)
@@ -208,94 +265,114 @@ export async function renderConfirmationCard(record: ReservationV2): Promise<Blo
     ctx.fillStyle = getStatusColor(record.status)
     ctx.fillRect(0, 0, CARD_WIDTH, 12)
 
-    let y = 60
+    let y = 80
 
     // ============================================================
-    // Logo (optional)
+    // Logo (CENTERED, LARGER - 280px wide)
     // ============================================================
     const logo = await loadImage('/logo-hab.png', 2000)
     if (logo) {
-        const logoHeight = 50
-        const logoWidth = logoHeight * (logo.width / logo.height)
-        ctx.drawImage(logo, CARD_PADDING, y, logoWidth, logoHeight)
-        y += logoHeight + 30
+        const logoWidth = 280
+        const logoHeight = logoWidth * (logo.height / logo.width)
+        const logoX = (CARD_WIDTH - logoWidth) / 2
+        ctx.drawImage(logo, logoX, y, logoWidth, logoHeight)
+        y += logoHeight + 50
     } else {
-        y += 30
+        // Fallback: text branding
+        ctx.fillStyle = '#374151'
+        ctx.font = 'bold 36px system-ui, -apple-system, sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText('Habitación Familiar', CARD_WIDTH / 2, y + 40)
+        ctx.textAlign = 'left'
+        y += 80
     }
 
     // ============================================================
-    // Title: "Confirmação de Reserva"
+    // Title: "Confirmación de Reserva" (CENTERED)
     // ============================================================
     ctx.fillStyle = '#111827'
-    ctx.font = 'bold 48px system-ui, -apple-system, sans-serif'
-    ctx.fillText('Confirmação de Reserva', CARD_PADDING, y + 48)
-    y += 80
+    ctx.font = 'bold 52px system-ui, -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText(LABELS_ES.title, CARD_WIDTH / 2, y + 52)
+    ctx.textAlign = 'left'
+    y += 100
 
     // ============================================================
-    // Status badge
+    // Status badge (CENTERED)
     // ============================================================
-    const statusLabel = getStatusLabel(record.status)
-    ctx.font = 'bold 24px system-ui, sans-serif'
-    const badgeWidth = ctx.measureText(statusLabel).width + 40
+    const statusLabel = getStatusLabelES(record.status)
+    ctx.font = 'bold 28px system-ui, sans-serif'
+    const badgeWidth = ctx.measureText(statusLabel).width + 50
+    const badgeX = (CARD_WIDTH - badgeWidth) / 2
 
-    roundRect(ctx, CARD_PADDING, y, badgeWidth, 44, 22)
+    roundRect(ctx, badgeX, y, badgeWidth, 50, 25)
     ctx.fillStyle = getStatusColor(record.status)
     ctx.fill()
 
     ctx.fillStyle = '#ffffff'
-    ctx.fillText(statusLabel, CARD_PADDING + 20, y + 30)
-    y += 80
+    ctx.textAlign = 'center'
+    ctx.fillText(statusLabel, CARD_WIDTH / 2, y + 35)
+    ctx.textAlign = 'left'
+    y += 90
 
     // ============================================================
-    // Guest name (large)
+    // Guest name (CENTERED, LARGE, CAPS)
     // ============================================================
     ctx.fillStyle = '#111827'
-    ctx.font = 'bold 56px system-ui, -apple-system, sans-serif'
-    const nameLines = wrapText(ctx, record.guestName || 'Hóspede', CONTENT_WIDTH)
+    ctx.font = 'bold 48px system-ui, -apple-system, sans-serif'
+    const guestName = (record.guestName || 'Huésped').toUpperCase()
+    const nameLines = wrapText(ctx, guestName, CONTENT_WIDTH - 40)
+
+    ctx.textAlign = 'center'
     for (const line of nameLines.slice(0, 2)) {
-        ctx.fillText(line, CARD_PADDING, y + 56)
-        y += 70
+        ctx.fillText(line, CARD_WIDTH / 2, y + 48)
+        y += 60
     }
-    y += 30
+    ctx.textAlign = 'left'
+    y += 40
 
     // ============================================================
     // Divider
     // ============================================================
-    ctx.strokeStyle = '#e5e7eb'
+    ctx.strokeStyle = '#d1d5db'
     ctx.lineWidth = 2
     ctx.beginPath()
     ctx.moveTo(CARD_PADDING, y)
     ctx.lineTo(CARD_WIDTH - CARD_PADDING, y)
     ctx.stroke()
-    y += 40
+    y += 50
 
     // ============================================================
-    // Data grid (two columns)
+    // Data table (TWO COLUMNS: labels left, values RIGHT-ALIGNED)
     // ============================================================
+    const leftX = CARD_PADDING + 20
+    const rightX = CARD_WIDTH - CARD_PADDING - 20
+    const rowHeight = 60
+
     const dataItems = [
-        { label: 'Check-in', value: formatDateBR(record.checkIn) },
-        { label: 'Check-out', value: formatDateBR(record.checkOut) },
-        { label: 'Noites', value: String(nights) },
-        { label: 'Hóspedes', value: String(record.partySize || 1) },
-        { label: 'Quartos', value: String(record.rooms ?? 1) },
-        { label: 'Café da manhã', value: record.breakfastIncluded ? 'Sim' : 'Não' },
-        { label: 'Depósito', value: getDepositLabel(record.payment) },
+        { label: LABELS_ES.client, value: record.guestName || '—' },
+        { label: LABELS_ES.persons, value: String(record.partySize || 1) },
+        { label: LABELS_ES.rooms, value: String(record.rooms ?? 1) },
+        { label: LABELS_ES.checkIn, value: formatDateBR(record.checkIn) },
+        { label: LABELS_ES.checkOut, value: formatDateBR(record.checkOut) },
+        { label: LABELS_ES.nights, value: String(nights) },
+        { label: LABELS_ES.breakfast, value: formatYesNoES(record.breakfastIncluded) },
+        { label: LABELS_ES.deposit, value: getDepositLabelES(record.payment) },
     ]
 
-    const labelCol = CARD_PADDING
-    const valueCol = CARD_PADDING + 320
-    const rowHeight = 55
-
     for (const item of dataItems) {
-        // Label (gray)
+        // Label (left, gray)
         ctx.fillStyle = '#6b7280'
-        ctx.font = '28px system-ui, sans-serif'
-        ctx.fillText(item.label, labelCol, y + 28)
+        ctx.font = '30px system-ui, sans-serif'
+        ctx.textAlign = 'left'
+        ctx.fillText(item.label, leftX, y + 30)
 
-        // Value (black, bold)
+        // Value (right-aligned, bold, black)
         ctx.fillStyle = '#111827'
         ctx.font = 'bold 32px system-ui, sans-serif'
-        ctx.fillText(item.value, valueCol, y + 28)
+        ctx.textAlign = 'right'
+        ctx.fillText(item.value, rightX, y + 30)
+        ctx.textAlign = 'left'
 
         y += rowHeight
     }
@@ -304,7 +381,7 @@ export async function renderConfirmationCard(record: ReservationV2): Promise<Blo
     // ============================================================
     // Divider
     // ============================================================
-    ctx.strokeStyle = '#e5e7eb'
+    ctx.strokeStyle = '#d1d5db'
     ctx.beginPath()
     ctx.moveTo(CARD_PADDING, y)
     ctx.lineTo(CARD_WIDTH - CARD_PADDING, y)
@@ -312,52 +389,58 @@ export async function renderConfirmationCard(record: ReservationV2): Promise<Blo
     y += 40
 
     // ============================================================
-    // Total (highlighted box)
+    // Total (GREEN BOX - v1 style)
     // ============================================================
     const totalBoxHeight = 100
-    roundRect(ctx, CARD_PADDING, y, CONTENT_WIDTH, totalBoxHeight, 16)
+    const totalBoxY = y
+
+    roundRect(ctx, CARD_PADDING, totalBoxY, CONTENT_WIDTH, totalBoxHeight, 16)
     ctx.fillStyle = '#dcfce7' // green-100
     ctx.fill()
     ctx.strokeStyle = '#86efac' // green-300
-    ctx.lineWidth = 2
+    ctx.lineWidth = 3
     ctx.stroke()
 
+    // "Total" label (left)
     ctx.fillStyle = '#166534' // green-800
-    ctx.font = '28px system-ui, sans-serif'
-    ctx.fillText('Total', CARD_PADDING + 24, y + 45)
+    ctx.font = 'bold 32px system-ui, sans-serif'
+    ctx.textAlign = 'left'
+    ctx.fillText(LABELS_ES.total, CARD_PADDING + 30, totalBoxY + 62)
 
+    // Total value (right, large)
     ctx.fillStyle = '#15803d' // green-700
     ctx.font = 'bold 48px system-ui, sans-serif'
-    const totalText = formatMoneyBRL(record.totalPrice)
-    const totalWidth = ctx.measureText(totalText).width
-    ctx.fillText(totalText, CARD_WIDTH - CARD_PADDING - 24 - totalWidth, y + 65)
-    y += totalBoxHeight + 40
+    ctx.textAlign = 'right'
+    ctx.fillText(formatMoneyBRL(record.totalPrice), CARD_WIDTH - CARD_PADDING - 30, totalBoxY + 65)
+    ctx.textAlign = 'left'
+
+    y += totalBoxHeight + 50
 
     // ============================================================
     // Guest notes (optional, max 3 lines)
     // ============================================================
     if (record.notesGuest) {
         ctx.fillStyle = '#4b5563'
-        ctx.font = 'italic 24px system-ui, sans-serif'
-        ctx.fillText('Observações:', CARD_PADDING, y + 24)
-        y += 35
+        ctx.font = 'italic 26px system-ui, sans-serif'
+        ctx.textAlign = 'center'
 
-        ctx.fillStyle = '#6b7280'
-        ctx.font = '24px system-ui, sans-serif'
-        const noteLines = wrapText(ctx, record.notesGuest, CONTENT_WIDTH)
+        const noteLines = wrapText(ctx, record.notesGuest, CONTENT_WIDTH - 40)
         for (const line of noteLines.slice(0, 3)) {
-            ctx.fillText(line, CARD_PADDING, y + 24)
-            y += 32
+            ctx.fillText(line, CARD_WIDTH / 2, y + 26)
+            y += 36
         }
+        ctx.textAlign = 'left'
     }
 
     // ============================================================
-    // Footer
+    // Footer (CENTERED)
     // ============================================================
-    y = CARD_HEIGHT - 60
+    y = CARD_HEIGHT - 80
     ctx.fillStyle = '#9ca3af'
-    ctx.font = '22px system-ui, sans-serif'
-    ctx.fillText('Habitación • Confirmação para o hóspede', CARD_PADDING, y)
+    ctx.font = '24px system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText(LABELS_ES.footer, CARD_WIDTH / 2, y)
+    ctx.textAlign = 'left'
 
     // ============================================================
     // Export to PNG
