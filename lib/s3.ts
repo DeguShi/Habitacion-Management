@@ -58,6 +58,22 @@ export async function getJson<T>(key: string): Promise<T | null> {
 }
 
 /**
+ * Fetches a JSON object without any type coercion.
+ * Use this for lossless exports (NDJSON) to preserve ALL fields,
+ * including unknown keys not in the current schema.
+ */
+export async function getRawJson(key: string): Promise<unknown | null> {
+  try {
+    const res = await client.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+    const text = await streamToString(res.Body as any);
+    return JSON.parse(text);
+  } catch (e: any) {
+    if (e?.$metadata?.httpStatusCode === 404) return null;
+    throw e;
+  }
+}
+
+/**
  * Lists ALL object keys under a given prefix, handling S3/R2 pagination.
  *
  * IMPORTANT: S3 ListObjectsV2 returns a maximum of 1000 objects per page.
