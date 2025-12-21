@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import BottomNav, { type TabId } from '@/app/components/v2/BottomNav'
 import ConfirmadasPage from '@/app/components/v2/ConfirmadasPage'
 import EmEsperaPage from '@/app/components/v2/EmEsperaPage'
@@ -12,7 +12,9 @@ import ConfirmSheet from '@/app/components/v2/ConfirmSheet'
 import EditReservationSheet from '@/app/components/v2/EditReservationSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
 import type { Contact } from '@/lib/contacts'
-import { deleteV2Record } from '@/lib/data/v2'
+import { deleteV2Record, listV2Records } from '@/lib/data/v2'
+
+const DEBUG = process.env.NEXT_PUBLIC_DEBUG_FETCH === '1'
 
 interface ClientShellV2Props {
     canWrite?: boolean
@@ -20,22 +22,95 @@ interface ClientShellV2Props {
 
 export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) {
     const [activeTab, setActiveTab] = useState<TabId>('confirmadas')
-    const [refreshKey, setRefreshKey] = useState(0)
 
-    // Sheet states
+    // ============================================================
+    // Centralized Records Store
+    // ============================================================
+    const [records, setRecords] = useState<ReservationV2[]>([])
+    const [loadingInitial, setLoadingInitial] = useState(true)
+    const [refreshing, setRefreshing] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    // Dedupe guards
+    const refreshingRef = useRef(false)
+    const queuedRef = useRef(false)
+
+    /**
+     * Deduped refresh: only one fetch in-flight, queued requests coalesce.
+     */
+    const refreshRecords = useCallback(async (reason?: string) => {
+        if (DEBUG) console.log('[fetch] refreshRecords called', reason || '')
+
+        if (refreshingRef.current) {
+            queuedRef.current = true
+            if (DEBUG) console.log('[fetch] Already refreshing, queued')
+            return
+        }
+
+        refreshingRef.current = true
+        setRefreshing(true)
+        setError(null)
+
+        try {
+            if (DEBUG) console.log('[fetch] Starting fetch...')
+            const next = await listV2Records() // Fetch ALL, normalized
+            setRecords(next)
+            if (DEBUG) console.log('[fetch] Fetched', next.length, 'records')
+        } catch (e: any) {
+            console.error('Failed to fetch records:', e)
+            setError(e?.message || 'Erro ao carregar')
+        } finally {
+            setRefreshing(false)
+            setLoadingInitial(false)
+            refreshingRef.current = false
+
+            // If another refresh was requested while we were fetching, do it now
+            if (queuedRef.current) {
+                queuedRef.current = false
+                if (DEBUG) console.log('[fetch] Processing queued refresh')
+                void refreshRecords('queued')
+            }
+        }
+    }, [])
+
+    // Load once on mount
+    useEffect(() => {
+        refreshRecords('initial')
+    }, [refreshRecords])
+
+    // ============================================================
+    // Derived Data for Tabs (useMemo = no refetch on tab switch)
+    // ============================================================
+    const confirmedRecords = useMemo(
+        () => records.filter((r) => r.status === 'confirmed' || !r.status),
+        [records]
+    )
+
+    const waitingRecords = useMemo(
+        () => records.filter((r) => r.status === 'waiting'),
+        [records]
+    )
+
+    const rejectedRecords = useMemo(
+        () => records.filter((r) => r.status === 'rejected'),
+        [records]
+    )
+
+    // ============================================================
+    // Sheet States
+    // ============================================================
     const [actionSheetOpen, setActionSheetOpen] = useState(false)
     const [createLeadOpen, setCreateLeadOpen] = useState(false)
     const [createConfirmedOpen, setCreateConfirmedOpen] = useState(false)
     const [confirmingItem, setConfirmingItem] = useState<ReservationV2 | null>(null)
     const [editingItem, setEditingItem] = useState<ReservationV2 | null>(null)
 
-    const refresh = useCallback(() => {
-        setRefreshKey((k) => k + 1)
-    }, [])
+    // ============================================================
+    // Handlers
+    // ============================================================
 
     // View reservation details
     function handleViewReservation(r: ReservationV2) {
-        // Simple alert for now - could open a ViewSheet later
         const info = [
             `Hóspede: ${r.guestName}`,
             `Pessoas: ${r.partySize}`,
@@ -61,7 +136,7 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
         if (!ok) return
         try {
             await deleteV2Record(r.id)
-            refresh()
+            refreshRecords('delete')
         } catch (e) {
             console.error('Delete failed:', e)
             alert('Erro ao excluir')
@@ -71,7 +146,6 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     // Create reservation for specific date
     function handleCreateReservation(date: string) {
         if (!canWrite) return
-        // Open action sheet to choose lead vs confirmed
         setActionSheetOpen(true)
     }
 
@@ -83,7 +157,6 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
 
     // View contact
     function handleViewContact(contact: Contact, reservations: ReservationV2[]) {
-        // Simple alert for now
         const info = [
             `Contato: ${contact.name}`,
             contact.phone ? `Tel: ${contact.phone}` : '',
@@ -97,30 +170,41 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     return (
         <div className="min-h-screen bg-gray-50">
             <main className="max-w-lg mx-auto px-4 py-4">
+                {/* Sync indicator */}
+                {refreshing && !loadingInitial && (
+                    <div className="fixed top-2 right-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full z-50">
+                        Atualizando...
+                    </div>
+                )}
+
                 {activeTab === 'confirmadas' && (
                     <ConfirmadasPage
                         canWrite={canWrite}
+                        records={confirmedRecords}
+                        loading={loadingInitial}
                         onViewReservation={handleViewReservation}
                         onEditReservation={handleEditReservation}
                         onDeleteReservation={handleDeleteReservation}
                         onCreateReservation={handleCreateReservation}
-                        refreshKey={refreshKey}
                     />
                 )}
 
                 {activeTab === 'em-espera' && (
                     <EmEsperaPage
                         canWrite={canWrite}
+                        waitingRecords={waitingRecords}
+                        rejectedRecords={rejectedRecords}
+                        loading={loadingInitial}
                         onConfirmWithDetails={handleConfirmWithDetails}
-                        refreshKey={refreshKey}
-                        onRefresh={refresh}
+                        onRefresh={() => refreshRecords('em-espera-action')}
                     />
                 )}
 
                 {activeTab === 'contatos' && (
                     <ContatosPage
+                        records={records}
+                        loading={loadingInitial}
                         onViewContact={handleViewContact}
-                        refreshKey={refreshKey}
                     />
                 )}
 
@@ -147,7 +231,7 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                 open={createLeadOpen}
                 onClose={() => setCreateLeadOpen(false)}
                 onCreated={() => {
-                    refresh()
+                    refreshRecords('create-lead')
                     setActiveTab('em-espera')
                 }}
             />
@@ -159,7 +243,7 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                     setConfirmingItem(null)
                 }}
                 onConfirmed={() => {
-                    refresh()
+                    refreshRecords('confirm')
                     setActiveTab('confirmadas')
                 }}
                 item={confirmingItem}
@@ -168,10 +252,9 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
             <EditReservationSheet
                 open={!!editingItem}
                 onClose={() => setEditingItem(null)}
-                onSaved={refresh}
+                onSaved={() => refreshRecords('edit')}
                 item={editingItem}
             />
         </div>
     )
 }
-

@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { ChevronRight, Clock } from 'lucide-react'
 import type { ReservationV2 } from '@/core/entities_v2'
-import { listV2Records } from '@/lib/data/v2'
 import { deriveContacts, type Contact } from '@/lib/contacts'
 
 interface ContatosPageProps {
+    records: ReservationV2[]  // Passed from parent
+    loading: boolean
     onViewContact: (contact: Contact, reservations: ReservationV2[]) => void
-    refreshKey?: number
 }
 
 function formatBR(iso: string) {
@@ -17,32 +17,15 @@ function formatBR(iso: string) {
 }
 
 export default function ContatosPage({
+    records,
+    loading,
     onViewContact,
-    refreshKey = 0,
 }: ContatosPageProps) {
-    const [contacts, setContacts] = useState<Contact[]>([])
-    const [allRecords, setAllRecords] = useState<ReservationV2[]>([])
-    const [loading, setLoading] = useState(true)
-
-    async function loadContacts() {
-        setLoading(true)
-        try {
-            const records = await listV2Records()
-            setAllRecords(records)
-            setContacts(deriveContacts(records))
-        } catch (e) {
-            console.error('Failed to load contacts:', e)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        loadContacts()
-    }, [refreshKey])
+    // Derive contacts from records (no fetch!)
+    const contacts = useMemo(() => deriveContacts(records), [records])
 
     function handleContactClick(contact: Contact) {
-        const reservations = allRecords.filter((r) =>
+        const reservations = records.filter((r) =>
             contact.reservationIds.includes(r.id)
         )
         onViewContact(contact, reservations)
