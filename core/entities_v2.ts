@@ -15,8 +15,11 @@
 
 /**
  * Booking status for reservation pipeline
+ * - confirmed: Active reservation, shown in calendar
+ * - waiting: On waiting list, pending confirmation
+ * - rejected: Declined/archived, hidden from main views
  */
-export type BookingStatus = "confirmed" | "waiting";
+export type BookingStatus = "confirmed" | "waiting" | "rejected";
 
 /**
  * Deposit payment tracking
