@@ -16,6 +16,28 @@ import { deleteV2Record, listV2Records } from '@/lib/data/v2'
 
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_FETCH === '1'
 
+// ============================================================
+// Module-level guard to prevent double initial fetch
+// (React StrictMode remounts effects in dev, this persists)
+// ============================================================
+let v2InitialFetchStarted = false
+
+function shouldStartV2InitialFetch(): boolean {
+    if (v2InitialFetchStarted) {
+        if (DEBUG) console.log('[fetch] Initial fetch already started, skipping (StrictMode guard)')
+        return false
+    }
+    v2InitialFetchStarted = true
+    return true
+}
+
+// Reset on hot reload in dev (optional, helps with HMR)
+if (typeof window !== 'undefined' && (module as any).hot) {
+    (module as any).hot.dispose(() => {
+        v2InitialFetchStarted = false
+    })
+}
+
 interface ClientShellV2Props {
     canWrite?: boolean
 }
@@ -39,11 +61,11 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
      * Deduped refresh: only one fetch in-flight, queued requests coalesce.
      */
     const refreshRecords = useCallback(async (reason?: string) => {
-        if (DEBUG) console.log('[fetch] refreshRecords called', reason || '')
+        if (DEBUG) console.log('[fetch] refreshRecords called:', reason || '(no reason)')
 
         if (refreshingRef.current) {
             queuedRef.current = true
-            if (DEBUG) console.log('[fetch] Already refreshing, queued')
+            if (DEBUG) console.log('[fetch] Already refreshing, queued for later')
             return
         }
 
@@ -73,8 +95,10 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
         }
     }, [])
 
-    // Load once on mount
+    // Load once on mount (with StrictMode guard)
     useEffect(() => {
+        if (!shouldStartV2InitialFetch()) return
+        if (DEBUG) console.log('[fetch] Initial fetch starting')
         refreshRecords('initial')
     }, [refreshRecords])
 
