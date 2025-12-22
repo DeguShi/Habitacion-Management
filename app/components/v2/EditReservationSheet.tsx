@@ -203,39 +203,39 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
             <form onSubmit={handleSave} className="space-y-4">
                 {/* Guest Info */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium eco-text mb-1">
                         Nome do hóspede *
                     </label>
                     <input
                         type="text"
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         required
                     />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Telefone
                         </label>
                         <input
                             type="tel"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Email
                         </label>
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                 </div>
@@ -243,26 +243,26 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 {/* Dates */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Check-in *
                         </label>
                         <input
                             type="date"
                             value={checkIn}
                             onChange={(e) => setCheckIn(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Check-out *
                         </label>
                         <input
                             type="date"
                             value={checkOut}
                             onChange={(e) => setCheckOut(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             required
                         />
                     </div>
@@ -271,7 +271,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 {/* Party Size, Rooms & Rate */}
                 <div className="grid grid-cols-3 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Pessoas
                         </label>
                         <input
@@ -279,17 +279,17 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                             value={partySize}
                             onChange={(e) => setPartySize(e.target.value)}
                             min="1"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Quartos
                         </label>
                         <select
                             value={rooms}
                             onChange={(e) => setRooms(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                             {ROOMS_OPTIONS.map((r) => (
                                 <option key={r} value={r}>{r}</option>
@@ -297,7 +297,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Diária
                         </label>
                         <input
@@ -305,7 +305,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                             value={nightlyRate}
                             onChange={(e) => setNightlyRate(e.target.value)}
                             min="0"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             disabled={manualLodging}
                         />
                     </div>
@@ -320,7 +320,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                         onChange={(e) => setManualLodging(e.target.checked)}
                         className="rounded"
                     />
-                    <label htmlFor="manualLodgingEdit" className="text-sm text-gray-700">
+                    <label htmlFor="manualLodgingEdit" className="text-sm eco-text">
                         Valor manual de hospedagem
                     </label>
                 </div>
@@ -331,7 +331,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                         onChange={(e) => setManualTotal(e.target.value)}
                         min="0"
                         placeholder="Total hospedagem"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                 )}
 
@@ -344,7 +344,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                         onChange={(e) => setBreakfastIncluded(e.target.checked)}
                         className="rounded"
                     />
-                    <label htmlFor="breakfastEdit" className="text-sm text-gray-700">
+                    <label htmlFor="breakfastEdit" className="text-sm eco-text">
                         Inclui café da manhã
                     </label>
                 </div>
@@ -355,13 +355,13 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                         onChange={(e) => setBreakfastRate(e.target.value)}
                         min="0"
                         placeholder="Café por pessoa/noite"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                 )}
 
                 {/* Extra Spend */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium eco-text mb-1">
                         Gastos extras (R$)
                     </label>
                     <input
@@ -369,7 +369,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                         value={extraSpend}
                         onChange={(e) => setExtraSpend(e.target.value)}
                         min="0"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
 
@@ -421,19 +421,19 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                     </div>
 
                     {showAddPayment && (
-                        <div className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
+                        <div className="bg-[var(--eco-surface-alt)] rounded-lg p-3 mb-3 space-y-2">
                             <div className="grid grid-cols-2 gap-2">
                                 <input
                                     type="number"
                                     value={newPaymentAmount}
                                     onChange={(e) => setNewPaymentAmount(e.target.value)}
                                     placeholder="Valor"
-                                    className="px-3 py-2 border border-gray-300 rounded-lg"
+                                    className="px-3 py-2 border border-[var(--eco-border)] rounded-lg"
                                 />
                                 <select
                                     value={newPaymentMethod}
                                     onChange={(e) => setNewPaymentMethod(e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg"
+                                    className="px-3 py-2 border border-[var(--eco-border)] rounded-lg"
                                 >
                                     {PAYMENT_METHODS.map((m) => (
                                         <option key={m} value={m}>{m}</option>
@@ -445,7 +445,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                                 value={newPaymentNote}
                                 onChange={(e) => setNewPaymentNote(e.target.value)}
                                 placeholder="Nota (opcional)"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg"
                             />
                             <button
                                 type="button"
@@ -487,25 +487,25 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 {/* Notes */}
                 <div className="border-t pt-4 space-y-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Notas internas
                         </label>
                         <textarea
                             value={notesInternal}
                             onChange={(e) => setNotesInternal(e.target.value)}
                             rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Notas para o hóspede
                         </label>
                         <textarea
                             value={notesGuest}
                             onChange={(e) => setNotesGuest(e.target.value)}
                             rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                 </div>
@@ -522,7 +522,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                        className="flex-1 px-4 py-2 border border-[var(--eco-border)] rounded-lg eco-text hover:bg-[var(--eco-surface-alt)]"
                         disabled={saving}
                     >
                         Cancelar
