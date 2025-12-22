@@ -57,7 +57,7 @@ export default function FinalizeIssueSheet({ open, onClose, onSave, item }: Fina
                     <textarea
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        className="input-app"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] bg-[var(--eco-surface-alt)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         rows={3}
                         placeholder="Descreva o problema..."
                         required
