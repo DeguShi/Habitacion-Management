@@ -320,45 +320,45 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 {isCreateMode ? (
                     <>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium eco-text mb-1">
                                 Nome do hóspede *
                             </label>
                             <input
                                 type="text"
                                 value={guestName}
                                 onChange={(e) => setGuestName(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                                 placeholder="João Silva"
                                 autoFocus
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium eco-text mb-1">
                                     Telefone
                                 </label>
                                 <input
                                     type="tel"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium eco-text mb-1">
                                     Email
                                 </label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
                         </div>
                     </>
                 ) : (
-                    <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="bg-[var(--eco-surface-alt)] rounded-lg p-3">
                         <div className="font-medium text-gray-900">{item?.guestName}</div>
                         <div className="text-sm text-gray-500">
                             {item?.phone || item?.email || 'Sem contato'}
@@ -369,26 +369,26 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 {/* Dates */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Check-in *
                         </label>
                         <input
                             type="date"
                             value={checkIn}
                             onChange={(e) => setCheckIn(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Check-out *
                         </label>
                         <input
                             type="date"
                             value={checkOut}
                             onChange={(e) => setCheckOut(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             required
                         />
                     </div>
@@ -397,7 +397,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 {/* Party Size, Rooms & Rate */}
                 <div className="grid grid-cols-3 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Pessoas
                         </label>
                         <input
@@ -405,17 +405,17 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                             value={partySize}
                             onChange={(e) => setPartySize(e.target.value)}
                             min="1"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Quartos
                         </label>
                         <select
                             value={rooms}
                             onChange={(e) => setRooms(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                             {ROOMS_OPTIONS.map((r) => (
                                 <option key={r} value={r}>{r}</option>
@@ -423,7 +423,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Diária
                         </label>
                         <input
@@ -432,7 +432,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                             onChange={(e) => setNightlyRate(e.target.value)}
                             min="0"
                             step="10"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             disabled={manualLodging}
                         />
                     </div>
@@ -447,7 +447,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                         onChange={(e) => setManualLodging(e.target.checked)}
                         className="rounded"
                     />
-                    <label htmlFor="manualLodging" className="text-sm text-gray-700">
+                    <label htmlFor="manualLodging" className="text-sm eco-text">
                         Valor manual de hospedagem
                     </label>
                 </div>
@@ -458,7 +458,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                         onChange={(e) => setManualTotal(e.target.value)}
                         min="0"
                         placeholder="Total hospedagem"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                 )}
 
@@ -471,7 +471,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                         onChange={(e) => setBreakfastIncluded(e.target.checked)}
                         className="rounded"
                     />
-                    <label htmlFor="breakfast" className="text-sm text-gray-700">
+                    <label htmlFor="breakfast" className="text-sm eco-text">
                         Inclui café da manhã
                     </label>
                 </div>
@@ -482,7 +482,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                         onChange={(e) => setBreakfastRate(e.target.value)}
                         min="0"
                         placeholder="Café por pessoa/noite"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                 )}
 
@@ -509,7 +509,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                     <h3 className="font-medium text-gray-900 mb-3">Pagamento</h3>
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium eco-text mb-1">
                                 Valor pago
                             </label>
                             <input
@@ -518,17 +518,17 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                                 onChange={(e) => setDepositAmount(e.target.value)}
                                 min="0"
                                 placeholder="0"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium eco-text mb-1">
                                 Método
                             </label>
                             <select
                                 value={depositMethod}
                                 onChange={(e) => setDepositMethod(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             >
                                 {PAYMENT_METHODS.map((m) => (
                                     <option key={m} value={m}>{m}</option>
@@ -541,33 +541,33 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                         value={depositNote}
                         onChange={(e) => setDepositNote(e.target.value)}
                         placeholder="Nota do pagamento"
-                        className="w-full mt-3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full mt-3 px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
 
                 {/* Notes */}
                 <div className="border-t pt-4 space-y-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Notas internas
                         </label>
                         <textarea
                             value={notesInternal}
                             onChange={(e) => setNotesInternal(e.target.value)}
                             rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Visível apenas para a equipe"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium eco-text mb-1">
                             Notas para o hóspede
                         </label>
                         <textarea
                             value={notesGuest}
                             onChange={(e) => setNotesGuest(e.target.value)}
                             rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                             placeholder="Será incluído na confirmação"
                         />
                     </div>
@@ -585,7 +585,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                        className="flex-1 px-4 py-2 border border-[var(--eco-border)] rounded-lg eco-text hover:bg-[var(--eco-surface-alt)]"
                         disabled={saving}
                     >
                         Cancelar

@@ -34,7 +34,7 @@ export default function Navbar() {
                   className="rounded-full ring-1 ring-gray-200"
                 />
               ) : (
-                <div className="h-7 w-7 rounded-full bg-gray-100 ring-1 ring-gray-200 grid place-items-center text-xs font-medium text-gray-700">
+                <div className="h-7 w-7 rounded-full eco-surface-alt ring-1 ring-[var(--eco-border)] grid place-items-center text-xs font-medium eco-text">
                   {session.user.email?.[0]?.toUpperCase() ?? 'U'}
                 </div>
               )}

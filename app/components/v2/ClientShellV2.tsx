@@ -354,6 +354,9 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                         records={records}
                         loading={loadingInitial}
                         onViewContact={handleViewContact}
+                        onViewReservation={handleViewReservation}
+                        onCreateReservation={handleCreateReservationFromContact}
+                        onCreateLead={handleCreateLeadFromContact}
                     />
                 )}
 
