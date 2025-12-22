@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Clock, Users, ChevronRight, CheckCircle, XCircle } from 'lucide-react'
+import { Users, CheckCircle, XCircle } from 'lucide-react'
 import type { ReservationV2 } from '@/core/entities_v2'
 
 interface FinalizadasPageProps {
@@ -37,29 +37,29 @@ export default function FinalizadasPage({
     return (
         <div className="pb-20">
             <section className="card">
-                <h2 className="text-lg font-semibold mb-3">Estadias Finalizadas</h2>
-                <p className="text-sm text-gray-500 mb-4">
+                <h2 className="text-lg font-semibold mb-3 text-app">Estadias Finalizadas</h2>
+                <p className="text-sm text-muted mb-4">
                     Revise as estadias que já terminaram e marque como OK ou registre qualquer problema.
                 </p>
 
                 {loading ? (
-                    <div className="text-sm text-gray-500">Carregando...</div>
+                    <div className="text-sm text-muted">Carregando...</div>
                 ) : sorted.length === 0 ? (
                     <div className="text-center py-8">
-                        <CheckCircle size={40} className="mx-auto text-green-400 mb-2" />
-                        <p className="text-sm text-gray-500">Nenhuma estadia pendente de revisão.</p>
+                        <CheckCircle size={40} className="mx-auto text-success opacity-60 mb-2" />
+                        <p className="text-sm text-muted">Nenhuma estadia pendente de revisão.</p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="grid gap-3 lg:grid-cols-2">
                         {sorted.map((r) => (
                             <div
                                 key={r.id}
-                                className="p-4 rounded-xl bg-white shadow-sm border border-gray-100"
+                                className="p-4 rounded-xl bg-surface2 shadow-sm"
                             >
                                 <div className="flex items-start justify-between mb-2">
                                     <div>
-                                        <div className="font-medium text-gray-900">{r.guestName}</div>
-                                        <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
+                                        <div className="font-medium text-app">{r.guestName}</div>
+                                        <div className="text-xs text-muted flex items-center gap-2 mt-1">
                                             <span>{formatBR(r.checkIn)} → {formatBR(r.checkOut)}</span>
                                             <span className="flex items-center gap-1">
                                                 <Users size={12} />
@@ -68,11 +68,11 @@ export default function FinalizadasPage({
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-sm font-semibold text-green-700">
+                                        <div className="text-sm font-semibold text-success">
                                             {formatMoney(r.totalPrice)}
                                         </div>
                                         {r.extraSpend && r.extraSpend > 0 && (
-                                            <div className="text-xs text-gray-500">
+                                            <div className="text-xs text-muted">
                                                 +{formatMoney(r.extraSpend)} extra
                                             </div>
                                         )}
@@ -83,14 +83,14 @@ export default function FinalizadasPage({
                                 <div className="flex gap-2 mt-3">
                                     <button
                                         onClick={() => onMarkOk(r)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-medium text-sm border border-green-200"
+                                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/30 text-success hover:bg-green-100 dark:hover:bg-green-900/50 font-medium text-sm border border-green-200 dark:border-green-800 transition-colors"
                                     >
                                         <CheckCircle size={16} />
                                         OK
                                     </button>
                                     <button
                                         onClick={() => onMarkIssue(r)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 font-medium text-sm border border-red-200"
+                                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/30 text-danger hover:bg-red-100 dark:hover:bg-red-900/50 font-medium text-sm border border-red-200 dark:border-red-800 transition-colors"
                                     >
                                         <XCircle size={16} />
                                         Problema

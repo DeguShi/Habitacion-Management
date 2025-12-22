@@ -47,17 +47,17 @@ export default function CalendarBoard({
 
   const keyFor = (day: number) => formatDateKey(y, m, day)
 
-  // Occupancy-based palette: intensity by rooms ratio
+  // Occupancy-based palette: intensity by rooms ratio (with dark mode variants)
   const tint = (rooms: number) =>
-    rooms >= roomsTotal ? '!bg-red-200'
-      : rooms >= 2 ? '!bg-orange-100'
-        : rooms >= 1 ? '!bg-yellow-100'
-          : 'bg-white'
+    rooms >= roomsTotal ? '!bg-red-200 dark:!bg-red-900/50'
+      : rooms >= 2 ? '!bg-orange-100 dark:!bg-orange-900/40'
+        : rooms >= 1 ? '!bg-yellow-100 dark:!bg-yellow-900/40'
+          : 'bg-surface'
 
   const dot = (rooms: number) =>
-    rooms >= roomsTotal ? 'bg-red-700'
-      : rooms >= 2 ? 'bg-orange-500'
-        : rooms >= 1 ? 'bg-yellow-500' : 'bg-transparent'
+    rooms >= roomsTotal ? 'bg-red-700 dark:bg-red-400'
+      : rooms >= 2 ? 'bg-orange-500 dark:bg-orange-400'
+        : rooms >= 1 ? 'bg-yellow-500 dark:bg-yellow-400' : 'bg-transparent'
 
   // ----- free-text month input (dd-mm-yyyy) with parse on blur/Enter
   const [draft, setDraft] = useState<string>(toDraft(month))
@@ -104,7 +104,7 @@ export default function CalendarBoard({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <div className="text-sm text-gray-700">Calendário</div>
+        <div className="text-sm text-muted">Calendário</div>
         <input
           value={draft}
           onChange={e => setDraft(e.target.value)}
@@ -119,7 +119,7 @@ export default function CalendarBoard({
         <button className="btn-ghost p-1" onClick={prevMonth} aria-label="Mês anterior">
           <ChevronLeft size={18} />
         </button>
-        <div className="font-semibold">
+        <div className="font-semibold text-app">
           {new Date(y, m - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
         </div>
         <button className="btn-ghost p-1" onClick={nextMonth} aria-label="Próximo mês">
@@ -128,7 +128,7 @@ export default function CalendarBoard({
       </div>
 
       {/* Weekday headers - Monday first (using centralized labels) */}
-      <div className="grid grid-cols-7 text-center text-xs text-gray-500 mb-1">
+      <div className="grid grid-cols-7 text-center text-xs text-muted mb-1">
         {WEEKDAY_LABELS.map(label => <div key={label}>{label}</div>)}
       </div>
 
@@ -144,10 +144,11 @@ export default function CalendarBoard({
               onClick={() => onSelectDate(key)}
               title={rooms ? `${rooms}/${roomsTotal} quartos` : 'Livre'}
               className={[
-                'relative h-11 w-full rounded-xl text-sm text-gray-900',
-                'bg-white', // force light base
+                'relative h-11 w-full rounded-xl text-sm',
+                'text-app',
+                'bg-surface',
                 tint(rooms),
-                isSelected ? 'ring-2 ring-blue-600' : 'ring-1 ring-gray-200',
+                isSelected ? 'ring-2 ring-primary' : 'ring-1 ring-app border-app',
                 'transition transform-gpu hover:-translate-y-0.5 hover:shadow-sm',
               ].join(' ')}
             >

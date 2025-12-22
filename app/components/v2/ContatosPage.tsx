@@ -41,22 +41,22 @@ export default function ContatosPage({
     return (
         <div className="pb-20">
             <section className="card">
-                <h2 className="text-lg font-semibold mb-3">Contatos</h2>
+                <h2 className="text-lg font-semibold mb-3 text-app">Contatos</h2>
 
                 {/* Search Input */}
                 <div className="relative mb-4">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Buscar por nome, telefone ou email"
-                        className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-10 py-2 border border-app rounded-lg bg-surface text-app focus:ring-2 ring-app"
                     />
                     {searchQuery && (
                         <button
                             onClick={() => setSearchQuery('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-app transition-colors"
                         >
                             <X size={18} />
                         </button>
@@ -65,15 +65,15 @@ export default function ContatosPage({
 
                 {/* Results count when searching */}
                 {searchQuery && (
-                    <div className="text-xs text-gray-500 mb-2">
+                    <div className="text-xs text-muted mb-2">
                         {contacts.length} resultado{contacts.length !== 1 ? 's' : ''}
                     </div>
                 )}
 
                 {loading ? (
-                    <div className="text-sm text-gray-500">Carregando...</div>
+                    <div className="text-sm text-muted">Carregando...</div>
                 ) : contacts.length === 0 ? (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted">
                         {searchQuery ? 'Nenhum contato encontrado.' : 'Nenhum contato.'}
                     </p>
                 ) : (
@@ -82,26 +82,26 @@ export default function ContatosPage({
                             <button
                                 key={contact.id}
                                 onClick={() => handleContactClick(contact)}
-                                className="w-full flex items-center justify-between p-3 rounded-xl bg-white shadow-sm text-left hover:bg-gray-50 transition-colors"
+                                className="w-full flex items-center justify-between p-3 rounded-xl bg-surface2 text-left hover:bg-surface3 transition-colors"
                             >
                                 <div className="flex-1">
-                                    <div className="font-medium text-gray-900 flex items-center gap-2">
+                                    <div className="font-medium text-app flex items-center gap-2">
                                         {contact.name}
                                         {contact.hasWaiting && (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-yellow-100 dark:bg-yellow-900/40 text-warning">
                                                 <Clock size={12} />
                                                 Em espera
                                             </span>
                                         )}
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-muted">
                                         {contact.phone || contact.email || '—'}
                                     </div>
-                                    <div className="text-xs text-gray-400">
+                                    <div className="text-xs text-muted opacity-75">
                                         {contact.totalBookings} reserva{contact.totalBookings !== 1 ? 's' : ''} • Última: {formatBR(contact.lastStayDate)}
                                     </div>
                                 </div>
-                                <ChevronRight size={16} className="text-gray-400" />
+                                <ChevronRight size={16} className="text-muted" />
                             </button>
                         ))}
                     </div>
