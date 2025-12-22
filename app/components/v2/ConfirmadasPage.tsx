@@ -111,7 +111,7 @@ export default function ConfirmadasPage({
                                 {selectedReservations.map((r) => (
                                     <div
                                         key={r.id}
-                                        className="flex items-center justify-between p-3 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-colors"
+                                        className="mini-card flex items-center justify-between"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-token truncate">
