@@ -44,7 +44,7 @@ export default function BottomNav({ activeTab, onTabChange, onCreateClick, finis
                 <div className="flex justify-around items-center h-16">
                     {tabs.map((tab) => {
                         const isActive = activeTab === tab.id
-                        const showBadge = tab.id === 'finalizadas' && finishedCount && finishedCount > 0
+                        const showBadge = tab.id === 'finalizadas' && (finishedCount ?? 0) > 0
                         return (
                             <button
                                 key={tab.id}
@@ -62,7 +62,7 @@ export default function BottomNav({ activeTab, onTabChange, onCreateClick, finis
                                     {tab.icon}
                                     {showBadge && (
                                         <span className="absolute -top-1 -right-2 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
-                                            {finishedCount > 9 ? '9+' : finishedCount}
+                                            {(finishedCount ?? 0) > 9 ? '9+' : finishedCount}
                                         </span>
                                     )}
                                 </span>

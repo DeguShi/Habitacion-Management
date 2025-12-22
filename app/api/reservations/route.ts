@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth.config'
 import { userKeyFromEmail } from '@/lib/user'
 import { createReservation, listReservations } from '@/core/usecases'
+import { DEMO_RESERVATIONS } from '@/lib/demo/fixture_reservations_v2'
 
 const allowedSet = new Set(
   (process.env.ALLOWED_EMAILS || '')
@@ -20,8 +21,10 @@ function isAllowed(email: string) {
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   const email = session?.user?.email
-  if (!email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Demo mode for non-admin users: return fixture data
+  if (!email || !isAllowed(email)) {
+    return NextResponse.json(DEMO_RESERVATIONS)
   }
 
   const userId = userKeyFromEmail(email)
@@ -38,8 +41,9 @@ export async function POST(req: NextRequest) {
   if (!email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  // Non-admin users get demo mode (read-only)
   if (!isAllowed(email)) {
-    return NextResponse.json({ error: 'Writes are restricted for this account' }, { status: 403 })
+    return NextResponse.json({ error: 'Demo mode: read-only' }, { status: 403 })
   }
 
   const userId = userKeyFromEmail(email)

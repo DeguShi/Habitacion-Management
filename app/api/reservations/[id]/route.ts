@@ -4,8 +4,9 @@ import { authOptions } from '@/lib/auth.config'
 import { userKeyFromEmail } from '@/lib/user'
 import { updateReservation, deleteReservation } from '@/core/usecases'
 import { getJson } from '@/lib/s3'
+import { DEMO_RESERVATIONS } from '@/lib/demo/fixture_reservations_v2'
 
-// allowlist logic, just the same
+// allowlist logic
 const allowedSet = new Set(
   (process.env.ALLOWED_EMAILS || '')
     .split(',')
@@ -27,7 +28,15 @@ function isValidId(id: string): boolean {
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   const email = session?.user?.email
-  if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Demo mode for non-admin users: find in fixture
+  if (!email || !isAllowed(email)) {
+    const record = DEMO_RESERVATIONS.find(r => r.id === params.id)
+    if (!record) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+    return NextResponse.json(record)
+  }
 
   const userId = userKeyFromEmail(email)
   const { id } = params
@@ -56,7 +65,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const session = await getServerSession(authOptions)
   const email = session?.user?.email
   if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!isAllowed(email)) return NextResponse.json({ error: 'Writes are restricted for this account' }, { status: 403 })
+  // Non-admin users get demo mode (read-only)
+  if (!isAllowed(email)) return NextResponse.json({ error: 'Demo mode: read-only' }, { status: 403 })
 
   const userId = userKeyFromEmail(email)
 
@@ -73,7 +83,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const session = await getServerSession(authOptions)
   const email = session?.user?.email
   if (!email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!isAllowed(email)) return NextResponse.json({ error: 'Writes are restricted for this account' }, { status: 403 })
+  // Non-admin users get demo mode (read-only)
+  if (!isAllowed(email)) return NextResponse.json({ error: 'Demo mode: read-only' }, { status: 403 })
 
   const userId = userKeyFromEmail(email)
 
