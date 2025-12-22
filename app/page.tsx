@@ -9,6 +9,7 @@ export default async function Page() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/sign-in");
 
-  const canWrite = isEmailAllowed(session.user?.email || null);
-  return <ClientShellV2 canWrite={canWrite} />;
+  const isAdmin = isEmailAllowed(session.user?.email || null);
+  // Demo mode: non-admin users see fixture data (read-only)
+  return <ClientShellV2 canWrite={isAdmin} demoMode={!isAdmin} />;
 }

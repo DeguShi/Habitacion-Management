@@ -48,9 +48,11 @@ if (typeof window !== 'undefined' && (module as any).hot) {
 
 interface ClientShellV2Props {
     canWrite?: boolean
+    demoMode?: boolean
 }
 
-export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) {
+export default function ClientShellV2({ canWrite = false, demoMode = false }: ClientShellV2Props) {
+    const effectiveCanWrite = canWrite && !demoMode
     const [activeTab, setActiveTab] = useState<TabId>('confirmadas')
 
     // ============================================================
@@ -324,9 +326,18 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                     </div>
                 )}
 
+                {/* Demo mode banner */}
+                {demoMode && (
+                    <div className="mb-4 p-3 rounded-xl eco-surface border-2 border-[var(--eco-warning)] text-center">
+                        <span className="text-sm font-medium" style={{ color: 'var(--eco-warning)' }}>
+                            Modo demonstração — alterações desativadas
+                        </span>
+                    </div>
+                )}
+
                 {activeTab === 'confirmadas' && (
                     <ConfirmadasPage
-                        canWrite={canWrite}
+                        canWrite={effectiveCanWrite}
                         records={confirmedRecords}
                         loading={loadingInitial}
                         onViewReservation={handleViewReservation}
@@ -338,7 +349,7 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
 
                 {activeTab === 'em-espera' && (
                     <EmEsperaPage
-                        canWrite={canWrite}
+                        canWrite={effectiveCanWrite}
                         waitingRecords={waitingRecords}
                         rejectedRecords={rejectedRecords}
                         confirmedRecords={confirmedRecords}
@@ -361,7 +372,7 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                 )}
 
                 {activeTab === 'ferramentas' && (
-                    <FerramentasPage canWrite={canWrite} />
+                    <FerramentasPage canWrite={effectiveCanWrite} />
                 )}
 
                 {activeTab === 'finalizadas' && (
@@ -377,7 +388,7 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
             <BottomNav
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
-                onCreateClick={canWrite ? () => setActionSheetOpen(true) : undefined}
+                onCreateClick={effectiveCanWrite ? () => setActionSheetOpen(true) : undefined}
                 finishedCount={finishedRecords.length}
             />
 
