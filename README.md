@@ -1,6 +1,6 @@
 # Habitación — Reservation Manager
 
-A mobile-first reservation management app designed for my mother's small guest room business—built to be fast, safe, and clear on any device.
+A mobile-first reservation management app designed for small guest room business—built to be fast, safe, and clear on any device.
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](./LICENSE)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-black)](#)
@@ -596,39 +596,63 @@ lib/
 
 ### Screenshots to Add
 
-<!-- 
-HOW TO ADD:
-1. Click "Edit" on this README in GitHub
-2. Drag and drop your screenshot into the text area below
-3. GitHub auto-uploads and inserts: ![image](https://user-images...)
-4. Add a caption above each image
--->
+**Confirmadas - 1** — Calendar with occupancy colors
+<div align="center">
+  <img
+    src="https://github.com/user-attachments/assets/86fdf270-5d79-433f-ba2e-dfd5e47c8cce"
+    alt=""
+    width="300"
+  />
+</div
 
-**Confirmadas (Mobile)** — Calendar with occupancy colors
-<!-- Drop confirmadas-mobile.png here -->
 
-**Confirmadas (Desktop)** — Two-column layout
-<!-- Drop confirmadas-desktop.png here -->
+**Confirmadas - 2** — Upcoming reservations
+<div align="center">
+  <img
+    src="https://github.com/user-attachments/assets/28057f3b-ec20-48cd-9cd1-96c2c19b8a0d"
+    alt=""
+    width="300"
+  />
+</div>
 
 **Em Espera** — Swipe to confirm/reject
-<!-- Drop em-espera-swipe.png here -->
+<div align="center">
+  <img
+    src="(https://github.com/user-attachments/assets/2f0abb09-22be-468e-a8b3-22647dc81a88"
+    alt=""
+    width="300"
+  />
+</div>
 
 **Finalizadas** — Post-checkout review
-<!-- Drop finalizadas-review.png here -->
+<div align="center">
+  <img
+    src="https://github.com/user-attachments/assets/465634e2-7736-4de9-bad2-a8da6155d0cb"
+    alt=""
+    width="300"
+  />
+</div>
 
 **Contatos** — Search and contact details
-<!-- Drop contatos-search.png here -->
+<div align="center">
+  <img
+    src="https://github.com/user-attachments/assets/a2cb6640-5fa4-48c9-bc0b-287f0b49dab9"
+    alt=""
+    width="300"
+  />
+</div>
 
 **Confirmation Card** — Generated PNG for guest
-<!-- Drop confirmation-card.png here -->
+
+<img width="360" height="640" alt="reserva-paula-fonseca" src="https://github.com/user-attachments/assets/4cc06b00-9976-449a-8efe-f7154bda0f36" />
 
 ### Screen Recordings
 
-**Waiting → Confirm Flow**
-<!-- Drop waiting-to-confirm.mp4 here -->
 
-**Create from Contact**
-<!-- Drop contacts-new-reservation.mp4 here -->
+
+https://github.com/user-attachments/assets/5a6b9208-0f6f-4b92-a1dc-c3fdc8c6a715
+
+
 
 ---
 
