@@ -105,13 +105,12 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                         type="text"
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
-                        className="input-app"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] bg-[var(--eco-surface-alt)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         placeholder="João Silva"
                         autoFocus
                     />
                 </div>
 
-                {/* Phone */}
                 <div>
                     <label className="block text-sm font-medium text-muted mb-1">
                         Telefone
@@ -120,12 +119,11 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="input-app"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] bg-[var(--eco-surface-alt)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         placeholder="+55 11 99999-9999"
                     />
                 </div>
 
-                {/* Email */}
                 <div>
                     <label className="block text-sm font-medium text-muted mb-1">
                         Email
@@ -134,12 +132,11 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="input-app"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] bg-[var(--eco-surface-alt)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         placeholder="joao@email.com"
                     />
                 </div>
 
-                {/* Dates */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label className="block text-sm font-medium text-muted mb-1">
@@ -149,7 +146,7 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                             type="date"
                             value={checkIn}
                             onChange={(e) => setCheckIn(e.target.value)}
-                            className="input-app"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] bg-[var(--eco-surface-alt)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                     <div>
@@ -160,12 +157,11 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                             type="date"
                             value={checkOut}
                             onChange={(e) => setCheckOut(e.target.value)}
-                            className="input-app"
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] bg-[var(--eco-surface-alt)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                 </div>
 
-                {/* Party Size */}
                 <div>
                     <label className="block text-sm font-medium text-muted mb-1">
                         Pessoas
@@ -176,11 +172,10 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                         onChange={(e) => setPartySize(e.target.value)}
                         min="1"
                         max="20"
-                        className="input-app"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] bg-[var(--eco-surface-alt)] rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
 
-                {/* Notes */}
                 <div>
                     <label className="block text-sm font-medium text-muted mb-1">
                         Notas internas
@@ -188,7 +183,7 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        className="input-app"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] bg-[var(--eco-surface-alt)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         rows={2}
                         placeholder="Observações para a equipe..."
                     />
