@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import CalendarBoard from '@/app/components/CalendarBoard'
 import ReservationActions from './ReservationActions'
 import { RoomsChip } from '@/app/components/ui/Chip'
+import PageHeader from '@/app/components/ui/PageHeader'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { formatDateKey } from '@/lib/calendar-utils'
 
@@ -137,13 +138,13 @@ export default function ConfirmadasPage({
 
                 {/* Right: Upcoming (visible on desktop, scrolls on mobile) */}
                 <div className="lg:col-span-5">
-                    <section className="card">
-                        <h2 className="text-lg font-semibold mb-3">Próximas Reservas</h2>
+                    <section className="card sticky top-20">
+                        <PageHeader title="Próximas Reservas" subtitle={`${upcoming.length} próximas`} />
 
                         {loading ? (
-                            <div className="text-sm text-token-muted">Carregando...</div>
+                            <div className="text-sm eco-muted">Carregando...</div>
                         ) : upcoming.length === 0 ? (
-                            <p className="text-sm text-token-muted">Nenhuma reserva futura.</p>
+                            <p className="text-sm eco-muted">Nenhuma reserva futura.</p>
                         ) : (
                             <div className="space-y-2">
                                 {upcoming.map((r) => (
