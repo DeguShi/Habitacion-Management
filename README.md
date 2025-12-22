@@ -615,10 +615,11 @@ lib/
   />
 </div>
 
+
 **Em Espera** — Swipe to confirm/reject
 <div align="center">
   <img
-    src="(https://github.com/user-attachments/assets/2f0abb09-22be-468e-a8b3-22647dc81a88"
+    src="https://github.com/user-attachments/assets/2f0abb09-22be-468e-a8b3-22647dc81a88"
     alt=""
     width="300"
   />
