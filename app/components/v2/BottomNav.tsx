@@ -32,7 +32,7 @@ export default function BottomNav({ activeTab, onTabChange, onCreateClick, finis
             {onCreateClick && (
                 <button
                     onClick={onCreateClick}
-                    className="fixed bottom-20 right-4 z-50 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all"
+                    className="fixed bottom-20 right-4 z-50 w-14 h-14 btn rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all"
                     aria-label="Novo lead"
                 >
                     <Plus size={28} />
@@ -40,7 +40,7 @@ export default function BottomNav({ activeTab, onTabChange, onCreateClick, finis
             )}
 
             {/* Nav Bar */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-bottom z-50">
+            <nav className="fixed bottom-0 left-0 right-0 bg-s1 border-t border-app safe-area-bottom z-50">
                 <div className="flex justify-around items-center h-16">
                     {tabs.map((tab) => {
                         const isActive = activeTab === tab.id
@@ -53,8 +53,8 @@ export default function BottomNav({ activeTab, onTabChange, onCreateClick, finis
                                     flex flex-col items-center justify-center flex-1 h-full relative
                                     transition-colors
                                     ${isActive
-                                        ? 'text-blue-600'
-                                        : 'text-gray-500 hover:text-gray-700'}
+                                        ? 'text-primary'
+                                        : 'text-muted hover:text-app'}
                                 `}
                                 aria-current={isActive ? 'page' : undefined}
                             >

@@ -15,6 +15,7 @@ import ViewReservationSheet from '@/app/components/v2/ViewReservationSheet'
 import ContactDetailSheet from '@/app/components/v2/ContactDetailSheet'
 import FinalizeOkSheet from '@/app/components/v2/FinalizeOkSheet'
 import FinalizeIssueSheet from '@/app/components/v2/FinalizeIssueSheet'
+import DeleteConfirmDialog from '@/app/components/v2/DeleteConfirmDialog'
 import type { ReservationV2 } from '@/core/entities_v2'
 import type { Contact } from '@/lib/contacts'
 import { getBestNotesForContact } from '@/lib/contacts'
@@ -183,17 +184,22 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     }
 
     // Delete reservation
-    async function handleDeleteReservation(r: ReservationV2) {
+    const [pendingDelete, setPendingDelete] = useState<ReservationV2 | null>(null)
+
+    function handleDeleteReservation(r: ReservationV2) {
         if (!canWrite) return
-        const ok = confirm(`Excluir reserva de ${r.guestName}?`)
-        if (!ok) return
+        setPendingDelete(r)
+    }
+
+    async function confirmDelete() {
+        if (!pendingDelete) return
         try {
-            await deleteV2Record(r.id)
+            await deleteV2Record(pendingDelete.id)
             refreshRecords('delete')
         } catch (e) {
             console.error('Delete failed:', e)
-            alert('Erro ao excluir')
         }
+        setPendingDelete(null)
     }
 
     // Create reservation for specific date
@@ -309,11 +315,11 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <main className="max-w-lg mx-auto px-4 py-4">
+        <div className="min-h-screen eco-bg">
+            <main className="mx-auto px-4 py-4 max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl">
                 {/* Sync indicator */}
                 {refreshing && !loadingInitial && (
-                    <div className="fixed top-2 right-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full z-50">
+                    <div className="fixed top-2 right-2 text-xs bg-blue-100  text-blue-700  px-2 py-1 rounded-full z-50">
                         Atualizando...
                     </div>
                 )}
@@ -452,6 +458,13 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
                 onClose={() => setFinalizeIssueItem(null)}
                 onSave={handleFinalizeIssueSave}
                 item={finalizeIssueItem}
+            />
+
+            <DeleteConfirmDialog
+                open={!!pendingDelete}
+                guestName={pendingDelete?.guestName || ''}
+                onConfirm={confirmDelete}
+                onCancel={() => setPendingDelete(null)}
             />
         </div>
     )

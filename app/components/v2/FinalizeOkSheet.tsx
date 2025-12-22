@@ -40,25 +40,25 @@ export default function FinalizeOkSheet({ open, onClose, onSave, item }: Finaliz
     return (
         <BottomSheet open={open} onClose={onClose} title="Finalizar Estadia - OK">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="font-medium text-gray-900">{item.guestName}</div>
-                    <div className="text-sm text-gray-500">
+                <div className="bg-s2 p-3 rounded-lg">
+                    <div className="font-medium text-app">{item.guestName}</div>
+                    <div className="text-sm text-muted">
                         {item.checkIn} → {item.checkOut} • {BRL(item.totalPrice)}
                     </div>
                 </div>
 
                 {/* Extra Spend */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-muted mb-1">
                         Gastos extras (consumo, etc.)
                     </label>
                     <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">R$</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">R$</span>
                         <input
                             type="number"
                             value={extraSpend}
                             onChange={(e) => setExtraSpend(e.target.value)}
-                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            className="input-app pl-10"
                             placeholder="0"
                             step="0.01"
                             min="0"
@@ -68,13 +68,13 @@ export default function FinalizeOkSheet({ open, onClose, onSave, item }: Finaliz
 
                 {/* Notes */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-muted mb-1">
                         Observações (opcional)
                     </label>
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        className="input-app"
                         rows={2}
                         placeholder="Notas sobre a estadia..."
                     />
@@ -85,14 +85,14 @@ export default function FinalizeOkSheet({ open, onClose, onSave, item }: Finaliz
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                        className="btn-ghost flex-1"
                         disabled={saving}
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
-                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                        className="btn-success flex-1"
                         disabled={saving}
                     >
                         {saving ? 'Salvando...' : 'Confirmar OK'}

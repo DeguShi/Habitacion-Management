@@ -1,58 +1,369 @@
 @import "tailwindcss";
 
-@layer base {
-  :root { color-scheme: light; }
-  body { @apply bg-white text-gray-900 antialiased; }
-  a { @apply text-gray-900 hover:underline; }
+/* ============================================================
+   Phase 10.1 — Eco Paper Theme (Light Mode Only)
+   
+   Warm, boutique guesthouse aesthetic. No dark mode.
+   ============================================================ */
 
-  /* Form controls */
-  input, textarea, select {
-    @apply border border-gray-300 rounded-lg px-3 py-2 outline-none
-           focus:ring-2 focus:ring-gray-900/10;
+@layer base {
+  :root {
+    /* === Eco Paper Palette === */
+    --eco-bg: #F6F1E7;
+    /* Page background */
+    --eco-surface: #FFFCF6;
+    /* Cards/surfaces */
+    --eco-surface-alt: #F1E7D6;
+    /* Inputs/selected */
+    --eco-border: #E5D8C3;
+    /* Borders */
+    --eco-text: #1F2937;
+    /* Primary text */
+    --eco-text-muted: #6B7280;
+    /* Muted text */
+
+    /* === Status Accents === */
+    --eco-primary: #1E40AF;
+    --eco-success: #2E7D32;
+    --eco-warning: #B45309;
+    --eco-danger: #B91C1C;
+
+    /* === Calendar Occupancy Colors === */
+    --occ-light: #FEF9C3;
+    /* yellow-100 */
+    --occ-medium: #FED7AA;
+    /* orange-200 */
+    --occ-full: #FECACA;
+    /* red-200 */
+
+    /* === Shadows === */
+    --eco-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --eco-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06);
   }
-  label { @apply text-sm font-medium text-gray-700; }
+
+  body {
+    @apply antialiased;
+    background-color: var(--eco-bg);
+    color: var(--eco-text);
+  }
+
+  a {
+    color: inherit;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
 }
 
 @layer components {
-  .btn       { @apply rounded-xl px-4 py-2 bg-gray-900 text-white hover:bg-black transition; }
-  .btn-ghost { @apply rounded-lg border border-gray-200 bg-white text-gray-700 hover:shadow-sm transition; }
-  .btn-danger{ @apply rounded-lg border border-red-200 text-red-600 bg-white hover:border-red-300 hover:shadow-sm transition; }
-  .btn-icon  { @apply rounded-lg border border-gray-200 bg-white text-gray-700 p-2 hover:shadow-sm transition; }
 
-  .card { @apply rounded-2xl p-5 bg-white shadow-sm; }
+  /* === Buttons === */
+  .btn {
+    @apply rounded-xl px-4 py-2 font-medium transition-colors text-white;
+    background-color: var(--eco-primary);
+  }
 
-  .calendar-board button { @apply bg-white text-gray-900; }
+  .btn:hover {
+    opacity: 0.9;
+  }
+
+  .btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply rounded-lg px-4 py-2 transition-colors;
+    background-color: var(--eco-surface);
+    border: 1px solid var(--eco-border);
+    color: var(--eco-text);
+  }
+
+  .btn-ghost:hover {
+    background-color: var(--eco-surface-alt);
+  }
+
+  .btn-danger {
+    @apply rounded-lg px-4 py-2 font-medium transition-colors text-white;
+    background-color: var(--eco-danger);
+  }
+
+  .btn-danger:hover {
+    opacity: 0.9;
+  }
+
+  .btn-success {
+    @apply rounded-lg px-4 py-2 font-medium transition-colors text-white;
+    background-color: var(--eco-success);
+  }
+
+  .btn-success:hover {
+    opacity: 0.9;
+  }
+
+  /* === Card === */
+  .card {
+    @apply rounded-2xl p-5;
+    background-color: var(--eco-surface);
+    border: 1px solid var(--eco-border);
+    box-shadow: var(--eco-shadow-sm);
+  }
+
+  /* === State Panels === */
+  .panel-success {
+    @apply rounded-lg p-3;
+    background-color: #DCFCE7;
+    border: 1px solid #BBF7D0;
+    color: var(--eco-success);
+  }
+
+  .panel-warn {
+    @apply rounded-lg p-3;
+    background-color: #FEF3C7;
+    border: 1px solid #FDE68A;
+    color: var(--eco-warning);
+  }
+
+  .panel-danger {
+    @apply rounded-lg p-3;
+    background-color: #FEE2E2;
+    border: 1px solid #FECACA;
+    color: var(--eco-danger);
+  }
+
+  /* === Chips/Badges === */
+  .chip {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    background-color: var(--eco-surface-alt);
+    border: 1px solid var(--eco-border);
+    color: var(--eco-text-muted);
+  }
+
+  .chip-success {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    background-color: #DCFCE7;
+    color: var(--eco-success);
+  }
+
+  .chip-warn {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    background-color: #FEF3C7;
+    color: var(--eco-warning);
+  }
+
+  .chip-danger {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    background-color: #FEE2E2;
+    color: var(--eco-danger);
+  }
+
+  /* === Input styling === */
+  .input-eco {
+    @apply rounded-lg px-3 py-2 outline-none w-full transition-colors;
+    background-color: var(--eco-surface-alt);
+    border: 1px solid var(--eco-border);
+    color: var(--eco-text);
+  }
+
+  .input-eco::placeholder {
+    color: var(--eco-text-muted);
+  }
+
+  .input-eco:focus {
+    border-color: var(--eco-primary);
+    box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.1);
+  }
 }
 
 @layer utilities {
-  .lift { @apply transition transform-gpu hover:-translate-y-0.5 hover:shadow-md; }
-  .scroll-soft { @apply pr-1; }
 
-  /* Google sign-in */
-    .btn-google {
-    @apply inline-flex items-center gap-3 rounded-full bg-[#1a73e8] text-white
-            px-6 py-3 shadow-sm hover:brightness-110 active:translate-y-[1px]
-            transition;
-    }
+  /* === Eco Paper Utilities === */
+  .eco-bg {
+    background-color: var(--eco-bg);
+  }
 
-    .google-chip {
+  .eco-surface {
+    background-color: var(--eco-surface);
+  }
+
+  .eco-surface-alt {
+    background-color: var(--eco-surface-alt);
+  }
+
+  .eco-border {
+    border-color: var(--eco-border);
+  }
+
+  .eco-text {
+    color: var(--eco-text);
+  }
+
+  .eco-muted {
+    color: var(--eco-text-muted);
+  }
+
+  /* === Mini-card (list row style A) === */
+  .mini-card {
+    @apply rounded-xl p-3 transition-colors;
+    background-color: var(--eco-surface);
+    border: 1px solid var(--eco-border);
+  }
+
+  .mini-card:hover {
+    background-color: var(--eco-surface-alt);
+  }
+
+  /* === Legacy Compatibility === */
+  .bg-app {
+    background-color: var(--eco-bg);
+  }
+
+  .bg-s1 {
+    background-color: var(--eco-surface);
+  }
+
+  .bg-s2 {
+    background-color: var(--eco-surface-alt);
+  }
+
+  .bg-surface {
+    background-color: var(--eco-surface);
+  }
+
+  .bg-surface2 {
+    background-color: var(--eco-surface-alt);
+  }
+
+  .bg-token {
+    background-color: var(--eco-bg);
+  }
+
+  .bg-token-surface {
+    background-color: var(--eco-surface);
+  }
+
+  .bg-token-surface-alt {
+    background-color: var(--eco-surface-alt);
+  }
+
+  .text-app {
+    color: var(--eco-text);
+  }
+
+  .text-muted {
+    color: var(--eco-text-muted);
+  }
+
+  .text-token {
+    color: var(--eco-text);
+  }
+
+  .text-token-muted {
+    color: var(--eco-text-muted);
+  }
+
+  .border-app {
+    border-color: var(--eco-border);
+  }
+
+  .border-token {
+    border-color: var(--eco-border);
+  }
+
+  /* === Status Colors === */
+  .text-primary {
+    color: var(--eco-primary);
+  }
+
+  .text-success {
+    color: var(--eco-success);
+  }
+
+  .text-warning {
+    color: var(--eco-warning);
+  }
+
+  .text-danger {
+    color: var(--eco-danger);
+  }
+
+  .text-token-success {
+    color: var(--eco-success);
+  }
+
+  /* === Shadow Utilities === */
+  .shadow-eco {
+    box-shadow: var(--eco-shadow);
+  }
+
+  .shadow-eco-sm {
+    box-shadow: var(--eco-shadow-sm);
+  }
+
+  /* === Focus ring === */
+  .ring-eco {
+    box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.15);
+  }
+
+  /* === Lift effect === */
+  .lift {
+    @apply transition transform-gpu;
+  }
+
+  .lift:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--eco-shadow);
+  }
+
+  /* === Google sign-in === */
+  .btn-google {
+    @apply inline-flex items-center gap-3 rounded-full px-6 py-3 shadow-sm transition;
+    background-color: var(--eco-primary);
+    color: white;
+  }
+
+  .btn-google:hover {
+    opacity: 0.95;
+  }
+
+  .btn-google:active {
+    transform: translateY(1px);
+  }
+
+  .google-chip {
     @apply h-7 w-7 grid place-items-center rounded-full bg-white;
-    }
+  }
 
-    .google-chip svg { display: block; width: 18px; height: 18px; }
+  .google-chip svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+  }
 
-    header a { text-decoration: none; }
-    header a:hover, header a:focus { text-decoration: none; }
+  /* === Header links === */
+  header a {
+    text-decoration: none;
+  }
 
-    /* Bottom sheet animation */
-    .animate-slide-up {
-      animation: slideUp 0.25s ease-out;
-    }
+  header a:hover,
+  header a:focus {
+    text-decoration: none;
+  }
 
-    /* Safe area for iOS */
-    .safe-area-bottom {
-      padding-bottom: env(safe-area-inset-bottom, 0);
-    }
+  /* === Bottom sheet animation === */
+  .animate-slide-up {
+    animation: slideUp 0.25s ease-out;
+  }
+
+  /* === Safe area for iOS === */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* === Scroll softener === */
+  .scroll-soft {
+    @apply pr-1;
+  }
 }
 
 @keyframes slideUp {
@@ -60,6 +371,7 @@
     transform: translateY(100%);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;

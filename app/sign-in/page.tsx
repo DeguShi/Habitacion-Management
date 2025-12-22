@@ -6,9 +6,9 @@ import { CalendarDays, Users, Coffee, ShieldCheck } from 'lucide-react'
 
 export default function SignInPage() {
   return (
-    <div className="relative min-h-[calc(100vh-56px)] overflow-hidden">
+    <div className="relative min-h-[calc(100vh-56px)] overflow-hidden eco-bg">
       {/* soft floral background */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-50 via-emerald-50 to-white" />
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#F6F1E7] via-[#F1E7D6] to-[#FFFCF6]" />
       <Petals />
       <Vines />
 
@@ -47,7 +47,7 @@ export default function SignInPage() {
 
         {/* Right / how it works card */}
         <section className="lg:col-span-6">
-          <div className="relative rounded-2xl bg-white border border-gray-200 shadow-sm p-6 overflow-hidden">
+          <div className="relative rounded-2xl eco-surface border border-[var(--eco-border)] shadow-sm p-6 overflow-hidden">
             <Corner className="left-0 top-0" rotate={0} />
             <Corner className="right-0 top-0" rotate={90} />
             <Corner className="left-0 bottom-0" rotate={270} />
@@ -78,7 +78,7 @@ export default function SignInPage() {
 
 function Benefit({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
   return (
-    <div className="rounded-2xl bg-white/80 border border-gray-200 p-3 text-left hover:shadow-sm transition">
+    <div className="rounded-2xl eco-surface border border-[var(--eco-border)] p-3 text-left hover:shadow-sm transition">
       <div className="flex items-center gap-2 text-gray-800">
         <span className="h-8 w-8 grid place-items-center rounded-full bg-gray-100">{icon}</span>
         <span className="font-medium">{title}</span>
@@ -91,10 +91,10 @@ function Benefit({ icon, title, text }: { icon: React.ReactNode; title: string; 
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-      <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.826 32.91 29.28 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.84 1.154 7.957 3.043l5.657-5.657C34.676 6.053 29.627 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20c10.493 0 19-8.507 19-19 0-1.341-.138-2.651-.389-3.917z"/>
-      <path fill="#FF3D00" d="M6.306 14.691l6.571 4.814C14.297 16.053 18.76 12 24 12c3.059 0 5.84 1.154 7.957 3.043l5.657-5.657C34.676 6.053 29.627 4 24 4 15.317 4 7.961 9.137 6.306 14.691z"/>
-      <path fill="#4CAF50" d="M24 44c5.142 0 9.81-1.969 13.357-5.18l-6.164-5.215C29.215 35.091 26.74 36 24 36c-5.254 0-9.81-3.402-11.416-8.102l-6.49 5.003C8.688 39.252 15.768 44 24 44z"/>
-      <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-1.088 3.157-3.43 5.63-6.107 7.104l.001-.001 6.164 5.215C37.18 41.567 43 36.667 43 27c0-2.108-.289-4.007-.389-3.917z"/>
+      <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.826 32.91 29.28 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.84 1.154 7.957 3.043l5.657-5.657C34.676 6.053 29.627 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20c10.493 0 19-8.507 19-19 0-1.341-.138-2.651-.389-3.917z" />
+      <path fill="#FF3D00" d="M6.306 14.691l6.571 4.814C14.297 16.053 18.76 12 24 12c3.059 0 5.84 1.154 7.957 3.043l5.657-5.657C34.676 6.053 29.627 4 24 4 15.317 4 7.961 9.137 6.306 14.691z" />
+      <path fill="#4CAF50" d="M24 44c5.142 0 9.81-1.969 13.357-5.18l-6.164-5.215C29.215 35.091 26.74 36 24 36c-5.254 0-9.81-3.402-11.416-8.102l-6.49 5.003C8.688 39.252 15.768 44 24 44z" />
+      <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-1.088 3.157-3.43 5.63-6.107 7.104l.001-.001 6.164 5.215C37.18 41.567 43 36.667 43 27c0-2.108-.289-4.007-.389-3.917z" />
     </svg>
   )
 }
@@ -102,7 +102,7 @@ function GoogleIcon() {
 function Corner({ className, rotate = 0 }: { className?: string; rotate?: number }) {
   return (
     <svg className={`pointer-events-none absolute ${className}`} width="140" height="140" viewBox="0 0 140 140"
-         style={{ transform: `rotate(${rotate}deg)` }}>
+      style={{ transform: `rotate(${rotate}deg)` }}>
       <defs>
         <linearGradient id="lg" x1="0" x2="1">
           <stop offset="0" stopColor="#fef3c7" />
@@ -113,7 +113,7 @@ function Corner({ className, rotate = 0 }: { className?: string; rotate?: number
         <circle cx="20" cy="20" r="16" fill="url(#lg)" stroke="#e5e7eb" />
         <circle cx="62" cy="10" r="8" fill="#fde68a" />
         <circle cx="100" cy="36" r="10" fill="#fed7aa" />
-        <path d="M10 110 C40 90, 60 70, 110 60" stroke="#86efac" strokeWidth="6" fill="none" strokeLinecap="round"/>
+        <path d="M10 110 C40 90, 60 70, 110 60" stroke="#86efac" strokeWidth="6" fill="none" strokeLinecap="round" />
       </g>
     </svg>
   )
@@ -133,8 +133,8 @@ function Petals() {
 function Vines() {
   return (
     <svg className="pointer-events-none absolute right-[-40px] top-24 -z-10 opacity-70" width="260" height="260" viewBox="0 0 200 200">
-      <path d="M10 150 C60 120, 120 80, 190 70" stroke="#a7f3d0" strokeWidth="8" fill="none" strokeLinecap="round"/>
-      <path d="M10 170 C80 150, 120 120, 190 110" stroke="#bbf7d0" strokeWidth="8" fill="none" strokeLinecap="round"/>
+      <path d="M10 150 C60 120, 120 80, 190 70" stroke="#a7f3d0" strokeWidth="8" fill="none" strokeLinecap="round" />
+      <path d="M10 170 C80 150, 120 120, 190 110" stroke="#bbf7d0" strokeWidth="8" fill="none" strokeLinecap="round" />
     </svg>
   )
 }

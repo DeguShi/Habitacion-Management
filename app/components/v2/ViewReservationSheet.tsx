@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Eye, Download, Share2, Pencil, X } from 'lucide-react'
+import { Download, Share2, Pencil } from 'lucide-react'
 import BottomSheet from './BottomSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
 import {
@@ -109,75 +109,75 @@ export default function ViewReservationSheet({
                 </div>
 
                 {/* Guest Info */}
-                <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="text-xl font-semibold text-gray-900">{record.guestName}</h3>
+                <div className="bg-s2 rounded-xl p-4">
+                    <h3 className="text-xl font-semibold text-app">{record.guestName}</h3>
                     {record.phone && (
-                        <p className="text-sm text-gray-600">{record.phone}</p>
+                        <p className="text-sm text-muted">{record.phone}</p>
                     )}
                     {record.email && (
-                        <p className="text-sm text-gray-600">{record.email}</p>
+                        <p className="text-sm text-muted">{record.email}</p>
                     )}
                 </div>
 
                 {/* Dates & Details */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-500">Check-in</p>
-                        <p className="font-medium">{formatDateBR(record.checkIn)}</p>
+                    <div className="bg-s2 rounded-xl p-3">
+                        <p className="text-xs text-muted">Check-in</p>
+                        <p className="font-medium text-app">{formatDateBR(record.checkIn)}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-500">Check-out</p>
-                        <p className="font-medium">{formatDateBR(record.checkOut)}</p>
+                    <div className="bg-s2 rounded-xl p-3">
+                        <p className="text-xs text-muted">Check-out</p>
+                        <p className="font-medium text-app">{formatDateBR(record.checkOut)}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-500">Noites</p>
-                        <p className="font-medium">{nights}</p>
+                    <div className="bg-s2 rounded-xl p-3">
+                        <p className="text-xs text-muted">Noites</p>
+                        <p className="font-medium text-app">{nights}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-500">Hóspedes</p>
-                        <p className="font-medium">{record.partySize || 1}</p>
+                    <div className="bg-s2 rounded-xl p-3">
+                        <p className="text-xs text-muted">Hóspedes</p>
+                        <p className="font-medium text-app">{record.partySize || 1}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-500">Quartos</p>
-                        <p className="font-medium">{record.rooms ?? 1}</p>
+                    <div className="bg-s2 rounded-xl p-3">
+                        <p className="text-xs text-muted">Quartos</p>
+                        <p className="font-medium text-app">{record.rooms ?? 1}</p>
                     </div>
                 </div>
 
                 {/* Pricing */}
-                <div className="bg-green-50 rounded-xl p-4">
+                <div className="panel-success rounded-xl p-4">
                     <div className="flex justify-between items-center">
-                        <span className="text-gray-700">Total</span>
-                        <span className="text-xl font-bold text-green-700">
+                        <span>Total</span>
+                        <span className="text-xl font-bold">
                             {formatMoneyBRL(record.totalPrice)}
                         </span>
                     </div>
                     {totalPaid > 0 && (
                         <>
-                            <div className="flex justify-between items-center mt-2 text-sm">
-                                <span className="text-gray-500">Pago</span>
-                                <span className="text-green-600">{formatMoneyBRL(totalPaid)}</span>
+                            <div className="flex justify-between items-center mt-2 text-sm opacity-80">
+                                <span>Pago</span>
+                                <span>{formatMoneyBRL(totalPaid)}</span>
                             </div>
-                            <div className="text-xs text-green-600 mt-1">✓ Sinal pago</div>
+                            <div className="text-xs mt-1 opacity-80">✓ Sinal pago</div>
                         </>
                     )}
                 </div>
 
                 {/* Pagamentos */}
                 {record.payment?.events && record.payment.events.length > 0 && (
-                    <div className="bg-gray-50 rounded-xl p-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Pagamentos</h4>
+                    <div className="bg-s2 rounded-xl p-4">
+                        <h4 className="text-sm font-medium text-muted mb-2">Pagamentos</h4>
                         <div className="space-y-2">
                             {record.payment.events.map((event, idx) => (
                                 <div key={event.id || idx} className="flex justify-between text-sm">
                                     <div>
-                                        <span className="text-gray-700">{event.note || 'Pagamento'}</span>
+                                        <span className="text-app">{event.note || 'Pagamento'}</span>
                                         {event.date && (
-                                            <span className="text-gray-400 text-xs ml-2">
+                                            <span className="text-muted text-xs ml-2">
                                                 {formatDateBR(event.date)}
                                             </span>
                                         )}
                                     </div>
-                                    <span className="font-medium text-green-700">
+                                    <span className="font-medium text-success">
                                         {formatMoneyBRL(event.amount)}
                                     </span>
                                 </div>
@@ -189,17 +189,17 @@ export default function ViewReservationSheet({
 
                 {/* Notes */}
                 {(record.notesInternal || record.notesGuest) && (
-                    <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                    <div className="bg-s2 rounded-xl p-4 space-y-2">
                         {record.notesInternal && (
                             <div>
-                                <p className="text-xs text-gray-500">Notas internas</p>
-                                <p className="text-sm text-gray-700">{record.notesInternal}</p>
+                                <p className="text-xs text-muted">Notas internas</p>
+                                <p className="text-sm text-app">{record.notesInternal}</p>
                             </div>
                         )}
                         {record.notesGuest && (
                             <div>
-                                <p className="text-xs text-gray-500">Notas para hóspede</p>
-                                <p className="text-sm text-gray-700">{record.notesGuest}</p>
+                                <p className="text-xs text-muted">Notas para hóspede</p>
+                                <p className="text-sm text-app">{record.notesGuest}</p>
                             </div>
                         )}
                     </div>
@@ -207,14 +207,14 @@ export default function ViewReservationSheet({
 
                 {/* Error */}
                 {error && (
-                    <div className="text-sm text-red-600 text-center">{error}</div>
+                    <div className="text-sm text-danger text-center">{error}</div>
                 )}
 
                 {/* Actions */}
                 <div className="flex gap-3 pt-4">
                     <button
                         onClick={handleEdit}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium"
+                        className="btn-ghost flex-1 flex items-center justify-center gap-2"
                     >
                         <Pencil size={18} />
                         Editar
@@ -222,7 +222,7 @@ export default function ViewReservationSheet({
                     <button
                         onClick={handleShare}
                         disabled={generating}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium disabled:opacity-50"
+                        className="btn flex-1 flex items-center justify-center gap-2"
                     >
                         <Share2 size={18} />
                         {generating ? 'Gerando...' : 'Compartilhar'}
@@ -231,7 +231,7 @@ export default function ViewReservationSheet({
                 <button
                     onClick={handleDownload}
                     disabled={generating}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium disabled:opacity-50"
+                    className="btn-ghost w-full flex items-center justify-center gap-2"
                 >
                     <Download size={18} />
                     Baixar imagem

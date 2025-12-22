@@ -98,14 +98,14 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Guest Name */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-muted mb-1">
                         Nome do hóspede *
                     </label>
                     <input
                         type="text"
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="input-app"
                         placeholder="João Silva"
                         autoFocus
                     />
@@ -113,28 +113,28 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
 
                 {/* Phone */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-muted mb-1">
                         Telefone
                     </label>
                     <input
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="input-app"
                         placeholder="+55 11 99999-9999"
                     />
                 </div>
 
                 {/* Email */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-muted mb-1">
                         Email
                     </label>
                     <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="input-app"
                         placeholder="joao@email.com"
                     />
                 </div>
@@ -142,32 +142,32 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                 {/* Dates */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-muted mb-1">
                             Check-in
                         </label>
                         <input
                             type="date"
                             value={checkIn}
                             onChange={(e) => setCheckIn(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="input-app"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-muted mb-1">
                             Check-out
                         </label>
                         <input
                             type="date"
                             value={checkOut}
                             onChange={(e) => setCheckOut(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="input-app"
                         />
                     </div>
                 </div>
 
                 {/* Party Size */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-muted mb-1">
                         Pessoas
                     </label>
                     <input
@@ -176,19 +176,19 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                         onChange={(e) => setPartySize(e.target.value)}
                         min="1"
                         max="20"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="input-app"
                     />
                 </div>
 
                 {/* Notes */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-muted mb-1">
                         Notas internas
                     </label>
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="input-app"
                         rows={2}
                         placeholder="Observações para a equipe..."
                     />
@@ -196,7 +196,7 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
 
                 {/* Error */}
                 {error && (
-                    <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                    <div className="panel-danger text-sm px-3 py-2 rounded-lg">
                         {error}
                     </div>
                 )}
@@ -206,14 +206,14 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                     <button
                         type="button"
                         onClick={handleClose}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                        className="btn-ghost flex-1"
                         disabled={saving}
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                        className="btn flex-1"
                         disabled={saving}
                     >
                         {saving ? 'Salvando...' : 'Salvar pedido'}

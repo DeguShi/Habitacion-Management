@@ -114,11 +114,11 @@ export default function RestoreModal({ isOpen, onClose }: RestoreModalProps) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-s1 rounded-lg shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-lg font-semibold">Restaurar Backup</h2>
-                    <button onClick={handleClose} className="p-1 hover:bg-gray-100 rounded">
+                <div className="flex items-center justify-between p-4 border-b border-app">
+                    <h2 className="text-lg font-semibold text-app">Restaurar Backup</h2>
+                    <button onClick={handleClose} className="p-1 hover:bg-s2 rounded text-muted">
                         <X size={20} />
                     </button>
                 </div>
@@ -127,12 +127,12 @@ export default function RestoreModal({ isOpen, onClose }: RestoreModalProps) {
                 <div className="p-4 space-y-4">
                     {/* File picker */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-muted mb-2">
                             Arquivo NDJSON
                         </label>
                         <div
                             onClick={() => fileInputRef.current?.click()}
-                            className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition"
+                            className="border-2 border-dashed border-app rounded-lg p-6 text-center cursor-pointer hover:border-primary transition"
                         >
                             {file ? (
                                 <div className="flex items-center justify-center gap-2 text-gray-700">
@@ -160,11 +160,11 @@ export default function RestoreModal({ isOpen, onClose }: RestoreModalProps) {
 
                     {/* Mode selector */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-muted mb-2">
                             Modo de Restauração
                         </label>
                         <div className="space-y-2">
-                            <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <label className="flex items-start gap-3 p-3 border border-app rounded-lg cursor-pointer hover:bg-s2">
                                 <input
                                     type="radio"
                                     name="mode"
@@ -181,7 +181,7 @@ export default function RestoreModal({ isOpen, onClose }: RestoreModalProps) {
                                 </div>
                             </label>
 
-                            <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <label className="flex items-start gap-3 p-3 border border-app rounded-lg cursor-pointer hover:bg-s2">
                                 <input
                                     type="radio"
                                     name="mode"
@@ -241,7 +241,7 @@ export default function RestoreModal({ isOpen, onClose }: RestoreModalProps) {
                     )}
 
                     {/* Sandbox option */}
-                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <label className="flex items-center gap-3 p-3 border border-app rounded-lg cursor-pointer hover:bg-s2">
                         <input
                             type="checkbox"
                             checked={useSandbox}
@@ -266,10 +266,10 @@ export default function RestoreModal({ isOpen, onClose }: RestoreModalProps) {
                     {/* Results display */}
                     {result && (
                         <div className={`border rounded-lg p-4 ${result.mode === 'dry-run'
-                                ? 'bg-blue-50 border-blue-200'
-                                : (result as RestoreResult).errorCount > 0
-                                    ? 'bg-yellow-50 border-yellow-200'
-                                    : 'bg-green-50 border-green-200'
+                            ? 'bg-blue-50 border-blue-200'
+                            : (result as RestoreResult).errorCount > 0
+                                ? 'bg-yellow-50 border-yellow-200'
+                                : 'bg-green-50 border-green-200'
                             }`}>
                             <div className="flex items-center gap-2 font-medium mb-3">
                                 {result.mode === 'dry-run' ? (
@@ -356,15 +356,15 @@ export default function RestoreModal({ isOpen, onClose }: RestoreModalProps) {
                             )}
 
                             {/* Target prefix */}
-                            <div className="mt-3 pt-3 border-t text-xs text-gray-500">
-                                Prefixo: <code className="bg-gray-100 px-1 rounded">{result.targetPrefix}</code>
+                            <div className="mt-3 pt-3 border-t border-app text-xs text-muted">
+                                Prefixo: <code className="bg-s2 px-1 rounded">{result.targetPrefix}</code>
                             </div>
                         </div>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end gap-3 p-4 border-t bg-gray-50">
+                <div className="flex justify-end gap-3 p-4 border-t border-app bg-s2">
                     <button
                         onClick={handleClose}
                         className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
@@ -375,10 +375,10 @@ export default function RestoreModal({ isOpen, onClose }: RestoreModalProps) {
                         onClick={handleSubmit}
                         disabled={!canSubmit}
                         className={`px-4 py-2 rounded-lg font-medium transition ${mode === 'overwrite' && confirmText === 'OVERWRITE'
-                                ? 'bg-red-600 hover:bg-red-700 text-white'
-                                : mode === 'create-only'
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                    : 'bg-gray-800 hover:bg-gray-900 text-white'
+                            ? 'bg-red-600 hover:bg-red-700 text-white'
+                            : mode === 'create-only'
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                : 'bg-gray-800 hover:bg-gray-900 text-white'
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                         {loading

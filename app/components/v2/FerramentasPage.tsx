@@ -59,16 +59,17 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
     }
 
     return (
-        <div className="pb-20">
+        <div className="pb-20 space-y-4">
+            {/* Tools Section */}
             <section className="card">
-                <h2 className="text-lg font-semibold mb-4">Ferramentas</h2>
+                <h2 className="text-lg font-semibold mb-4 text-gray-900">Ferramentas</h2>
 
-                <div className="space-y-3">
+                <div className="grid gap-3 lg:grid-cols-2">
                     {/* Export CSV */}
                     <button
                         onClick={handleExportCSV}
                         disabled={exporting === 'csv'}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-white shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        className="mini-card w-full flex items-center gap-3 p-4 disabled:opacity-50"
                     >
                         <div className="p-2 rounded-lg bg-green-100 text-green-600">
                             <FileSpreadsheet size={20} />
@@ -86,7 +87,7 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                     <button
                         onClick={handleExportNDJSON}
                         disabled={exporting === 'ndjson'}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-white shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        className="mini-card w-full flex items-center gap-3 p-4 disabled:opacity-50"
                     >
                         <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
                             <FileJson size={20} />
@@ -104,7 +105,7 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                     <button
                         onClick={() => setRestoreOpen(true)}
                         disabled={!canWrite}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-white shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        className="mini-card w-full flex items-center gap-3 p-4 disabled:opacity-50 lg:col-span-2"
                     >
                         <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
                             <Upload size={20} />
@@ -116,13 +117,13 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                             </div>
                         </div>
                     </button>
-
-                    {!canWrite && (
-                        <p className="text-xs text-gray-400 text-center mt-2">
-                            Restauração requer permissão de escrita
-                        </p>
-                    )}
                 </div>
+
+                {!canWrite && (
+                    <p className="text-xs text-gray-500 text-center mt-3">
+                        Restauração requer permissão de escrita
+                    </p>
+                )}
             </section>
 
             {/* Restore Modal */}

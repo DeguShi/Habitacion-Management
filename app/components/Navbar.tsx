@@ -14,11 +14,11 @@ export default function Navbar() {
   const avatar = session?.user?.image
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
+    <header className="sticky top-0 z-40 eco-surface backdrop-blur-sm border-b border-[var(--eco-border)]">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/v1" className="flex items-center gap-3">
           <Image src="/logo-hab.png" alt="" width={32} height={32} className="rounded-md" priority />
-          <span className="font-semibold">Habitación Familiar</span>
+          <span className="font-semibold text-gray-900">Habitación Familiar</span>
         </Link>
 
         {session?.user ? (
@@ -34,7 +34,7 @@ export default function Navbar() {
                   className="rounded-full ring-1 ring-gray-200"
                 />
               ) : (
-                <div className="h-7 w-7 rounded-full bg-gray-100 ring-1 ring-gray-200 grid place-items-center text-xs font-medium">
+                <div className="h-7 w-7 rounded-full bg-gray-100 ring-1 ring-gray-200 grid place-items-center text-xs font-medium text-gray-700">
                   {session.user.email?.[0]?.toUpperCase() ?? 'U'}
                 </div>
               )}
