@@ -14,7 +14,7 @@ export default function Navbar() {
   const avatar = session?.user?.image
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
+    <header className="sticky top-0 z-40 eco-surface backdrop-blur-sm border-b border-[var(--eco-border)]">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/v1" className="flex items-center gap-3">
           <Image src="/logo-hab.png" alt="" width={32} height={32} className="rounded-md" priority />

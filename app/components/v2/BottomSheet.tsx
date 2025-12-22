@@ -54,18 +54,18 @@ export default function BottomSheet({ open, onClose, title, children }: BottomSh
             {/* Sheet */}
             <div
                 ref={sheetRef}
-                className="relative z-10 w-full max-w-lg bg-white rounded-t-2xl shadow-xl max-h-[85vh] flex flex-col animate-slide-up"
+                className="relative z-10 w-full max-w-lg eco-surface rounded-t-2xl shadow-xl max-h-[85vh] flex flex-col animate-slide-up"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0">
-                    <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--eco-border)] shrink-0">
+                    <h2 className="text-lg font-semibold eco-text">{title}</h2>
                     <button
                         onClick={onClose}
-                        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                        className="p-1 rounded-full hover:bg-[var(--eco-surface-alt)] transition-colors"
                         aria-label="Fechar"
                     >
-                        <X size={20} className="text-gray-500" />
+                        <X size={20} className="eco-muted" />
                     </button>
                 </div>
 
