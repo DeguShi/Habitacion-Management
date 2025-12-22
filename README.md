@@ -43,12 +43,23 @@ The main view showing confirmed reservations:
 - **Two-column desktop layout** (calendar left, upcoming right)
 
 <div align="center">
-  <img
-    src="https://github.com/user-attachments/assets/28057f3b-ec20-48cd-9cd1-96c2c19b8a0d"
-    alt=""
-    width="300"
-  />
-</div>
+  <table>
+    <tr>
+      <td>
+        <img
+          src="https://github.com/user-attachments/assets/86fdf270-5d79-433f-ba2e-dfd5e47c8cce"
+          width="300"
+        />
+      </td>
+      <td>
+        <img 
+          src="https://github.com/user-attachments/assets/28057f3b-ec20-48cd-9cd1-96c2c19b8a0d"
+          width="300"
+        />
+      </td>
+    </tr>
+  </table>
+</div
 
 ---
 
