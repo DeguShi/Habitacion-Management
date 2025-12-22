@@ -463,7 +463,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                     ) : (
                         <div className="space-y-2">
                             {paymentEvents.map((event: any, i) => (
-                                <div key={event.id || i} className="flex items-center justify-between bg-white p-2 rounded-lg border">
+                                <div key={event.id || i} className="flex items-center justify-between bg-s2 p-2 rounded-lg border border-app">
                                     <div>
                                         <div className="font-medium">{BRL(event.amount)}</div>
                                         <div className="text-xs text-gray-500">

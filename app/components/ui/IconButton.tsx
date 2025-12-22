@@ -19,31 +19,18 @@ const sizeClasses: Record<IconButtonSize, string> = {
 }
 
 const variantClasses: Record<IconButtonVariant, string> = {
-    neutral: `
-        bg-transparent hover:bg-surface2
-        text-muted hover:text-app
-    `,
-    primary: `
-        bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30
-        text-muted hover:text-primary
-    `,
-    success: `
-        bg-transparent hover:bg-green-50 dark:hover:bg-green-900/30
-        text-muted hover:text-success
-    `,
-    danger: `
-        bg-transparent hover:bg-red-50 dark:hover:bg-red-900/30
-        text-muted hover:text-danger
-    `,
+    neutral: 'bg-transparent hover:bg-gray-100 text-gray-500 hover:text-gray-900',
+    primary: 'bg-transparent hover:bg-gray-100 text-gray-500 hover:text-blue-600',
+    success: 'bg-transparent hover:bg-gray-100 text-gray-500 hover:text-green-600',
+    danger: 'bg-transparent hover:bg-gray-100 text-gray-500 hover:text-red-600',
 }
 
 /**
- * IconButton — Standardized icon button with consistent sizing,
- * variants, focus ring, and dark mode support.
+ * IconButton — Standardized icon button with consistent sizing, variants, and focus ring.
  * 
  * Features:
  * - 44px minimum touch target (md/lg sizes)
- * - Proper focus ring using --app-ring token
+ * - Proper focus ring
  * - Accessible with required aria-label
  */
 export default function IconButton({
@@ -58,8 +45,7 @@ export default function IconButton({
     const classes = [
         'inline-flex items-center justify-center rounded-full',
         'transition-all duration-150',
-        'focus:outline-none focus:ring-2 focus:ring-offset-2 ring-app',
-        'dark:focus:ring-offset-gray-800',
+        'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
         sizeClasses[size],
         variantClasses[variant],
         disabled ? 'opacity-50 cursor-not-allowed' : '',

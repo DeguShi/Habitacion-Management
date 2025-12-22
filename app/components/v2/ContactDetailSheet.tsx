@@ -57,19 +57,19 @@ export default function ContactDetailSheet({
         switch (status) {
             case 'waiting':
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                    <span className="chip-warn">
                         <Clock size={12} /> Espera
                     </span>
                 )
             case 'rejected':
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
+                    <span className="chip-danger">
                         <XCircle size={12} /> Cancelada
                     </span>
                 )
             default:
                 return (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                    <span className="chip-success">
                         <CheckCircle size={12} /> Confirmada
                     </span>
                 )
@@ -81,21 +81,21 @@ export default function ContactDetailSheet({
             <div className="space-y-5">
                 {/* Header / Contact Info */}
                 <div>
-                    <h3 className="text-xl font-bold text-gray-900">{contact.name}</h3>
+                    <h3 className="text-xl font-bold text-app">{contact.name}</h3>
 
                     <div className="mt-2 space-y-1">
                         {contact.phone && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <div className="flex items-center gap-2 text-sm text-muted">
                                 <Phone size={14} />
-                                <a href={`tel:${contact.phone}`} className="hover:text-blue-600">
+                                <a href={`tel:${contact.phone}`} className="hover:text-primary">
                                     {contact.phone}
                                 </a>
                             </div>
                         )}
                         {contact.email && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <div className="flex items-center gap-2 text-sm text-muted">
                                 <Mail size={14} />
-                                <a href={`mailto:${contact.email}`} className="hover:text-blue-600">
+                                <a href={`mailto:${contact.email}`} className="hover:text-primary">
                                     {contact.email}
                                 </a>
                             </div>
@@ -105,12 +105,12 @@ export default function ContactDetailSheet({
                     {/* Badges */}
                     <div className="flex flex-wrap gap-2 mt-3">
                         {contact.hasWaiting && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                            <span className="chip-warn">
                                 <Clock size={12} /> Em espera
                             </span>
                         )}
                         {contact.hasRejected && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-700">
+                            <span className="chip-danger">
                                 <XCircle size={12} /> Cancelada(s)
                             </span>
                         )}
@@ -119,17 +119,17 @@ export default function ContactDetailSheet({
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-gray-900">{contact.totalBookings}</div>
-                        <div className="text-xs text-gray-500">Total</div>
+                    <div className="text-center p-3 bg-s2 rounded-lg">
+                        <div className="text-2xl font-bold text-app">{contact.totalBookings}</div>
+                        <div className="text-xs text-muted">Total</div>
                     </div>
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-700">{stats.confirmed}</div>
-                        <div className="text-xs text-green-600">Confirmadas</div>
+                    <div className="text-center p-3 panel-success rounded-lg">
+                        <div className="text-2xl font-bold">{stats.confirmed}</div>
+                        <div className="text-xs opacity-80">Confirmadas</div>
                     </div>
-                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                        <div className="text-2xl font-bold text-yellow-700">{stats.waiting}</div>
-                        <div className="text-xs text-yellow-600">Em espera</div>
+                    <div className="text-center p-3 panel-warn rounded-lg">
+                        <div className="text-2xl font-bold">{stats.waiting}</div>
+                        <div className="text-xs opacity-80">Em espera</div>
                     </div>
                 </div>
 
@@ -137,14 +137,14 @@ export default function ContactDetailSheet({
                 <div className="flex gap-3">
                     <button
                         onClick={() => onCreateReservation(contact)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                        className="btn-success flex-1 flex items-center justify-center gap-2"
                     >
                         <Plus size={18} />
                         Nova reserva
                     </button>
                     <button
                         onClick={() => onCreateLead(contact)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                        className="btn flex-1 flex items-center justify-center gap-2"
                     >
                         <Plus size={18} />
                         Novo pedido
@@ -153,23 +153,23 @@ export default function ContactDetailSheet({
 
                 {/* Reservation History */}
                 <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Histórico</h4>
+                    <h4 className="text-sm font-semibold text-muted mb-2">Histórico</h4>
 
                     {sortedReservations.length === 0 ? (
-                        <p className="text-sm text-gray-500">Nenhuma reserva.</p>
+                        <p className="text-sm text-muted">Nenhuma reserva.</p>
                     ) : (
                         <div className="space-y-2 max-h-60 overflow-y-auto">
                             {sortedReservations.map(r => (
                                 <button
                                     key={r.id}
                                     onClick={() => onViewReservation(r)}
-                                    className="w-full flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-left"
+                                    className="w-full flex items-center justify-between p-3 rounded-lg bg-s2 hover:bg-s3 text-left"
                                 >
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
                                             {getStatusPill(r.status)}
                                         </div>
-                                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                                        <div className="flex items-center gap-3 text-sm text-muted">
                                             <span className="flex items-center gap-1">
                                                 <Calendar size={12} />
                                                 {formatBR(r.checkIn)} → {formatBR(r.checkOut)}
@@ -180,7 +180,7 @@ export default function ContactDetailSheet({
                                             </span>
                                         </div>
                                         {r.totalPrice != null && (
-                                            <div className="text-sm font-medium text-green-700 mt-1">
+                                            <div className="text-sm font-medium text-success mt-1">
                                                 {formatMoney(r.totalPrice)}
                                             </div>
                                         )}

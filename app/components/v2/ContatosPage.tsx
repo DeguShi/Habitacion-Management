@@ -88,7 +88,7 @@ export default function ContatosPage({
                                     <div className="font-medium text-app flex items-center gap-2">
                                         {contact.name}
                                         {contact.hasWaiting && (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-yellow-100 dark:bg-yellow-900/40 text-warning">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-yellow-100  text-warning">
                                                 <Clock size={12} />
                                                 Em espera
                                             </span>

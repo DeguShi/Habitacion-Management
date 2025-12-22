@@ -164,9 +164,9 @@ export default function EmEsperaPage({
                             const offset = isActive ? swipeOffset : 0
                             // Dynamic background based on swipe
                             const bgClass =
-                                offset > 40 ? 'bg-green-100 dark:bg-green-900/30'
-                                    : offset < -40 ? 'bg-red-100 dark:bg-red-900/30'
-                                        : 'bg-surface'
+                                offset > 40 ? 'bg-green-100'
+                                    : offset < -40 ? 'bg-red-100'
+                                        : 'bg-white'
                             const hasDateConflict = conflictMap.get(item.id)
 
                             return (
@@ -229,7 +229,7 @@ export default function EmEsperaPage({
                                                         <>
                                                             <button
                                                                 onClick={() => handleConfirm(item)}
-                                                                className="w-10 h-10 rounded-full inline-flex items-center justify-center bg-transparent hover:bg-green-50 dark:hover:bg-green-900/30 text-muted hover:text-success transition-colors"
+                                                                className="w-10 h-10 rounded-full inline-flex items-center justify-center bg-transparent hover:bg-green-50  text-muted hover:text-success transition-colors"
                                                                 title="Confirmar"
                                                                 aria-label="Confirmar"
                                                             >
@@ -237,7 +237,7 @@ export default function EmEsperaPage({
                                                             </button>
                                                             <button
                                                                 onClick={() => handleRejectClick(item)}
-                                                                className="w-10 h-10 rounded-full inline-flex items-center justify-center bg-transparent hover:bg-red-50 dark:hover:bg-red-900/30 text-muted hover:text-danger transition-colors"
+                                                                className="w-10 h-10 rounded-full inline-flex items-center justify-center bg-transparent hover:bg-red-50  text-muted hover:text-danger transition-colors"
                                                                 title="Cancelar pedido"
                                                                 aria-label="Cancelar pedido"
                                                             >
@@ -302,7 +302,7 @@ export default function EmEsperaPage({
 
             {/* Reject Confirmation Dialog */}
             {pendingReject && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 ">
                     <div className="bg-surface rounded-2xl p-6 mx-4 max-w-sm w-full shadow-xl">
                         <h3 className="text-lg font-semibold text-app mb-2">
                             Cancelar pedido?
@@ -324,7 +324,7 @@ export default function EmEsperaPage({
                             <button
                                 onClick={confirmReject}
                                 disabled={rejecting}
-                                className="flex-1 px-4 py-2 rounded-xl bg-red-500 dark:bg-red-600 text-white font-medium disabled:opacity-50 hover:bg-red-600 dark:hover:bg-red-700 transition-colors"
+                                className="flex-1 px-4 py-2 rounded-xl bg-red-500  text-white font-medium disabled:opacity-50 hover:bg-red-600  transition-colors"
                             >
                                 {rejecting ? 'Cancelando...' : 'Cancelar pedido'}
                             </button>

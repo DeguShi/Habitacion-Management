@@ -17,7 +17,7 @@ interface ReservationActionsProps {
  * - Circular icon buttons (44px touch target via padding)
  * - Subtle hover states
  * - Delete has danger styling
- * - Dark mode compatible
+ * - Dark mode compatible via tokens
  */
 export default function ReservationActions({
     onView,
@@ -30,7 +30,7 @@ export default function ReservationActions({
         inline-flex items-center justify-center
         rounded-full transition-all
         focus:outline-none focus:ring-2 focus:ring-offset-2
-        focus:ring-blue-500 dark:focus:ring-offset-gray-800
+        ring-app 
     `
 
     const sizeClasses = variant === 'compact'
@@ -40,18 +40,18 @@ export default function ReservationActions({
     const iconSize = variant === 'compact' ? 14 : 16
 
     const viewBtn = `${baseBtn} ${sizeClasses}
-        bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700
-        text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200
+        bg-transparent hover:bg-s2
+        text-muted hover:text-app
     `
 
     const editBtn = `${baseBtn} ${sizeClasses}
-        bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/30
-        text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400
+        bg-transparent hover:bg-s2
+        text-muted hover:text-primary
     `
 
     const deleteBtn = `${baseBtn} ${sizeClasses}
-        bg-transparent hover:bg-red-50 dark:hover:bg-red-900/30
-        text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400
+        bg-transparent hover:bg-s2
+        text-muted hover:text-danger
     `
 
     return (

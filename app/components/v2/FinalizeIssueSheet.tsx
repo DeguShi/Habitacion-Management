@@ -38,26 +38,26 @@ export default function FinalizeIssueSheet({ open, onClose, onSave, item }: Fina
     return (
         <BottomSheet open={open} onClose={onClose} title="Registrar Problema">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="p-3 bg-red-50 rounded-lg border border-red-100">
-                    <div className="font-medium text-gray-900">{item.guestName}</div>
-                    <div className="text-sm text-gray-500">
+                <div className="panel-danger p-3 rounded-lg">
+                    <div className="font-medium">{item.guestName}</div>
+                    <div className="text-sm opacity-80">
                         {item.checkIn} → {item.checkOut} • {BRL(item.totalPrice)}
                     </div>
                 </div>
 
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted">
                     Descreva o que aconteceu (ex: hóspede não apareceu, problema durante a estadia, etc.)
                 </p>
 
                 {/* Reason */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-muted mb-1">
                         Motivo do problema *
                     </label>
                     <textarea
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                        className="input-app"
                         rows={3}
                         placeholder="Descreva o problema..."
                         required
@@ -65,7 +65,7 @@ export default function FinalizeIssueSheet({ open, onClose, onSave, item }: Fina
                 </div>
 
                 {error && (
-                    <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                    <div className="panel-danger text-sm px-3 py-2 rounded-lg">
                         {error}
                     </div>
                 )}
@@ -75,14 +75,14 @@ export default function FinalizeIssueSheet({ open, onClose, onSave, item }: Fina
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                        className="btn-ghost flex-1"
                         disabled={saving}
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
-                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                        className="btn-danger flex-1"
                         disabled={saving}
                     >
                         {saving ? 'Salvando...' : 'Registrar Problema'}

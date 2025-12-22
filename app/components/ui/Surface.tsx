@@ -3,9 +3,10 @@
 import { ReactNode } from 'react'
 
 interface SurfaceProps {
-    variant?: 'surface' | 'surface2' | 'surface3'
+    variant?: 's1' | 's2' | 's3'
     padding?: 'none' | 'sm' | 'md' | 'lg'
     rounded?: 'none' | 'lg' | 'xl' | '2xl'
+    border?: boolean
     className?: string
     children: ReactNode
 }
@@ -25,19 +26,25 @@ const roundedMap = {
 }
 
 const variantMap = {
-    surface: 'bg-surface',
-    surface2: 'bg-surface2',
-    surface3: 'bg-surface3',
+    s1: 'bg-s1',
+    s2: 'bg-s2',
+    s3: 'bg-s3',
 }
 
 /**
  * Surface — A semantic wrapper for cards and sections.
  * Uses design tokens for consistent dark mode support.
+ * 
+ * Variants:
+ * - s1: main surface (cards, sheets)
+ * - s2: nested/secondary panels
+ * - s3: elevated/selected states
  */
 export default function Surface({
-    variant = 'surface',
+    variant = 's1',
     padding = 'md',
     rounded = '2xl',
+    border = false,
     className = '',
     children,
 }: SurfaceProps) {
@@ -45,6 +52,7 @@ export default function Surface({
         variantMap[variant],
         paddingMap[padding],
         roundedMap[rounded],
+        border ? 'border border-app' : '',
         className,
     ]
         .filter(Boolean)

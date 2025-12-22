@@ -54,7 +54,7 @@ export default function FinalizadasPage({
                         {sorted.map((r) => (
                             <div
                                 key={r.id}
-                                className="p-4 rounded-xl bg-surface2 shadow-sm"
+                                className="p-4 rounded-xl bg-s1 shadow-app-md border border-app"
                             >
                                 <div className="flex items-start justify-between mb-2">
                                     <div>
@@ -83,14 +83,14 @@ export default function FinalizadasPage({
                                 <div className="flex gap-2 mt-3">
                                     <button
                                         onClick={() => onMarkOk(r)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/30 text-success hover:bg-green-100 dark:hover:bg-green-900/50 font-medium text-sm border border-green-200 dark:border-green-800 transition-colors"
+                                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-50  text-success hover:bg-green-100  font-medium text-sm border border-green-200  transition-colors"
                                     >
                                         <CheckCircle size={16} />
                                         OK
                                     </button>
                                     <button
                                         onClick={() => onMarkIssue(r)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/30 text-danger hover:bg-red-100 dark:hover:bg-red-900/50 font-medium text-sm border border-red-200 dark:border-red-800 transition-colors"
+                                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50  text-danger hover:bg-red-100  font-medium text-sm border border-red-200  transition-colors"
                                     >
                                         <XCircle size={16} />
                                         Problema

@@ -28,14 +28,14 @@ export default function CreateActionSheet({
                         onClose()
                         onCreateLead()
                     }}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
+                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-app bg-s1 hover:bg-s2 transition-colors text-left"
                 >
-                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                        <FileText size={20} className="text-orange-600" />
+                    <div className="w-10 h-10 rounded-full panel-warn flex items-center justify-center">
+                        <FileText size={20} />
                     </div>
                     <div>
-                        <div className="font-medium text-gray-900">Pedido de reserva</div>
-                        <div className="text-sm text-gray-500">Adicionar à lista de espera</div>
+                        <div className="font-medium text-app">Pedido de reserva</div>
+                        <div className="text-sm text-muted">Adicionar à lista de espera</div>
                     </div>
                 </button>
 
@@ -45,14 +45,14 @@ export default function CreateActionSheet({
                         onClose()
                         onCreateConfirmed()
                     }}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors text-left"
+                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-app bg-s1 hover:bg-s2 transition-colors text-left"
                 >
-                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <Check size={20} className="text-green-600" />
+                    <div className="w-10 h-10 rounded-full panel-success flex items-center justify-center">
+                        <Check size={20} />
                     </div>
                     <div>
-                        <div className="font-medium text-gray-900">Reserva confirmada</div>
-                        <div className="text-sm text-gray-500">Criar reserva completa agora</div>
+                        <div className="font-medium text-app">Reserva confirmada</div>
+                        <div className="text-sm text-muted">Criar reserva completa agora</div>
                     </div>
                 </button>
             </div>

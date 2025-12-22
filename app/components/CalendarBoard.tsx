@@ -47,17 +47,24 @@ export default function CalendarBoard({
 
   const keyFor = (day: number) => formatDateKey(y, m, day)
 
-  // Occupancy-based palette: intensity by rooms ratio (with dark mode variants)
+  // Occupancy-based palette: light pastel tints
   const tint = (rooms: number) =>
-    rooms >= roomsTotal ? '!bg-red-200 dark:!bg-red-900/50'
-      : rooms >= 2 ? '!bg-orange-100 dark:!bg-orange-900/40'
-        : rooms >= 1 ? '!bg-yellow-100 dark:!bg-yellow-900/40'
-          : 'bg-surface'
+    rooms >= roomsTotal
+      ? 'bg-red-100'
+      : rooms >= 2
+        ? 'bg-amber-100'
+        : rooms >= 1
+          ? 'bg-yellow-50'
+          : 'bg-white'
 
   const dot = (rooms: number) =>
-    rooms >= roomsTotal ? 'bg-red-700 dark:bg-red-400'
-      : rooms >= 2 ? 'bg-orange-500 dark:bg-orange-400'
-        : rooms >= 1 ? 'bg-yellow-500 dark:bg-yellow-400' : 'bg-transparent'
+    rooms >= roomsTotal
+      ? 'bg-red-500'
+      : rooms >= 2
+        ? 'bg-orange-400'
+        : rooms >= 1
+          ? 'bg-yellow-400'
+          : 'bg-transparent'
 
   // ----- free-text month input (dd-mm-yyyy) with parse on blur/Enter
   const [draft, setDraft] = useState<string>(toDraft(month))
@@ -145,11 +152,11 @@ export default function CalendarBoard({
               title={rooms ? `${rooms}/${roomsTotal} quartos` : 'Livre'}
               className={[
                 'relative h-11 w-full rounded-xl text-sm',
-                'text-app',
-                'bg-surface',
+                'text-gray-900',
+                'bg-white',
                 tint(rooms),
-                isSelected ? 'ring-2 ring-primary' : 'ring-1 ring-app border-app',
-                'transition transform-gpu hover:-translate-y-0.5 hover:shadow-sm',
+                isSelected ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-200',
+                'shadow-sm hover:shadow-md transition transform-gpu hover:-translate-y-0.5',
               ].join(' ')}
             >
               {day}

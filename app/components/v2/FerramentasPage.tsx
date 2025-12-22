@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, Upload, FileSpreadsheet, FileJson, Sun, Moon, Monitor } from 'lucide-react'
+import { Download, Upload, FileSpreadsheet, FileJson } from 'lucide-react'
 import RestoreModal from '@/app/components/RestoreModal'
-import { useTheme } from '@/app/components/ThemeProvider'
 
 interface FerramentasPageProps {
     canWrite: boolean
@@ -12,7 +11,6 @@ interface FerramentasPageProps {
 export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
     const [restoreOpen, setRestoreOpen] = useState(false)
     const [exporting, setExporting] = useState<'csv' | 'ndjson' | null>(null)
-    const { theme, setTheme } = useTheme()
 
     async function handleExportCSV() {
         setExporting('csv')
@@ -62,96 +60,59 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
 
     return (
         <div className="pb-20 space-y-4">
-            {/* Theme Section */}
-            <section className="card">
-                <h2 className="text-lg font-semibold mb-3 text-app">Aparência</h2>
-                <div className="grid grid-cols-3 gap-2">
-                    <button
-                        onClick={() => setTheme('light')}
-                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'light'
-                            ? 'border-primary bg-blue-50 dark:bg-blue-900/20'
-                            : 'border-app hover:bg-surface2'
-                            }`}
-                    >
-                        <Sun size={20} className={theme === 'light' ? 'text-primary' : 'text-muted'} />
-                        <span className="text-xs font-medium text-app">Claro</span>
-                    </button>
-                    <button
-                        onClick={() => setTheme('dark')}
-                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'dark'
-                            ? 'border-primary bg-blue-50 dark:bg-blue-900/20'
-                            : 'border-app hover:bg-surface2'
-                            }`}
-                    >
-                        <Moon size={20} className={theme === 'dark' ? 'text-primary' : 'text-muted'} />
-                        <span className="text-xs font-medium text-app">Escuro</span>
-                    </button>
-                    <button
-                        onClick={() => setTheme('system')}
-                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'system'
-                            ? 'border-primary bg-blue-50 dark:bg-blue-900/20'
-                            : 'border-app hover:bg-surface2'
-                            }`}
-                    >
-                        <Monitor size={20} className={theme === 'system' ? 'text-primary' : 'text-muted'} />
-                        <span className="text-xs font-medium text-app">Sistema</span>
-                    </button>
-                </div>
-            </section>
-
             {/* Tools Section */}
             <section className="card">
-                <h2 className="text-lg font-semibold mb-4 text-app">Ferramentas</h2>
+                <h2 className="text-lg font-semibold mb-4 text-gray-900">Ferramentas</h2>
 
                 <div className="grid gap-3 lg:grid-cols-2">
                     {/* Export CSV */}
                     <button
                         onClick={handleExportCSV}
                         disabled={exporting === 'csv'}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-surface2 hover:bg-surface3 transition-colors disabled:opacity-50"
+                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
                     >
-                        <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/40 text-success">
+                        <div className="p-2 rounded-lg bg-green-100 text-green-600">
                             <FileSpreadsheet size={20} />
                         </div>
                         <div className="flex-1 text-left">
-                            <div className="font-medium text-app">Exportar CSV</div>
-                            <div className="text-xs text-muted">
+                            <div className="font-medium text-gray-900">Exportar CSV</div>
+                            <div className="text-xs text-gray-500">
                                 Planilha compatível com Excel
                             </div>
                         </div>
-                        <Download size={16} className="text-muted" />
+                        <Download size={16} className="text-gray-400" />
                     </button>
 
                     {/* Export NDJSON */}
                     <button
                         onClick={handleExportNDJSON}
                         disabled={exporting === 'ndjson'}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-surface2 hover:bg-surface3 transition-colors disabled:opacity-50"
+                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
                     >
-                        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-primary">
+                        <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
                             <FileJson size={20} />
                         </div>
                         <div className="flex-1 text-left">
-                            <div className="font-medium text-app">Exportar NDJSON</div>
-                            <div className="text-xs text-muted">
+                            <div className="font-medium text-gray-900">Exportar NDJSON</div>
+                            <div className="text-xs text-gray-500">
                                 Backup completo para restauração
                             </div>
                         </div>
-                        <Download size={16} className="text-muted" />
+                        <Download size={16} className="text-gray-400" />
                     </button>
 
                     {/* Restore */}
                     <button
                         onClick={() => setRestoreOpen(true)}
                         disabled={!canWrite}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-surface2 hover:bg-surface3 transition-colors disabled:opacity-50 lg:col-span-2"
+                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50 lg:col-span-2"
                     >
-                        <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-warning">
+                        <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
                             <Upload size={20} />
                         </div>
                         <div className="flex-1 text-left">
-                            <div className="font-medium text-app">Restaurar backup</div>
-                            <div className="text-xs text-muted">
+                            <div className="font-medium text-gray-900">Restaurar backup</div>
+                            <div className="text-xs text-gray-500">
                                 Importar arquivo NDJSON
                             </div>
                         </div>
@@ -159,7 +120,7 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                 </div>
 
                 {!canWrite && (
-                    <p className="text-xs text-muted text-center mt-3">
+                    <p className="text-xs text-gray-500 text-center mt-3">
                         Restauração requer permissão de escrita
                     </p>
                 )}

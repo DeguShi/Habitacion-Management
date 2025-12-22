@@ -159,7 +159,7 @@ export default function ConfirmadasPage({
                                                     ({r.partySize})
                                                 </span>
                                                 {(r.rooms ?? 1) > 1 && (
-                                                    <span className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">
+                                                    <span className="text-xs bg-blue-100  text-blue-700  px-1.5 py-0.5 rounded">
                                                         {r.rooms}q
                                                     </span>
                                                 )}
