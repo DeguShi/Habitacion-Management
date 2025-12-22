@@ -47,15 +47,15 @@ export default function CalendarBoard({
 
   const keyFor = (day: number) => formatDateKey(y, m, day)
 
-  // Occupancy-based palette: light pastel tints
+  // Occupancy-based palette: Eco Paper pastel tints
   const tint = (rooms: number) =>
     rooms >= roomsTotal
-      ? 'bg-red-100'
+      ? 'bg-[var(--occ-full)]'
       : rooms >= 2
-        ? 'bg-amber-100'
+        ? 'bg-[var(--occ-medium)]'
         : rooms >= 1
-          ? 'bg-yellow-50'
-          : 'bg-white'
+          ? 'bg-[var(--occ-light)]'
+          : 'eco-surface'
 
   const dot = (rooms: number) =>
     rooms >= roomsTotal
@@ -152,10 +152,9 @@ export default function CalendarBoard({
               title={rooms ? `${rooms}/${roomsTotal} quartos` : 'Livre'}
               className={[
                 'relative h-11 w-full rounded-xl text-sm',
-                'text-gray-900',
-                'bg-white',
+                'eco-text',
                 tint(rooms),
-                isSelected ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-200',
+                isSelected ? 'ring-2 ring-[var(--eco-primary)]' : 'ring-1 ring-[var(--eco-border)]',
                 'shadow-sm hover:shadow-md transition transform-gpu hover:-translate-y-0.5',
               ].join(' ')}
             >

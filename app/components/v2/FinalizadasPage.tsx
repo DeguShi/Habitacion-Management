@@ -54,7 +54,7 @@ export default function FinalizadasPage({
                         {sorted.map((r) => (
                             <div
                                 key={r.id}
-                                className="p-4 rounded-xl bg-s1 shadow-app-md border border-app"
+                                className="mini-card"
                             >
                                 <div className="flex items-start justify-between mb-2">
                                     <div>

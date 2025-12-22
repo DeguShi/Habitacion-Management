@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import CalendarBoard from '@/app/components/CalendarBoard'
 import ReservationActions from './ReservationActions'
+import { RoomsChip } from '@/app/components/ui/Chip'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { formatDateKey } from '@/lib/calendar-utils'
 
@@ -148,7 +149,7 @@ export default function ConfirmadasPage({
                                 {upcoming.map((r) => (
                                     <div
                                         key={r.id}
-                                        className="flex items-center justify-between p-3 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-colors"
+                                        className="mini-card flex items-center justify-between"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
@@ -159,9 +160,7 @@ export default function ConfirmadasPage({
                                                     ({r.partySize})
                                                 </span>
                                                 {(r.rooms ?? 1) > 1 && (
-                                                    <span className="text-xs bg-blue-100  text-blue-700  px-1.5 py-0.5 rounded">
-                                                        {r.rooms}q
-                                                    </span>
+                                                    <RoomsChip rooms={r.rooms ?? 1} />
                                                 )}
                                             </div>
                                             <div className="text-xs text-token-muted">

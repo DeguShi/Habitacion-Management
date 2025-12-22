@@ -309,7 +309,7 @@ export default function ClientShellV2({ canWrite = false }: ClientShellV2Props) 
     }
 
     return (
-        <div className="min-h-screen bg-app">
+        <div className="min-h-screen eco-bg">
             <main className="mx-auto px-4 py-4 max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl">
                 {/* Sync indicator */}
                 {refreshing && !loadingInitial && (

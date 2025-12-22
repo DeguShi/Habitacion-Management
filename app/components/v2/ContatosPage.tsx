@@ -51,7 +51,7 @@ export default function ContatosPage({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Buscar por nome, telefone ou email"
-                        className="w-full pl-10 pr-10 py-2 border border-app rounded-lg bg-surface text-app focus:ring-2 ring-app"
+                        className="input-eco pl-10 pr-10"
                     />
                     {searchQuery && (
                         <button
@@ -82,7 +82,7 @@ export default function ContatosPage({
                             <button
                                 key={contact.id}
                                 onClick={() => handleContactClick(contact)}
-                                className="w-full flex items-center justify-between p-3 rounded-xl bg-white border border-gray-100 text-left hover:bg-gray-50 transition-colors"
+                                className="mini-card w-full flex items-center justify-between text-left"
                             >
                                 <div className="flex-1">
                                     <div className="font-medium text-app flex items-center gap-2">
