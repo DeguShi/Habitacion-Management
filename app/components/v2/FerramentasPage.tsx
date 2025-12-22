@@ -69,7 +69,7 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                     <button
                         onClick={handleExportCSV}
                         disabled={exporting === 'csv'}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
                         <div className="p-2 rounded-lg bg-green-100 text-green-600">
                             <FileSpreadsheet size={20} />
@@ -87,7 +87,7 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                     <button
                         onClick={handleExportNDJSON}
                         disabled={exporting === 'ndjson'}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
                         <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
                             <FileJson size={20} />
@@ -105,7 +105,7 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                     <button
                         onClick={() => setRestoreOpen(true)}
                         disabled={!canWrite}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50 lg:col-span-2"
+                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-colors disabled:opacity-50 lg:col-span-2"
                     >
                         <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
                             <Upload size={20} />

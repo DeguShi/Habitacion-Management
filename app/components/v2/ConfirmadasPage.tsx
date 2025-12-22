@@ -110,7 +110,7 @@ export default function ConfirmadasPage({
                                 {selectedReservations.map((r) => (
                                     <div
                                         key={r.id}
-                                        className="flex items-center justify-between p-3 rounded-xl bg-token-surface-alt"
+                                        className="flex items-center justify-between p-3 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-colors"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-token truncate">
@@ -148,7 +148,7 @@ export default function ConfirmadasPage({
                                 {upcoming.map((r) => (
                                     <div
                                         key={r.id}
-                                        className="flex items-center justify-between p-3 rounded-xl bg-token-surface-alt"
+                                        className="flex items-center justify-between p-3 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-colors"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">

@@ -82,7 +82,7 @@ export default function ContatosPage({
                             <button
                                 key={contact.id}
                                 onClick={() => handleContactClick(contact)}
-                                className="w-full flex items-center justify-between p-3 rounded-xl bg-surface2 text-left hover:bg-surface3 transition-colors"
+                                className="w-full flex items-center justify-between p-3 rounded-xl bg-white border border-gray-100 text-left hover:bg-gray-50 transition-colors"
                             >
                                 <div className="flex-1">
                                     <div className="font-medium text-app flex items-center gap-2">

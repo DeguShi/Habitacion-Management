@@ -108,8 +108,8 @@
 
   /* === Card === */
   .card {
-    @apply rounded-2xl p-5 bg-white;
-    box-shadow: var(--app-shadow-md);
+    @apply rounded-2xl p-5 bg-white border border-gray-100;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
   }
 
   /* === State Panels === */
