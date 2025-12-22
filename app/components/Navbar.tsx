@@ -16,7 +16,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 eco-surface backdrop-blur-sm border-b border-[var(--eco-border)]">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/v1" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           <Image src="/logo-hab.png" alt="" width={32} height={32} className="rounded-md" priority />
           <span className="font-semibold text-gray-900">Habitación Familiar</span>
         </Link>
