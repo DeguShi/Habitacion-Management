@@ -42,7 +42,13 @@ The main view showing confirmed reservations:
 - **Upcoming list** (all future confirmed reservations)
 - **Two-column desktop layout** (calendar left, upcoming right)
 
-> **Screenshot placeholder:** `docs/images/confirmadas-mobile.png`
+<div align="center">
+  <img
+    src="https://github.com/user-attachments/assets/28057f3b-ec20-48cd-9cd1-96c2c19b8a0d"
+    alt=""
+    width="300"
+  />
+</div>
 
 ---
 
@@ -55,8 +61,13 @@ Manage pending booking requests:
 - **Tap View** → Full reservation details
 - **Canceladas toggle** — collapsed section of rejected items with restore option
 
-> **Screenshot placeholder:** `docs/images/em-espera-swipe.png`  
-> **Screen recording placeholder:** `docs/videos/waiting-to-confirm.mp4`
+<div align="center">
+  <img
+    src="https://github.com/user-attachments/assets/2f0abb09-22be-468e-a8b3-22647dc81a88"
+    alt=""
+    width="300"
+  />
+</div>
 
 ---
 
@@ -68,7 +79,13 @@ Post-checkout review queue. Reservations appear here after **checkout noon BRT**
 - **Issue flow** — Flag problem with required reason (no-show, dispute, etc.)
 - **Badge count** in bottom nav shows pending reviews
 
-> **Screenshot placeholder:** `docs/images/finalizadas-review.png`
+<div align="center">
+  <img
+    src="https://github.com/user-attachments/assets/465634e2-7736-4de9-bad2-a8da6155d0cb"
+    alt=""
+    width="300"
+  />
+</div>
 
 ---
 
@@ -81,7 +98,13 @@ Derived contact list from all reservations:
 - **"Nova reserva"** — Create confirmed reservation with prefilled guest info
 - **"Novo pedido"** — Create waiting request with prefilled guest info
 
-> **Screenshot placeholder:** `docs/images/contatos-search.png`
+<div align="center">
+  <img
+    src="https://github.com/user-attachments/assets/a2cb6640-5fa4-48c9-bc0b-287f0b49dab9"
+    alt=""
+    width="300"
+  />
+</div>
 
 ---
 
@@ -111,7 +134,7 @@ The card includes:
 - Green total box
 - Status badge (Confirmada / En espera / Cancelada)
 
-> **Screenshot placeholder:** `docs/images/confirmation-card.png`
+<img width="360" height="640" alt="reserva-paula-fonseca" src="https://github.com/user-attachments/assets/4cc06b00-9976-449a-8efe-f7154bda0f36" />
 
 ---
 
