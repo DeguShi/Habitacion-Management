@@ -141,6 +141,10 @@ export default function ViewReservationSheet({
                         <p className="text-xs text-muted">Quartos</p>
                         <p className="font-medium text-app">{record.rooms ?? 1}</p>
                     </div>
+                    <div className="bg-s2 rounded-xl p-3">
+                        <p className="text-xs text-muted">Café</p>
+                        <p className="font-medium text-app">{record.breakfastIncluded ? 'Sim' : 'Não'}</p>
+                    </div>
                 </div>
 
                 {/* Pricing */}

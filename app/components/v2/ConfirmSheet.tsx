@@ -6,6 +6,7 @@ import { confirmWaitingLead, createConfirmedReservation } from '@/lib/data/v2'
 import { getBookedRoomsByDay, MAX_ROOMS } from '@/lib/calendar-utils'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { AlertTriangle } from 'lucide-react'
+import ToggleSwitch from '../ui/ToggleSwitch'
 
 interface Prefill {
     guestName?: string
@@ -90,7 +91,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
     const [rooms, setRooms] = useState('1')
     const [nightlyRate, setNightlyRate] = useState('250')
     const [breakfastIncluded, setBreakfastIncluded] = useState(false)
-    const [breakfastRate, setBreakfastRate] = useState('30')
+    const [breakfastRate, setBreakfastRate] = useState('0')
     const [manualLodging, setManualLodging] = useState(false)
     const [manualTotal, setManualTotal] = useState('')
     const [depositAmount, setDepositAmount] = useState('')
@@ -133,7 +134,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 setRooms(String(prefill?.rooms || 1))
                 setNightlyRate(getStoredRate(LS_NIGHTLY_RATE, '250'))
                 setBreakfastIncluded(false)
-                setBreakfastRate(getStoredRate(LS_BREAKFAST_RATE, '30'))
+                setBreakfastRate(getStoredRate(LS_BREAKFAST_RATE, '0'))
                 setManualLodging(false)
                 setManualTotal('')
                 setNotesInternal(prefill?.notesInternal || '')
@@ -439,18 +440,12 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 </div>
 
                 {/* Manual Lodging */}
-                <div className="flex items-center gap-3">
-                    <input
-                        type="checkbox"
-                        id="manualLodging"
-                        checked={manualLodging}
-                        onChange={(e) => setManualLodging(e.target.checked)}
-                        className="rounded"
-                    />
-                    <label htmlFor="manualLodging" className="text-sm eco-text">
-                        Valor manual de hospedagem
-                    </label>
-                </div>
+                <ToggleSwitch
+                    id="manualLodging"
+                    checked={manualLodging}
+                    onChange={setManualLodging}
+                    label="Valor manual de hospedagem"
+                />
                 {manualLodging && (
                     <input
                         type="number"
@@ -463,25 +458,19 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 )}
 
                 {/* Breakfast */}
-                <div className="flex items-center gap-3">
-                    <input
-                        type="checkbox"
-                        id="breakfast"
-                        checked={breakfastIncluded}
-                        onChange={(e) => setBreakfastIncluded(e.target.checked)}
-                        className="rounded"
-                    />
-                    <label htmlFor="breakfast" className="text-sm eco-text">
-                        Inclui café da manhã
-                    </label>
-                </div>
+                <ToggleSwitch
+                    id="breakfast"
+                    checked={breakfastIncluded}
+                    onChange={setBreakfastIncluded}
+                    label="Inclui café da manhã"
+                />
                 {breakfastIncluded && (
                     <input
                         type="number"
                         value={breakfastRate}
                         onChange={(e) => setBreakfastRate(e.target.value)}
                         min="0"
-                        placeholder="Café por pessoa/noite"
+                        placeholder="Café por pessoa/noite (R$)"
                         className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                 )}

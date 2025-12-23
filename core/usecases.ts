@@ -178,11 +178,11 @@ export async function listReservations(
   month?: string
 ): Promise<Reservation[]> {
   const keys = await listReservationKeys(prefix(userId));
-  const items: Reservation[] = [];
-  for (const key of keys) {
-    const r = await getJson<Reservation>(key);
-    if (r) items.push(r);
-  }
+
+  // Fetch all reservations in parallel (was sequential, causing ~7s delay)
+  const results = await Promise.all(keys.map(key => getJson<Reservation>(key)));
+  const items = results.filter((r): r is Reservation => r !== null);
+
   items.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
   if (month) return items.filter((r) => r.checkIn.startsWith(month) || r.checkOut.startsWith(month));
   return items;
