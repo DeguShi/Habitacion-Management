@@ -10,7 +10,7 @@ import ToggleSwitch from '../ui/ToggleSwitch'
 interface EditReservationSheetProps {
     open: boolean
     onClose: () => void
-    onSaved: () => void
+    onSaved: () => Promise<void> | void
     item: ReservationV2 | null
 }
 
@@ -50,6 +50,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
 
     // State
     const [saving, setSaving] = useState(false)
+    const [syncing, setSyncing] = useState(false)
     const [error, setError] = useState('')
 
     // Prefill from item
@@ -72,6 +73,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
             setNotesGuest(item.notesGuest || '')
             setPaymentEvents(item.payment?.events || [])
             setError('')
+            setSyncing(false)
             setShowAddPayment(false)
             setNewPaymentAmount('')
             setNewPaymentNote('')
@@ -187,12 +189,18 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                     deposit: totalPaid > 0 ? { paid: true, due: totalPaid } : item.payment?.deposit,
                 },
             })
-            onSaved()
+
+            // Show syncing state while waiting for refresh
+            setSaving(false)
+            setSyncing(true)
+            await onSaved()
+
             onClose()
         } catch (err: any) {
             setError(err.message || 'Erro ao salvar')
-        } finally {
             setSaving(false)
+        } finally {
+            setSyncing(false)
         }
     }
 
@@ -512,16 +520,16 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                         type="button"
                         onClick={onClose}
                         className="flex-1 px-4 py-2 border border-[var(--eco-border)] rounded-lg eco-text hover:bg-[var(--eco-surface-alt)]"
-                        disabled={saving}
+                        disabled={saving || syncing}
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
                         className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                        disabled={saving}
+                        disabled={saving || syncing}
                     >
-                        {saving ? 'Salvando...' : 'Salvar'}
+                        {saving ? 'Salvando...' : syncing ? 'Sincronizando...' : 'Salvar'}
                     </button>
                 </div>
             </form>
