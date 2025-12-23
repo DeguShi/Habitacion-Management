@@ -5,6 +5,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import BottomSheet from './BottomSheet'
 import { updateV2Record, addPaymentEvent, removePaymentEvent } from '@/lib/data/v2'
 import type { ReservationV2, PaymentEvent } from '@/core/entities_v2'
+import ToggleSwitch from '../ui/ToggleSwitch'
 
 interface EditReservationSheetProps {
     open: boolean
@@ -31,7 +32,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
     // Pricing
     const [nightlyRate, setNightlyRate] = useState('250')
     const [breakfastIncluded, setBreakfastIncluded] = useState(false)
-    const [breakfastRate, setBreakfastRate] = useState('30')
+    const [breakfastRate, setBreakfastRate] = useState('0')
     const [manualLodging, setManualLodging] = useState(false)
     const [manualTotal, setManualTotal] = useState('')
     const [extraSpend, setExtraSpend] = useState('0')
@@ -63,7 +64,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
             setRooms(String(item.rooms ?? 1))
             setNightlyRate(String(item.nightlyRate || 250))
             setBreakfastIncluded(item.breakfastIncluded || false)
-            setBreakfastRate(String(item.breakfastPerPersonPerNight || 30))
+            setBreakfastRate(String(item.breakfastPerPersonPerNight ?? 0))
             setManualLodging(item.manualLodgingEnabled || false)
             setManualTotal(item.manualLodgingTotal ? String(item.manualLodgingTotal) : '')
             setExtraSpend(String(item.extraSpend || 0))
@@ -312,18 +313,12 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 </div>
 
                 {/* Manual Lodging */}
-                <div className="flex items-center gap-3">
-                    <input
-                        type="checkbox"
-                        id="manualLodgingEdit"
-                        checked={manualLodging}
-                        onChange={(e) => setManualLodging(e.target.checked)}
-                        className="rounded"
-                    />
-                    <label htmlFor="manualLodgingEdit" className="text-sm eco-text">
-                        Valor manual de hospedagem
-                    </label>
-                </div>
+                <ToggleSwitch
+                    id="manualLodgingEdit"
+                    checked={manualLodging}
+                    onChange={setManualLodging}
+                    label="Valor manual de hospedagem"
+                />
                 {manualLodging && (
                     <input
                         type="number"
@@ -336,25 +331,19 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 )}
 
                 {/* Breakfast */}
-                <div className="flex items-center gap-3">
-                    <input
-                        type="checkbox"
-                        id="breakfastEdit"
-                        checked={breakfastIncluded}
-                        onChange={(e) => setBreakfastIncluded(e.target.checked)}
-                        className="rounded"
-                    />
-                    <label htmlFor="breakfastEdit" className="text-sm eco-text">
-                        Inclui café da manhã
-                    </label>
-                </div>
+                <ToggleSwitch
+                    id="breakfastEdit"
+                    checked={breakfastIncluded}
+                    onChange={setBreakfastIncluded}
+                    label="Inclui café da manhã"
+                />
                 {breakfastIncluded && (
                     <input
                         type="number"
                         value={breakfastRate}
                         onChange={(e) => setBreakfastRate(e.target.value)}
                         min="0"
-                        placeholder="Café por pessoa/noite"
+                        placeholder="Café por pessoa/noite (R$)"
                         className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                 )}
