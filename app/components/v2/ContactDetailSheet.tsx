@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Phone, Mail, Calendar, Users, Plus, Clock, XCircle, CheckCircle } from 'lucide-react'
+import { Phone, Mail, Calendar, Users, Plus, Clock, XCircle, CheckCircle, Cake } from 'lucide-react'
 import BottomSheet from './BottomSheet'
 import type { Contact } from '@/lib/contacts'
 import type { ReservationV2 } from '@/core/entities_v2'
@@ -20,6 +20,16 @@ function formatBR(iso: string) {
     if (!iso) return '—'
     const [y, m, d] = iso.split('-')
     return `${d}/${m}/${y}`
+}
+
+// Formats birthDate for display (handles both DD/MM/YYYY and ISO formats)
+function formatBirthForView(s: string) {
+    if (!s) return ''
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        const [y, m, d] = s.split('-')
+        return `${d}/${m}/${y}`
+    }
+    return s
 }
 
 function formatMoney(n: number | undefined) {
@@ -98,6 +108,12 @@ export default function ContactDetailSheet({
                                 <a href={`mailto:${contact.email}`} className="hover:text-primary">
                                     {contact.email}
                                 </a>
+                            </div>
+                        )}
+                        {contact.birthDate && (
+                            <div className="flex items-center gap-2 text-sm text-muted">
+                                <Cake size={14} />
+                                <span>Aniversário: {formatBirthForView(contact.birthDate)}</span>
                             </div>
                         )}
                     </div>
