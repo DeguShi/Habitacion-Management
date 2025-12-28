@@ -322,6 +322,7 @@ export interface ConfirmLeadInput {
     depositNote?: string;
     notesInternal?: string;
     notesGuest?: string;
+    birthDate?: string;
 }
 
 /**
@@ -399,6 +400,9 @@ export interface CreateConfirmedInput {
     // Notes (optional)
     notesInternal?: string;
     notesGuest?: string;
+
+    // Personal info (optional)
+    birthDate?: string;
 }
 
 /**
@@ -499,6 +503,7 @@ export async function createConfirmedReservation(
         payment: Object.keys(payment).length > 0 ? payment : {},
         notesInternal: input.notesInternal?.trim(),
         notesGuest: input.notesGuest?.trim(),
+        birthDate: input.birthDate?.trim(),
     };
 
     return createV2Record(record);
@@ -583,6 +588,7 @@ export async function confirmWaitingLead(
         payment,
         notesInternal: details.notesInternal ?? current.notesInternal,
         notesGuest: details.notesGuest ?? current.notesGuest,
+        birthDate: details.birthDate ?? current.birthDate,
         status: "confirmed" as const,
     };
 

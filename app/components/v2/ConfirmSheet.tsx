@@ -99,6 +99,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
     const [depositNote, setDepositNote] = useState('')
     const [notesInternal, setNotesInternal] = useState('')
     const [notesGuest, setNotesGuest] = useState('')
+    const [birthDate, setBirthDate] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
 
@@ -122,6 +123,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 setManualTotal(item.manualLodgingTotal ? String(item.manualLodgingTotal) : '')
                 setNotesInternal(item.notesInternal || '')
                 setNotesGuest(item.notesGuest || '')
+                setBirthDate(item.birthDate || '')
             } else {
                 // Create mode: reset to defaults with today/tomorrow and localStorage rates
                 // Use prefill if available (prefillKey in deps ensures fresh prefill is used)
@@ -139,6 +141,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 setManualTotal('')
                 setNotesInternal(prefill?.notesInternal || '')
                 setNotesGuest('')
+                setBirthDate('')
             }
             setDepositAmount('')
             setDepositMethod('Pix')
@@ -255,6 +258,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                     depositNote: depositNote.trim() || undefined,
                     notesInternal: notesInternal.trim() || undefined,
                     notesGuest: notesGuest.trim() || undefined,
+                    birthDate: birthDate.trim() || undefined,
                 })
             } else {
                 // Confirm existing waiting item
@@ -273,6 +277,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                     depositNote: depositNote.trim() || undefined,
                     notesInternal: notesInternal.trim() || undefined,
                     notesGuest: notesGuest.trim() || undefined,
+                    birthDate: birthDate.trim() || undefined,
                 })
             }
 
@@ -295,6 +300,14 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
 
     const BRL = (n: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
+
+    // Auto-format DD/MM/AAAA
+    function formatBirthInput(raw: string) {
+        const digits = raw.replace(/\D/g, '').slice(0, 8)
+        if (digits.length <= 2) return digits
+        if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
+        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+    }
 
     const title = isCreateMode ? 'Nova Reserva' : 'Confirmar Reserva'
     const submitLabel = isCreateMode ? 'Salvar reserva' : 'Confirmar'
@@ -366,6 +379,21 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                         </div>
                     </div>
                 )}
+
+                {/* Birth Date */}
+                <div>
+                    <label className="block text-sm font-medium eco-text mb-1">
+                        Data de nascimento
+                    </label>
+                    <input
+                        type="text"
+                        value={birthDate}
+                        onChange={(e) => setBirthDate(formatBirthInput(e.target.value))}
+                        placeholder="DD/MM/AAAA"
+                        inputMode="numeric"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
 
                 {/* Dates */}
                 <div className="grid grid-cols-2 gap-3">
