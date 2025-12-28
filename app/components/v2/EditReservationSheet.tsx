@@ -41,6 +41,9 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
     const [notesInternal, setNotesInternal] = useState('')
     const [notesGuest, setNotesGuest] = useState('')
 
+    // Birth date
+    const [birthDate, setBirthDate] = useState('')
+
     // Payment events
     const [paymentEvents, setPaymentEvents] = useState<PaymentEvent[]>([])
     const [newPaymentAmount, setNewPaymentAmount] = useState('')
@@ -71,6 +74,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
             setExtraSpend(String(item.extraSpend || 0))
             setNotesInternal(item.notesInternal || '')
             setNotesGuest(item.notesGuest || '')
+            setBirthDate(item.birthDate || '')
             setPaymentEvents(item.payment?.events || [])
             setError('')
             setSyncing(false)
@@ -182,6 +186,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 totalPrice: totalPreview,
                 notesInternal: notesInternal.trim() || undefined,
                 notesGuest: notesGuest.trim() || undefined,
+                birthDate: birthDate.trim() || undefined,
                 // Preserve payment events - this is critical!
                 payment: {
                     ...item.payment,
@@ -206,6 +211,14 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
 
     const BRL = (n: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
+
+    // Auto-format DD/MM/AAAA
+    function formatBirthInput(raw: string) {
+        const digits = raw.replace(/\D/g, '').slice(0, 8)
+        if (digits.length <= 2) return digits
+        if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
+        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+    }
 
     return (
         <BottomSheet open={open} onClose={onClose} title="Editar Reserva">
@@ -247,6 +260,21 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                             className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
+                </div>
+
+                {/* Birth Date */}
+                <div>
+                    <label className="block text-sm font-medium eco-text mb-1">
+                        Data de nascimento
+                    </label>
+                    <input
+                        type="text"
+                        value={birthDate}
+                        onChange={(e) => setBirthDate(formatBirthInput(e.target.value))}
+                        placeholder="DD/MM/AAAA"
+                        inputMode="numeric"
+                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
                 </div>
 
                 {/* Dates */}

@@ -22,6 +22,7 @@ export interface Contact {
     name: string;
     phone?: string;
     email?: string;
+    birthDate?: string;
     lastStayDate: string;
     totalBookings: number;
     hasWaiting: boolean;
@@ -79,6 +80,7 @@ export function deriveContacts(records: ReservationV2[]): Contact[] {
         name: string;
         phone?: string;
         email?: string;
+        birthDate?: string;
         lastStayDate: string;
         hasWaiting: boolean;
         hasRejected: boolean;
@@ -93,6 +95,7 @@ export function deriveContacts(records: ReservationV2[]): Contact[] {
                 name: record.guestName,
                 phone: record.phone,
                 email: record.email,
+                birthDate: record.birthDate,
                 lastStayDate: record.checkOut || record.checkIn,
                 hasWaiting: false,
                 hasRejected: false,
@@ -102,12 +105,15 @@ export function deriveContacts(records: ReservationV2[]): Contact[] {
 
         const group = groups.get(key)!;
 
-        // Update name if this record has more info
+        // Update with more info if available
         if (!group.phone && record.phone) {
             group.phone = record.phone;
         }
         if (!group.email && record.email) {
             group.email = record.email;
+        }
+        if (!group.birthDate && record.birthDate) {
+            group.birthDate = record.birthDate;
         }
 
         // Track most recent stay
@@ -134,6 +140,7 @@ export function deriveContacts(records: ReservationV2[]): Contact[] {
             name: group.name,
             phone: group.phone,
             email: group.email,
+            birthDate: group.birthDate,
             lastStayDate: group.lastStayDate,
             totalBookings: group.reservationIds.length,
             hasWaiting: group.hasWaiting,
