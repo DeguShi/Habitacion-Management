@@ -20,7 +20,8 @@ import type { ReservationV2 } from '@/core/entities_v2'
 import type { Contact } from '@/lib/contacts'
 import { getBestNotesForContact } from '@/lib/contacts'
 import { getFinishedPending, appendInternalNote } from '@/lib/finished-utils'
-import { deleteV2Record, listV2Records, updateV2Record } from '@/lib/data/v2'
+import { deleteV2Record } from '@/lib/offline/v2-offline'
+import { listV2Records, updateV2Record } from '@/lib/data/v2'
 
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_FETCH === '1'
 
@@ -69,7 +70,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     const queuedRef = useRef(false)
 
     /**
-     * Load records from IndexedDB (for offline mode)
+     * Load records from IndexedDB (for offline mode only)
      */
     const loadFromIDB = useCallback(async () => {
         try {
@@ -85,7 +86,24 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     }, [])
 
     /**
-     * Deduped refresh: only one fetch in-flight, queued requests coalesce.
+     * Cache records to IndexedDB (for offline access later)
+     */
+    const cacheToIDB = useCallback(async (records: ReservationV2[]) => {
+        try {
+            const { db } = await import('@/lib/offline/db')
+            await db.transaction('rw', db.reservations, async () => {
+                for (const record of records) {
+                    await db.reservations.put(record)
+                }
+            })
+            if (DEBUG) console.log('[cache] Cached', records.length, 'records to IndexedDB')
+        } catch (e) {
+            console.warn('[cache] Failed to cache to IndexedDB:', e)
+        }
+    }, [])
+
+    /**
+     * Refresh records: API when online, IDB when offline
      */
     const refreshRecords = useCallback(async (reason?: string) => {
         if (DEBUG) console.log('[fetch] refreshRecords called:', reason || '(no reason)')
@@ -100,42 +118,33 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
         setRefreshing(true)
         setError(null)
 
+        const isCurrentlyOffline = offlineMode || (typeof navigator !== 'undefined' && !navigator.onLine)
+
         try {
-            // In offline mode, only load from IDB
-            if (offlineMode || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+            if (isCurrentlyOffline) {
+                // OFFLINE: Load from IndexedDB
                 await loadFromIDB()
             } else {
-                if (DEBUG) console.log('[fetch] Starting fetch...')
-                const next = await listV2Records() // Fetch ALL, normalized
+                // ONLINE: Fetch from API (original behavior)
+                if (DEBUG) console.log('[fetch] Fetching from API...')
+                const next = await listV2Records()
                 setRecords(next)
-                if (DEBUG) console.log('[fetch] Fetched', next.length, 'records')
+                if (DEBUG) console.log('[fetch] Got', next.length, 'records from API')
 
-                // Also store in IndexedDB for offline use
-                try {
-                    const { db } = await import('@/lib/offline/db')
-                    const { normalizeRecord } = await import('@/lib/normalize')
-                    await db.transaction('rw', db.reservations, async () => {
-                        for (const record of next) {
-                            await db.reservations.put(record)
-                        }
-                    })
-                    if (DEBUG) console.log('[fetch] Cached to IndexedDB')
-                } catch (idbError) {
-                    console.warn('[fetch] Failed to cache to IndexedDB:', idbError)
-                }
+                // Cache to IDB for offline use (non-blocking)
+                cacheToIDB(next)
+
+                // Update viewingItem if it exists
+                setViewingItem(prev => {
+                    if (!prev) return null
+                    const updated = next.find(r => r.id === prev.id)
+                    return updated || null
+                })
             }
-
-            // Update viewingItem if it exists in the new records
-            setViewingItem(prev => {
-                if (!prev) return null
-                const allRecords = records
-                const updated = allRecords.find(r => r.id === prev.id)
-                return updated || null
-            })
         } catch (e: any) {
             console.error('Failed to fetch records:', e)
-            // On network error, try to load from IndexedDB as fallback
-            if (e.name === 'TypeError' || e.message?.includes('network')) {
+            // On network error when supposedly online, fall back to IDB
+            if (e.name === 'TypeError' || e.message?.includes('network') || e.message?.includes('fetch')) {
                 console.log('[fetch] Network error, falling back to IndexedDB')
                 await loadFromIDB()
             } else {
@@ -146,14 +155,13 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
             setLoadingInitial(false)
             refreshingRef.current = false
 
-            // If another refresh was requested while we were fetching, do it now
             if (queuedRef.current) {
                 queuedRef.current = false
                 if (DEBUG) console.log('[fetch] Processing queued refresh')
                 void refreshRecords('queued')
             }
         }
-    }, [offlineMode, loadFromIDB])
+    }, [offlineMode, loadFromIDB, cacheToIDB])
 
     // Load once on mount (with StrictMode guard)
     useEffect(() => {
