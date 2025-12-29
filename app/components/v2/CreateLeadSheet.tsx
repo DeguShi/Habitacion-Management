@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import BottomSheet from './BottomSheet'
-import { createWaitingLead } from '@/lib/data/v2'
+import { createWaitingLead } from '@/lib/offline/v2-offline'
 
 interface Prefill {
     guestName?: string

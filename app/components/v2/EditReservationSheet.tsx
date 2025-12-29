@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import BottomSheet from './BottomSheet'
-import { updateV2Record, addPaymentEvent, removePaymentEvent } from '@/lib/data/v2'
+import { updateV2Record, addPaymentEvent, removePaymentEvent } from '@/lib/offline/v2-offline'
 import type { ReservationV2, PaymentEvent } from '@/core/entities_v2'
 import ToggleSwitch from '../ui/ToggleSwitch'
 import { formatBirthInput, formatBirthForDisplay } from '@/lib/birthdate'
