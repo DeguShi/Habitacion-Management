@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import BottomSheet from './BottomSheet'
-import { confirmWaitingLead, createConfirmedReservation } from '@/lib/data/v2'
+import { confirmWaitingLead, createConfirmedReservation } from '@/lib/offline/v2-offline'
 import { getBookedRoomsByDay, MAX_ROOMS } from '@/lib/calendar-utils'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { AlertTriangle } from 'lucide-react'
