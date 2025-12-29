@@ -49,9 +49,10 @@ if (typeof window !== 'undefined' && (module as any).hot) {
 interface ClientShellV2Props {
     canWrite?: boolean
     demoMode?: boolean
+    offlineMode?: boolean
 }
 
-export default function ClientShellV2({ canWrite = false, demoMode = false }: ClientShellV2Props) {
+export default function ClientShellV2({ canWrite = false, demoMode = false, offlineMode = false }: ClientShellV2Props) {
     const effectiveCanWrite = canWrite && !demoMode
     const [activeTab, setActiveTab] = useState<TabId>('confirmadas')
 
@@ -66,6 +67,22 @@ export default function ClientShellV2({ canWrite = false, demoMode = false }: Cl
     // Dedupe guards
     const refreshingRef = useRef(false)
     const queuedRef = useRef(false)
+
+    /**
+     * Load records from IndexedDB (for offline mode)
+     */
+    const loadFromIDB = useCallback(async () => {
+        try {
+            const { db } = await import('@/lib/offline/db')
+            const localRecords = await db.reservations.toArray()
+            setRecords(localRecords)
+            if (DEBUG) console.log('[fetch] Loaded', localRecords.length, 'records from IndexedDB')
+            return localRecords
+        } catch (e) {
+            console.error('[fetch] Failed to load from IndexedDB:', e)
+            return []
+        }
+    }, [])
 
     /**
      * Deduped refresh: only one fetch in-flight, queued requests coalesce.
@@ -84,20 +101,46 @@ export default function ClientShellV2({ canWrite = false, demoMode = false }: Cl
         setError(null)
 
         try {
-            if (DEBUG) console.log('[fetch] Starting fetch...')
-            const next = await listV2Records() // Fetch ALL, normalized
-            setRecords(next)
-            if (DEBUG) console.log('[fetch] Fetched', next.length, 'records')
+            // In offline mode, only load from IDB
+            if (offlineMode || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+                await loadFromIDB()
+            } else {
+                if (DEBUG) console.log('[fetch] Starting fetch...')
+                const next = await listV2Records() // Fetch ALL, normalized
+                setRecords(next)
+                if (DEBUG) console.log('[fetch] Fetched', next.length, 'records')
+
+                // Also store in IndexedDB for offline use
+                try {
+                    const { db } = await import('@/lib/offline/db')
+                    const { normalizeRecord } = await import('@/lib/normalize')
+                    await db.transaction('rw', db.reservations, async () => {
+                        for (const record of next) {
+                            await db.reservations.put(record)
+                        }
+                    })
+                    if (DEBUG) console.log('[fetch] Cached to IndexedDB')
+                } catch (idbError) {
+                    console.warn('[fetch] Failed to cache to IndexedDB:', idbError)
+                }
+            }
 
             // Update viewingItem if it exists in the new records
             setViewingItem(prev => {
                 if (!prev) return null
-                const updated = next.find(r => r.id === prev.id)
+                const allRecords = records
+                const updated = allRecords.find(r => r.id === prev.id)
                 return updated || null
             })
         } catch (e: any) {
             console.error('Failed to fetch records:', e)
-            setError(e?.message || 'Erro ao carregar')
+            // On network error, try to load from IndexedDB as fallback
+            if (e.name === 'TypeError' || e.message?.includes('network')) {
+                console.log('[fetch] Network error, falling back to IndexedDB')
+                await loadFromIDB()
+            } else {
+                setError(e?.message || 'Erro ao carregar')
+            }
         } finally {
             setRefreshing(false)
             setLoadingInitial(false)
@@ -110,7 +153,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false }: Cl
                 void refreshRecords('queued')
             }
         }
-    }, [])
+    }, [offlineMode, loadFromIDB])
 
     // Load once on mount (with StrictMode guard)
     useEffect(() => {

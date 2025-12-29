@@ -176,7 +176,7 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                 <h2 className="text-lg font-semibold mb-4 text-gray-900">Aplicativo</h2>
 
                 <div className="grid gap-3">
-                    {/* Install Button */}
+                    {/* Install Instructions */}
                     {!isInstalled && !isStandalone && (
                         <>
                             {deferredPrompt ? (
@@ -195,18 +195,22 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                                     </div>
                                 </button>
                             ) : (
-                                <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                                <div className="mini-card p-4">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
                                             <Smartphone size={20} />
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="font-medium text-blue-900">Como instalar</div>
-                                            <div className="text-sm text-blue-700 mt-1 space-y-1">
-                                                <p><strong>Android/Chrome:</strong> Toque no menu ⋮ → "Adicionar à tela inicial"</p>
-                                                <p><strong>iPhone/Safari:</strong> Toque em Compartilhar → "Adicionar à Tela Inicial"</p>
-                                            </div>
-                                        </div>
+                                        <div className="font-medium text-gray-900">Instalar aplicativo</div>
+                                    </div>
+                                    <div className="text-sm text-gray-600 space-y-2 pl-11">
+                                        <p>
+                                            <span className="font-medium text-gray-700">Android:</span>{' '}
+                                            Menu ⋮ → Adicionar à tela inicial
+                                        </p>
+                                        <p>
+                                            <span className="font-medium text-gray-700">iPhone:</span>{' '}
+                                            Compartilhar → Adicionar à Tela Inicial
+                                        </p>
                                     </div>
                                 </div>
                             )}
@@ -214,21 +218,21 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                     )}
 
                     {isInstalled && (
-                        <div className="flex items-center gap-3 p-4 bg-green-50 rounded-xl">
+                        <div className="mini-card flex items-center gap-3 p-4">
                             <div className="p-2 rounded-lg bg-green-100 text-green-600">
                                 <Check size={20} />
                             </div>
                             <div className="flex-1">
-                                <div className="font-medium text-green-800">Aplicativo instalado</div>
-                                <div className="text-xs text-green-600">
-                                    Funciona offline após a primeira sincronização
+                                <div className="font-medium text-gray-900">Aplicativo instalado</div>
+                                <div className="text-xs text-gray-500">
+                                    Funciona offline após sincronização
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Sync Status */}
-                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="mini-card flex items-center gap-3 p-4">
                         <div className={`p-2 rounded-lg ${isOnline ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'}`}>
                             {isOnline ? <Wifi size={20} /> : <WifiOff size={20} />}
                         </div>
@@ -236,7 +240,7 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                             <div className="font-medium text-gray-900">
                                 {isOnline ? 'Online' : 'Offline'}
                                 {pendingCount > 0 && (
-                                    <span className="ml-2 text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">
+                                    <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
                                         {pendingCount} pendente{pendingCount > 1 ? 's' : ''}
                                     </span>
                                 )}
@@ -249,7 +253,7 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                             <button
                                 onClick={handleSyncNow}
                                 disabled={isSyncing}
-                                className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:opacity-50"
+                                className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
                                 title="Sincronizar agora"
                             >
                                 <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
