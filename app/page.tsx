@@ -60,8 +60,10 @@ export default function Page() {
           console.error('[Page] Sync error:', e)
         }
 
-        // Refresh the session
+        // Refresh the session and navigate home
         updateSession()
+        router.push('/')
+        router.refresh()
       }
     }
 

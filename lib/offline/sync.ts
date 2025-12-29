@@ -67,6 +67,9 @@ export async function executeSync(): Promise<void> {
         // Step 2: Full list reconcile
         await reconcileWithServer();
 
+        // Step 3: Cleanup orphaned pending entries
+        await cleanupOrphanedMeta();
+
         // Update sync state
         await db.syncState.update('global', {
             syncInProgress: false,
@@ -294,6 +297,30 @@ async function reconcileWithServer(): Promise<void> {
     }
 
     console.log('[Sync] Reconcile complete');
+}
+
+/**
+ * Cleanup orphaned localMeta entries
+ * Clears pending flag for entries that have no corresponding outbox operation
+ */
+async function cleanupOrphanedMeta(): Promise<void> {
+    console.log('[Sync] Cleaning up orphaned metadata...');
+
+    // Get all pending localMeta entries
+    const pendingMetas = await db.localMeta.where('isPending').equals(1).toArray();
+
+    for (const meta of pendingMetas) {
+        // Check if there's a corresponding outbox entry
+        const outboxEntry = await db.outbox.get(meta.entityId);
+
+        if (!outboxEntry) {
+            // No outbox entry means this was already synced or orphaned
+            console.log(`[Sync] Clearing orphaned pending flag for ${meta.entityId}`);
+            await db.localMeta.update(meta.entityId, { isPending: false });
+        }
+    }
+
+    console.log('[Sync] Orphan cleanup complete');
 }
 
 /**
