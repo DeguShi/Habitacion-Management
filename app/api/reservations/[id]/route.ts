@@ -35,7 +35,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!record) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
-    return NextResponse.json(record)
+    const response = NextResponse.json(record)
+    // Add ETag for demo records too
+    if (record.updatedAt) {
+      response.headers.set('ETag', `"${record.updatedAt}"`)
+    }
+    return response
   }
 
   const userId = userKeyFromEmail(email)
@@ -54,7 +59,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    return NextResponse.json(data)
+    const response = NextResponse.json(data)
+
+    // Add ETag header for optimistic concurrency (uses updatedAt as version)
+    const updatedAt = data.updatedAt as string
+    if (updatedAt) {
+      response.headers.set('ETag', `"${updatedAt}"`)
+    }
+
+    return response
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Failed to load' }, { status: 500 })
   }
@@ -69,11 +82,37 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!isAllowed(email)) return NextResponse.json({ error: 'Demo mode: read-only' }, { status: 403 })
 
   const userId = userKeyFromEmail(email)
+  const key = `users/${userId}/reservations/${params.id}.json`
+
+  // Check optimistic concurrency via If-Match header
+  const ifMatch = req.headers.get('If-Match')
+  if (ifMatch) {
+    const existing = await getJson<Record<string, unknown>>(key)
+    if (existing) {
+      // Parse If-Match header (strip quotes)
+      const expectedVersion = ifMatch.replace(/^"|"$/g, '')
+      const currentVersion = (existing.updatedAt as string) || ''
+
+      if (expectedVersion !== currentVersion) {
+        // Conflict: client's version is stale
+        return NextResponse.json(
+          { error: 'Conflict', current: existing },
+          { status: 409 }
+        )
+      }
+    }
+  }
 
   try {
     const body = await req.json()
     const updated = await updateReservation(userId, params.id, body)
-    return NextResponse.json(updated)
+
+    const response = NextResponse.json(updated)
+    // Add ETag header to response
+    if (updated.updatedAt) {
+      response.headers.set('ETag', `"${updated.updatedAt}"`)
+    }
+    return response
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Invalid payload' }, { status: 400 })
   }
@@ -87,6 +126,26 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!isAllowed(email)) return NextResponse.json({ error: 'Demo mode: read-only' }, { status: 403 })
 
   const userId = userKeyFromEmail(email)
+  const key = `users/${userId}/reservations/${params.id}.json`
+
+  // Check optimistic concurrency via If-Match header
+  const ifMatch = req.headers.get('If-Match')
+  if (ifMatch) {
+    const existing = await getJson<Record<string, unknown>>(key)
+    if (existing) {
+      // Parse If-Match header (strip quotes)
+      const expectedVersion = ifMatch.replace(/^"|"$/g, '')
+      const currentVersion = (existing.updatedAt as string) || ''
+
+      if (expectedVersion !== currentVersion) {
+        // Conflict: client's version is stale
+        return NextResponse.json(
+          { error: 'Conflict', current: existing },
+          { status: 409 }
+        )
+      }
+    }
+  }
 
   try {
     await deleteReservation(userId, params.id)

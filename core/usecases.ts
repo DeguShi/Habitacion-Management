@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { reservationInputSchema } from "@/lib/schema";
 import { calcNights, calcTotal } from "@/lib/pricing";
+import { normalizeBirthDate } from "@/lib/birthdate";
 import type { Reservation } from "./entities";
 import { getJson, putJson, listReservationKeys, deleteKey } from "@/lib/s3";
 
@@ -18,39 +19,7 @@ function addDaysISO(iso: string, days: number) {
   return `${yy}-${mm}-${dd}`;
 }
 
-/**
- * Normalize various BR-friendly birth date inputs to ISO (YYYY-MM-DD).
- * Accepts:
- *   - "DD/MM/YYYY"
- *   - "DD-MM-YYYY"
- *   - "DDMMYYYY" (8 digits)
- *   - empty / undefined → returns undefined
- */
-function normalizeBirthDate(raw: unknown): string | undefined {
-  if (raw == null) return undefined;
-  let s = String(raw).trim();
-  if (!s) return undefined;
-
-  // already ISO
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-
-  // DD/MM/YYYY or DD-MM-YYYY
-  let m = /^(\d{2})[\/-](\d{2})[\/-](\d{4})$/.exec(s);
-  if (m) {
-    const [, dd, mm, yyyy] = m;
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
-  // DDMMYYYY (8 digits)
-  if (/^\d{8}$/.test(s)) {
-    const dd = s.slice(0, 2);
-    const mm = s.slice(2, 4);
-    const yyyy = s.slice(4, 8);
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
-  return undefined;
-}
+// normalizeBirthDate is now imported from @/lib/birthdate
 
 export async function createReservation(
   userId: string,
