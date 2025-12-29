@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { formatBirthInput, formatBirthForDisplay } from '@/lib/birthdate'
 
 type ReservationItem = {
   id?: string
@@ -75,7 +76,7 @@ export default function ReservationEditor(props: {
         ...initial,
         manualLodgingEnabled: initial.manualLodgingEnabled ?? false,
         manualLodgingTotal: initial.manualLodgingTotal,
-        birthDate: initial.birthDate ?? '',
+        birthDate: formatBirthForDisplay(initial.birthDate),
       }
       setM(next)
       setPartyStr(String(initial.partySize ?? ''))
@@ -294,7 +295,7 @@ export default function ReservationEditor(props: {
               title="Fechar"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </button>
           </div>
@@ -527,12 +528,7 @@ function numOrNaN(s: string): number {
   return Number.isFinite(n) ? n : NaN
 }
 
-function formatBirthInput(raw: string) {
-  const digits = raw.replace(/\D/g, '').slice(0, 8)
-  if (digits.length <= 2) return digits
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
-}
+// formatBirthInput is now imported from @/lib/birthdate
 
 function isoToday() {
   const d = new Date()
@@ -542,9 +538,9 @@ function isoToday() {
   return `${y}-${m}-${day}`
 }
 function addDaysISO(iso: string, days: number) {
-  const [y,m,d] = iso.split('-').map(Number)
-  const dt = new Date(y, m-1, d + days)
-  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+  const [y, m, d] = iso.split('-').map(Number)
+  const dt = new Date(y, m - 1, d + days)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 function round2(n: number) { return Math.round(n * 100) / 100 }
 function formatBRL(n: number) {

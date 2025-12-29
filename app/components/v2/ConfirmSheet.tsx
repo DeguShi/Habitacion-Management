@@ -7,6 +7,7 @@ import { getBookedRoomsByDay, MAX_ROOMS } from '@/lib/calendar-utils'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { AlertTriangle } from 'lucide-react'
 import ToggleSwitch from '../ui/ToggleSwitch'
+import { formatBirthInput, formatBirthForDisplay } from '@/lib/birthdate'
 
 interface Prefill {
     guestName?: string
@@ -123,7 +124,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 setManualTotal(item.manualLodgingTotal ? String(item.manualLodgingTotal) : '')
                 setNotesInternal(item.notesInternal || '')
                 setNotesGuest(item.notesGuest || '')
-                setBirthDate(item.birthDate || '')
+                setBirthDate(formatBirthForDisplay(item.birthDate))
             } else {
                 // Create mode: reset to defaults with today/tomorrow and localStorage rates
                 // Use prefill if available (prefillKey in deps ensures fresh prefill is used)
@@ -301,13 +302,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
     const BRL = (n: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 
-    // Auto-format DD/MM/AAAA
-    function formatBirthInput(raw: string) {
-        const digits = raw.replace(/\D/g, '').slice(0, 8)
-        if (digits.length <= 2) return digits
-        if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
-        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
-    }
+    // formatBirthInput is now imported from @/lib/birthdate
 
     const title = isCreateMode ? 'Nova Reserva' : 'Confirmar Reserva'
     const submitLabel = isCreateMode ? 'Salvar reserva' : 'Confirmar'

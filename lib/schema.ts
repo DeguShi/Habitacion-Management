@@ -1,14 +1,15 @@
 import { z } from 'zod';
+import { normalizeBirthDate } from './birthdate';
 
+// Accepts multiple formats, normalizes to DD/MM/YYYY for storage
 const birthDateFlexible = z.preprocess((v) => {
   if (v === undefined || v === null) return undefined;
   const s = String(v).trim();
   if (s === '') return undefined;
-  return s;
+  // Normalize to DD/MM/YYYY (returns undefined if invalid)
+  return normalizeBirthDate(s);
 }, z.union([
-  z.string().regex(/^\d{4}-\d{2}-\d{2}$/),     // ISO: YYYY-MM-DD
-  z.string().regex(/^\d{2}[\/-]\d{2}[\/-]\d{4}$/), // DD/MM/YYYY or DD-MM-YYYY
-  z.string().regex(/^\d{8}$/),                 // DDMMYYYY (digits only)
+  z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/), // DD/MM/YYYY (canonical storage format)
   z.undefined(),
 ]));
 
