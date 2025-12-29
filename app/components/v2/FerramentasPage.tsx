@@ -178,23 +178,39 @@ export default function FerramentasPage({ canWrite }: FerramentasPageProps) {
                 <div className="grid gap-3">
                     {/* Install Button */}
                     {!isInstalled && !isStandalone && (
-                        <button
-                            onClick={handleInstallPWA}
-                            disabled={!deferredPrompt}
-                            className="mini-card w-full flex items-center gap-3 p-4 disabled:opacity-50"
-                        >
-                            <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
-                                <Smartphone size={20} />
-                            </div>
-                            <div className="flex-1 text-left">
-                                <div className="font-medium text-gray-900">Instalar aplicativo</div>
-                                <div className="text-xs text-gray-500">
-                                    {deferredPrompt
-                                        ? 'Adicionar à tela inicial'
-                                        : 'Use Safari → Compartilhar → Adicionar à Tela Inicial'}
+                        <>
+                            {deferredPrompt ? (
+                                <button
+                                    onClick={handleInstallPWA}
+                                    className="mini-card w-full flex items-center gap-3 p-4"
+                                >
+                                    <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+                                        <Smartphone size={20} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <div className="font-medium text-gray-900">Instalar aplicativo</div>
+                                        <div className="text-xs text-gray-500">
+                                            Adicionar à tela inicial
+                                        </div>
+                                    </div>
+                                </button>
+                            ) : (
+                                <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                                            <Smartphone size={20} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="font-medium text-blue-900">Como instalar</div>
+                                            <div className="text-sm text-blue-700 mt-1 space-y-1">
+                                                <p><strong>Android/Chrome:</strong> Toque no menu ⋮ → "Adicionar à tela inicial"</p>
+                                                <p><strong>iPhone/Safari:</strong> Toque em Compartilhar → "Adicionar à Tela Inicial"</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </button>
+                            )}
+                        </>
                     )}
 
                     {isInstalled && (
