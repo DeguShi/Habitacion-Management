@@ -1,10 +1,8 @@
 /**
- * Offline-First V2 Data Layer
+ * Hybrid V2 Data Layer (Online-first with Offline fallback)
  * 
- * Drop-in replacement for lib/data/v2.ts that works offline.
- * - Reads from IndexedDB (source of truth)
- * - Writes to IndexedDB + outbox queue
- * - Auto-syncs when online
+ * WHEN ONLINE: Uses API directly (original seamless behavior)
+ * WHEN OFFLINE: Uses IndexedDB + outbox queue
  */
 
 import type { ReservationV2, BookingStatus } from '@/core/entities_v2'
@@ -21,7 +19,10 @@ import {
 import { isOnline } from './network'
 import { triggerSync } from './sync'
 
-// Re-export the offline-first versions
+// Import original API functions for online mode
+import * as apiV2 from '@/lib/data/v2'
+
+// Re-export read functions (these go through ClientShellV2 anyway)
 export { listLocalReservations as listV2Records }
 export { getLocalReservation as getV2Record }
 
@@ -64,20 +65,42 @@ function todayISO(): string {
 }
 
 /**
- * Delete a reservation (offline-first)
+ * Delete a reservation (API when online, IDB when offline)
  */
 export async function deleteV2Record(id: string): Promise<void> {
-    await deleteLocalReservation(id)
+    if (isOnline()) {
+        // ONLINE: Use API directly, then update local cache
+        await apiV2.deleteV2Record(id)
+        // Also remove from local IDB
+        try {
+            await db.reservations.delete(id)
+            await db.localMeta.delete(id)
+        } catch (e) { /* ignore */ }
+    } else {
+        // OFFLINE: Queue for sync
+        await deleteLocalReservation(id)
+    }
 }
 
 /**
- * Update a reservation (offline-first)
+ * Update a reservation (API when online, IDB when offline)
  */
 export async function updateV2Record(
     id: string,
     data: Partial<ReservationV2> & { id: string }
 ): Promise<ReservationV2> {
-    return updateLocalReservation(id, data)
+    if (isOnline()) {
+        // ONLINE: Use API directly
+        const result = await apiV2.updateV2Record(id, data)
+        // Update local cache
+        try {
+            await db.reservations.put(result)
+        } catch (e) { /* ignore */ }
+        return result
+    } else {
+        // OFFLINE: Queue for sync
+        return updateLocalReservation(id, data)
+    }
 }
 
 /**
@@ -94,22 +117,25 @@ export interface CreateLeadInput {
 }
 
 /**
- * Create a waiting lead (offline-first)
+ * Create a waiting lead (API when online, IDB when offline)
  */
 export async function createWaitingLead(input: CreateLeadInput): Promise<ReservationV2> {
-    if (!input.guestName?.trim()) {
-        throw new Error('guestName is required')
+    if (isOnline()) {
+        // ONLINE: Use API
+        const result = await apiV2.createWaitingLead(input)
+        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        return result
     }
 
+    // OFFLINE: Use IDB
+    if (!input.guestName?.trim()) throw new Error('guestName is required')
     const today = todayISO()
-
     let checkOut = input.checkOut
     if (input.checkIn && !checkOut) {
         const d = new Date(input.checkIn)
         d.setDate(d.getDate() + 1)
         checkOut = d.toISOString().slice(0, 10)
     }
-
     return createLocalReservation({
         guestName: input.guestName.trim(),
         phone: input.phone?.trim(),
@@ -153,9 +179,17 @@ export interface CreateConfirmedInput {
 }
 
 /**
- * Create a confirmed reservation directly (offline-first)
+ * Create a confirmed reservation (API when online, IDB when offline)
  */
 export async function createConfirmedReservation(input: CreateConfirmedInput): Promise<ReservationV2> {
+    if (isOnline()) {
+        // ONLINE: Use API
+        const result = await apiV2.createConfirmedReservation(input)
+        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        return result
+    }
+
+    // OFFLINE: Use IDB
     if (!input.guestName?.trim()) throw new Error('guestName is required')
     if (!input.checkIn) throw new Error('checkIn is required')
     if (!input.checkOut) throw new Error('checkOut is required')
@@ -235,15 +269,22 @@ export interface ConfirmLeadInput {
 }
 
 /**
- * Confirm a waiting lead (offline-first)
+ * Confirm a waiting lead (API when online, IDB when offline)
  */
 export async function confirmWaitingLead(
     id: string,
     details: ConfirmLeadInput
 ): Promise<ReservationV2> {
+    if (isOnline()) {
+        // ONLINE: Use API
+        const result = await apiV2.confirmWaitingLead(id, details)
+        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        return result
+    }
+
+    // OFFLINE: Use IDB
     if (!details.checkIn || !details.checkOut) throw new Error('checkIn and checkOut required')
     if (details.checkOut <= details.checkIn) throw new Error('checkOut must be after checkIn')
-
     const current = await getLocalReservation(id)
     if (!current) throw new Error('Record not found')
 
@@ -298,12 +339,17 @@ export async function confirmWaitingLead(
 }
 
 /**
- * Add payment event (offline-first)
+ * Add payment event (API when online, IDB when offline)
  */
 export async function addPaymentEvent(
     id: string,
     event: { amount: number; date: string; method?: string; note?: string }
 ): Promise<ReservationV2> {
+    if (isOnline()) {
+        const result = await apiV2.addPaymentEvent(id, event)
+        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        return result
+    }
     if (typeof event.amount !== 'number' || event.amount <= 0) {
         throw new Error('amount must be a positive number')
     }
@@ -311,22 +357,32 @@ export async function addPaymentEvent(
 }
 
 /**
- * Remove payment event (offline-first)
+ * Remove payment event (API when online, IDB when offline)
  */
 export async function removePaymentEvent(
     id: string,
     eventId: string
 ): Promise<ReservationV2> {
+    if (isOnline()) {
+        const result = await apiV2.removePaymentEvent(id, eventId)
+        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        return result
+    }
     return removeLocalPaymentEvent(id, eventId)
 }
 
 /**
- * Update record status (offline-first)
+ * Update record status (API when online, IDB when offline)
  */
 export async function updateRecordStatus(
     id: string,
     status: BookingStatus
 ): Promise<ReservationV2> {
+    if (isOnline()) {
+        const result = await apiV2.updateRecordStatus(id, status)
+        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        return result
+    }
     const current = await getLocalReservation(id)
     if (!current) throw new Error('Record not found')
     return updateLocalReservation(id, { status })

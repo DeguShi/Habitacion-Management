@@ -3,7 +3,7 @@
 import { useState, useRef, useMemo } from 'react'
 import { Check, X, ChevronDown, ChevronUp, RotateCcw, AlertTriangle, Eye } from 'lucide-react'
 import type { ReservationV2 } from '@/core/entities_v2'
-import { rejectRecord, restoreToWaiting } from '@/lib/data/v2'
+import { rejectRecord, restoreToWaiting } from '@/lib/offline/v2-offline'
 import { getBookedRoomsByDay, MAX_ROOMS } from '@/lib/calendar-utils'
 import { useIsMobile } from '@/app/hooks/useIsMobile'
 
