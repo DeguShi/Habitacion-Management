@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { Plus } from 'lucide-react'
 import CalendarBoard from '@/app/components/CalendarBoard'
 import ReservationActions from './ReservationActions'
 import { RoomsChip } from '@/app/components/ui/Chip'
 import PageHeader from '@/app/components/ui/PageHeader'
 import type { ReservationV2 } from '@/core/entities_v2'
-import { formatDateKey } from '@/lib/calendar-utils'
+import { formatDateKey, MAX_ROOMS } from '@/lib/calendar-utils'
 
 interface ConfirmadasPageProps {
     canWrite: boolean
@@ -72,6 +73,14 @@ export default function ConfirmadasPage({
         [records, selectedDate]
     )
 
+    // Calculate rooms used on selected date (for showing create button)
+    const selectedRoomsUsed = useMemo(() => {
+        return selectedReservations.reduce((sum, r) => sum + (r.rooms ?? 1), 0)
+    }, [selectedReservations])
+
+    // Can create on selected date: is today or future, has room capacity, and canWrite
+    const canCreateOnSelectedDate = canWrite && selectedDate >= today && selectedRoomsUsed < MAX_ROOMS
+
     function handleMonthChange(newMonth: string) {
         setMonth(newMonth)
     }
@@ -102,12 +111,20 @@ export default function ConfirmadasPage({
                         />
                     </section>
 
-                    {/* Selected Date Reservations */}
-                    {selectedReservations.length > 0 && (
-                        <section className="card mb-4">
-                            <h2 className="text-sm font-semibold text-token-muted mb-2">
-                                Reservas em {formatBR(selectedDate)}
+                    {/* Selected Date Card - Always visible */}
+                    <section className="card mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <h2 className="text-sm font-semibold text-token-muted">
+                                {formatBR(selectedDate)}
                             </h2>
+                            {selectedReservations.length > 0 && (
+                                <span className="text-xs text-token-muted">
+                                    {selectedRoomsUsed}/{MAX_ROOMS} quartos
+                                </span>
+                            )}
+                        </div>
+
+                        {selectedReservations.length > 0 ? (
                             <div className="space-y-2">
                                 {selectedReservations.map((r) => (
                                     <div
@@ -132,8 +149,30 @@ export default function ConfirmadasPage({
                                     </div>
                                 ))}
                             </div>
-                        </section>
-                    )}
+                        ) : (
+                            <p className="text-sm text-token-muted mb-3">
+                                Nenhuma reserva para esta data
+                            </p>
+                        )}
+
+                        {/* Create button - only for today or future, with room capacity */}
+                        {canCreateOnSelectedDate && (
+                            <button
+                                onClick={() => onCreateReservation(selectedDate)}
+                                className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--eco-primary)] text-white font-medium hover:opacity-90 transition"
+                            >
+                                <Plus size={18} />
+                                {selectedReservations.length > 0 ? 'Adicionar Reserva' : 'Criar Reserva'}
+                            </button>
+                        )}
+
+                        {/* Past date message */}
+                        {selectedDate < today && (
+                            <p className="text-xs text-token-muted mt-2 text-center">
+                                Data passada — não é possível criar reservas
+                            </p>
+                        )}
+                    </section>
                 </div>
 
                 {/* Right: Upcoming (visible on desktop, scrolls on mobile) */}

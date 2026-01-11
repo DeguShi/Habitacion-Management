@@ -18,9 +18,10 @@ interface CreateLeadSheetProps {
     onCreated: () => void
     prefill?: Prefill
     prefillKey?: string // Changes when contact changes, triggers form reset
+    prefillCheckIn?: string // YYYY-MM-DD - pre-fill check-in date from calendar
 }
 
-export default function CreateLeadSheet({ open, onClose, onCreated, prefill, prefillKey }: CreateLeadSheetProps) {
+export default function CreateLeadSheet({ open, onClose, onCreated, prefill, prefillKey, prefillCheckIn }: CreateLeadSheetProps) {
     const [guestName, setGuestName] = useState('')
     const [phone, setPhone] = useState('')
     const [email, setEmail] = useState('')
@@ -38,14 +39,14 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
             setGuestName(prefill?.guestName || '')
             setPhone(prefill?.phone || '')
             setEmail(prefill?.email || '')
-            setCheckIn('')
+            setCheckIn(prefillCheckIn || '')
             setCheckOut('')
             setPartySize(String(prefill?.partySize || 1))
             setNotes(prefill?.notesInternal || '')
             setError('')
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, prefillKey])
+    }, [open, prefillKey, prefillCheckIn])
 
     function resetForm() {
         setGuestName('')

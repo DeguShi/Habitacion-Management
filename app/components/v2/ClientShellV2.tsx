@@ -217,6 +217,9 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     } | null>(null)
     const [prefillKey, setPrefillKey] = useState('')
 
+    // Calendar date for pre-filling check-in when creating from calendar
+    const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>(null)
+
     // Finalizadas sheet state (Phase 9.3)
     const [finalizeOkItem, setFinalizeOkItem] = useState<ReservationV2 | null>(null)
     const [finalizeIssueItem, setFinalizeIssueItem] = useState<ReservationV2 | null>(null)
@@ -255,9 +258,10 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
         setPendingDelete(null)
     }
 
-    // Create reservation for specific date
+    // Create reservation for specific date (from calendar)
     function handleCreateReservation(date: string) {
         if (!canWrite) return
+        setCalendarSelectedDate(date)
         setActionSheetOpen(true)
     }
 
@@ -456,14 +460,17 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                 onClose={() => {
                     setCreateLeadOpen(false)
                     setContactPrefill(null)
+                    setCalendarSelectedDate(null)
                 }}
                 onCreated={() => {
                     refreshRecords('create-lead')
                     setActiveTab('em-espera')
                     setContactPrefill(null)
+                    setCalendarSelectedDate(null)
                 }}
                 prefill={contactPrefill || undefined}
                 prefillKey={prefillKey}
+                prefillCheckIn={calendarSelectedDate || undefined}
             />
 
             <ConfirmSheet
@@ -472,16 +479,19 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                     setCreateConfirmedOpen(false)
                     setConfirmingItem(null)
                     setContactPrefill(null)
+                    setCalendarSelectedDate(null)
                 }}
                 onConfirmed={() => {
                     refreshRecords('confirm')
                     setActiveTab('confirmadas')
                     setContactPrefill(null)
+                    setCalendarSelectedDate(null)
                 }}
                 item={confirmingItem}
                 confirmedRecords={confirmedRecords}
                 prefill={contactPrefill || undefined}
                 prefillKey={prefillKey}
+                prefillCheckIn={calendarSelectedDate || undefined}
             />
 
             <EditReservationSheet
