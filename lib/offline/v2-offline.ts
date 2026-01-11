@@ -71,10 +71,11 @@ export async function deleteV2Record(id: string): Promise<void> {
     if (isOnline()) {
         // ONLINE: Use API directly, then update local cache
         await apiV2.deleteV2Record(id)
-        // Also remove from local IDB
+        // Clear from local IDB and any pending outbox
         try {
             await db.reservations.delete(id)
             await db.localMeta.delete(id)
+            await db.outbox.delete(id) // Clear any pending operation
         } catch (e) { /* ignore */ }
     } else {
         // OFFLINE: Queue for sync
@@ -92,9 +93,11 @@ export async function updateV2Record(
     if (isOnline()) {
         // ONLINE: Use API directly
         const result = await apiV2.updateV2Record(id, data)
-        // Update local cache
+        // Update local cache and clear any pending outbox
         try {
             await db.reservations.put(result)
+            await db.localMeta.update(id, { isPending: false })
+            await db.outbox.delete(id) // Clear any pending operation
         } catch (e) { /* ignore */ }
         return result
     } else {
@@ -123,7 +126,10 @@ export async function createWaitingLead(input: CreateLeadInput): Promise<Reserva
     if (isOnline()) {
         // ONLINE: Use API
         const result = await apiV2.createWaitingLead(input)
-        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        try {
+            await db.reservations.put(result)
+            await db.outbox.delete(result.id) // Clear any orphaned outbox entry
+        } catch (e) { /* ignore */ }
         return result
     }
 
@@ -185,7 +191,10 @@ export async function createConfirmedReservation(input: CreateConfirmedInput): P
     if (isOnline()) {
         // ONLINE: Use API
         const result = await apiV2.createConfirmedReservation(input)
-        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        try {
+            await db.reservations.put(result)
+            await db.outbox.delete(result.id) // Clear any orphaned outbox entry
+        } catch (e) { /* ignore */ }
         return result
     }
 
@@ -278,7 +287,11 @@ export async function confirmWaitingLead(
     if (isOnline()) {
         // ONLINE: Use API
         const result = await apiV2.confirmWaitingLead(id, details)
-        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        try {
+            await db.reservations.put(result)
+            await db.outbox.delete(id) // Clear any pending outbox
+            await db.localMeta.update(id, { isPending: false })
+        } catch (e) { /* ignore */ }
         return result
     }
 
@@ -347,7 +360,11 @@ export async function addPaymentEvent(
 ): Promise<ReservationV2> {
     if (isOnline()) {
         const result = await apiV2.addPaymentEvent(id, event)
-        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        try {
+            await db.reservations.put(result)
+            await db.outbox.delete(id) // Clear any pending outbox
+            await db.localMeta.update(id, { isPending: false })
+        } catch (e) { /* ignore */ }
         return result
     }
     if (typeof event.amount !== 'number' || event.amount <= 0) {
@@ -365,7 +382,11 @@ export async function removePaymentEvent(
 ): Promise<ReservationV2> {
     if (isOnline()) {
         const result = await apiV2.removePaymentEvent(id, eventId)
-        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        try {
+            await db.reservations.put(result)
+            await db.outbox.delete(id) // Clear any pending outbox
+            await db.localMeta.update(id, { isPending: false })
+        } catch (e) { /* ignore */ }
         return result
     }
     return removeLocalPaymentEvent(id, eventId)
@@ -380,7 +401,11 @@ export async function updateRecordStatus(
 ): Promise<ReservationV2> {
     if (isOnline()) {
         const result = await apiV2.updateRecordStatus(id, status)
-        try { await db.reservations.put(result) } catch (e) { /* ignore */ }
+        try {
+            await db.reservations.put(result)
+            await db.outbox.delete(id) // Clear any pending outbox
+            await db.localMeta.update(id, { isPending: false })
+        } catch (e) { /* ignore */ }
         return result
     }
     const current = await getLocalReservation(id)
