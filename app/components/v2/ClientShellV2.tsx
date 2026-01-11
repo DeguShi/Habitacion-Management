@@ -20,7 +20,8 @@ import type { ReservationV2 } from '@/core/entities_v2'
 import type { Contact } from '@/lib/contacts'
 import { getBestNotesForContact } from '@/lib/contacts'
 import { getFinishedPending, appendInternalNote } from '@/lib/finished-utils'
-import { deleteV2Record, listV2Records, updateV2Record } from '@/lib/data/v2'
+import { deleteV2Record } from '@/lib/offline/v2-offline'
+import { listV2Records, updateV2Record } from '@/lib/data/v2'
 
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_FETCH === '1'
 
@@ -49,9 +50,10 @@ if (typeof window !== 'undefined' && (module as any).hot) {
 interface ClientShellV2Props {
     canWrite?: boolean
     demoMode?: boolean
+    offlineMode?: boolean
 }
 
-export default function ClientShellV2({ canWrite = false, demoMode = false }: ClientShellV2Props) {
+export default function ClientShellV2({ canWrite = false, demoMode = false, offlineMode = false }: ClientShellV2Props) {
     const effectiveCanWrite = canWrite && !demoMode
     const [activeTab, setActiveTab] = useState<TabId>('confirmadas')
 
@@ -68,7 +70,40 @@ export default function ClientShellV2({ canWrite = false, demoMode = false }: Cl
     const queuedRef = useRef(false)
 
     /**
-     * Deduped refresh: only one fetch in-flight, queued requests coalesce.
+     * Load records from IndexedDB (for offline mode only)
+     */
+    const loadFromIDB = useCallback(async () => {
+        try {
+            const { db } = await import('@/lib/offline/db')
+            const localRecords = await db.reservations.toArray()
+            setRecords(localRecords)
+            if (DEBUG) console.log('[fetch] Loaded', localRecords.length, 'records from IndexedDB')
+            return localRecords
+        } catch (e) {
+            console.error('[fetch] Failed to load from IndexedDB:', e)
+            return []
+        }
+    }, [])
+
+    /**
+     * Cache records to IndexedDB (for offline access later)
+     */
+    const cacheToIDB = useCallback(async (records: ReservationV2[]) => {
+        try {
+            const { db } = await import('@/lib/offline/db')
+            await db.transaction('rw', db.reservations, async () => {
+                for (const record of records) {
+                    await db.reservations.put(record)
+                }
+            })
+            if (DEBUG) console.log('[cache] Cached', records.length, 'records to IndexedDB')
+        } catch (e) {
+            console.warn('[cache] Failed to cache to IndexedDB:', e)
+        }
+    }, [])
+
+    /**
+     * Refresh records: API when online, IDB when offline
      */
     const refreshRecords = useCallback(async (reason?: string) => {
         if (DEBUG) console.log('[fetch] refreshRecords called:', reason || '(no reason)')
@@ -83,34 +118,50 @@ export default function ClientShellV2({ canWrite = false, demoMode = false }: Cl
         setRefreshing(true)
         setError(null)
 
-        try {
-            if (DEBUG) console.log('[fetch] Starting fetch...')
-            const next = await listV2Records() // Fetch ALL, normalized
-            setRecords(next)
-            if (DEBUG) console.log('[fetch] Fetched', next.length, 'records')
+        const isCurrentlyOffline = offlineMode || (typeof navigator !== 'undefined' && !navigator.onLine)
 
-            // Update viewingItem if it exists in the new records
-            setViewingItem(prev => {
-                if (!prev) return null
-                const updated = next.find(r => r.id === prev.id)
-                return updated || null
-            })
+        try {
+            if (isCurrentlyOffline) {
+                // OFFLINE: Load from IndexedDB
+                await loadFromIDB()
+            } else {
+                // ONLINE: Fetch from API (original behavior)
+                if (DEBUG) console.log('[fetch] Fetching from API...')
+                const next = await listV2Records()
+                setRecords(next)
+                if (DEBUG) console.log('[fetch] Got', next.length, 'records from API')
+
+                // Cache to IDB for offline use (non-blocking)
+                cacheToIDB(next)
+
+                // Update viewingItem if it exists
+                setViewingItem(prev => {
+                    if (!prev) return null
+                    const updated = next.find(r => r.id === prev.id)
+                    return updated || null
+                })
+            }
         } catch (e: any) {
             console.error('Failed to fetch records:', e)
-            setError(e?.message || 'Erro ao carregar')
+            // On network error when supposedly online, fall back to IDB
+            if (e.name === 'TypeError' || e.message?.includes('network') || e.message?.includes('fetch')) {
+                console.log('[fetch] Network error, falling back to IndexedDB')
+                await loadFromIDB()
+            } else {
+                setError(e?.message || 'Erro ao carregar')
+            }
         } finally {
             setRefreshing(false)
             setLoadingInitial(false)
             refreshingRef.current = false
 
-            // If another refresh was requested while we were fetching, do it now
             if (queuedRef.current) {
                 queuedRef.current = false
                 if (DEBUG) console.log('[fetch] Processing queued refresh')
                 void refreshRecords('queued')
             }
         }
-    }, [])
+    }, [offlineMode, loadFromIDB, cacheToIDB])
 
     // Load once on mount (with StrictMode guard)
     useEffect(() => {
@@ -166,6 +217,9 @@ export default function ClientShellV2({ canWrite = false, demoMode = false }: Cl
     } | null>(null)
     const [prefillKey, setPrefillKey] = useState('')
 
+    // Calendar date for pre-filling check-in when creating from calendar
+    const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>(null)
+
     // Finalizadas sheet state (Phase 9.3)
     const [finalizeOkItem, setFinalizeOkItem] = useState<ReservationV2 | null>(null)
     const [finalizeIssueItem, setFinalizeIssueItem] = useState<ReservationV2 | null>(null)
@@ -204,9 +258,10 @@ export default function ClientShellV2({ canWrite = false, demoMode = false }: Cl
         setPendingDelete(null)
     }
 
-    // Create reservation for specific date
+    // Create reservation for specific date (from calendar)
     function handleCreateReservation(date: string) {
         if (!canWrite) return
+        setCalendarSelectedDate(date)
         setActionSheetOpen(true)
     }
 
@@ -405,14 +460,17 @@ export default function ClientShellV2({ canWrite = false, demoMode = false }: Cl
                 onClose={() => {
                     setCreateLeadOpen(false)
                     setContactPrefill(null)
+                    setCalendarSelectedDate(null)
                 }}
                 onCreated={() => {
                     refreshRecords('create-lead')
                     setActiveTab('em-espera')
                     setContactPrefill(null)
+                    setCalendarSelectedDate(null)
                 }}
                 prefill={contactPrefill || undefined}
                 prefillKey={prefillKey}
+                prefillCheckIn={calendarSelectedDate || undefined}
             />
 
             <ConfirmSheet
@@ -421,16 +479,19 @@ export default function ClientShellV2({ canWrite = false, demoMode = false }: Cl
                     setCreateConfirmedOpen(false)
                     setConfirmingItem(null)
                     setContactPrefill(null)
+                    setCalendarSelectedDate(null)
                 }}
                 onConfirmed={() => {
                     refreshRecords('confirm')
                     setActiveTab('confirmadas')
                     setContactPrefill(null)
+                    setCalendarSelectedDate(null)
                 }}
                 item={confirmingItem}
                 confirmedRecords={confirmedRecords}
                 prefill={contactPrefill || undefined}
                 prefillKey={prefillKey}
+                prefillCheckIn={calendarSelectedDate || undefined}
             />
 
             <EditReservationSheet

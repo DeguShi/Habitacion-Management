@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import BottomSheet from './BottomSheet'
-import { updateV2Record, addPaymentEvent, removePaymentEvent } from '@/lib/data/v2'
+import { updateV2Record, addPaymentEvent, removePaymentEvent } from '@/lib/offline/v2-offline'
 import type { ReservationV2, PaymentEvent } from '@/core/entities_v2'
 import ToggleSwitch from '../ui/ToggleSwitch'
+import { formatBirthInput, formatBirthForDisplay } from '@/lib/birthdate'
 
 interface EditReservationSheetProps {
     open: boolean
@@ -74,7 +75,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
             setExtraSpend(String(item.extraSpend || 0))
             setNotesInternal(item.notesInternal || '')
             setNotesGuest(item.notesGuest || '')
-            setBirthDate(item.birthDate || '')
+            setBirthDate(formatBirthForDisplay(item.birthDate))
             setPaymentEvents(item.payment?.events || [])
             setError('')
             setSyncing(false)
@@ -212,13 +213,7 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
     const BRL = (n: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 
-    // Auto-format DD/MM/AAAA
-    function formatBirthInput(raw: string) {
-        const digits = raw.replace(/\D/g, '').slice(0, 8)
-        if (digits.length <= 2) return digits
-        if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
-        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
-    }
+    // formatBirthInput is now imported from @/lib/birthdate
 
     return (
         <BottomSheet open={open} onClose={onClose} title="Editar Reserva">

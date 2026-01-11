@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import BottomSheet from './BottomSheet'
-import { confirmWaitingLead, createConfirmedReservation } from '@/lib/data/v2'
+import { confirmWaitingLead, createConfirmedReservation } from '@/lib/offline/v2-offline'
 import { getBookedRoomsByDay, MAX_ROOMS } from '@/lib/calendar-utils'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { AlertTriangle } from 'lucide-react'
 import ToggleSwitch from '../ui/ToggleSwitch'
+import { formatBirthInput, formatBirthForDisplay } from '@/lib/birthdate'
 
 interface Prefill {
     guestName?: string
@@ -25,6 +26,7 @@ interface ConfirmSheetProps {
     confirmedRecords?: ReservationV2[]
     prefill?: Prefill
     prefillKey?: string // Changes when contact changes, triggers form reset
+    prefillCheckIn?: string // YYYY-MM-DD - pre-fill check-in date from calendar
 }
 
 const PAYMENT_METHODS = ['Pix', 'Dinheiro', 'Cartão', 'Outro']
@@ -75,7 +77,7 @@ function setStoredRate(key: string, value: string): void {
     }
 }
 
-export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirmedRecords = [], prefill, prefillKey }: ConfirmSheetProps) {
+export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirmedRecords = [], prefill, prefillKey, prefillCheckIn }: ConfirmSheetProps) {
     // Determine if we're in create mode (no existing item)
     const isCreateMode = item === null
 
@@ -123,15 +125,20 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 setManualTotal(item.manualLodgingTotal ? String(item.manualLodgingTotal) : '')
                 setNotesInternal(item.notesInternal || '')
                 setNotesGuest(item.notesGuest || '')
-                setBirthDate(item.birthDate || '')
+                setBirthDate(formatBirthForDisplay(item.birthDate))
             } else {
                 // Create mode: reset to defaults with today/tomorrow and localStorage rates
                 // Use prefill if available (prefillKey in deps ensures fresh prefill is used)
+                // Use prefillCheckIn from calendar if available
                 setGuestName(prefill?.guestName || '')
                 setPhone(prefill?.phone || '')
                 setEmail(prefill?.email || '')
-                setCheckIn(todayLocal())
-                setCheckOut(tomorrowLocal())
+                const checkInDate = prefillCheckIn || todayLocal()
+                setCheckIn(checkInDate)
+                // Set checkout to day after checkin
+                const ciDate = new Date(checkInDate + 'T00:00:00')
+                ciDate.setDate(ciDate.getDate() + 1)
+                setCheckOut(`${ciDate.getFullYear()}-${String(ciDate.getMonth() + 1).padStart(2, '0')}-${String(ciDate.getDate()).padStart(2, '0')}`)
                 setPartySize(String(prefill?.partySize || 1))
                 setRooms(String(prefill?.rooms || 1))
                 setNightlyRate(getStoredRate(LS_NIGHTLY_RATE, '250'))
@@ -149,7 +156,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
             setError('')
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [item, open, prefillKey])
+    }, [item, open, prefillKey, prefillCheckIn])
 
     // Auto-set checkOut if checkIn changes and checkOut is before checkIn
     useEffect(() => {
@@ -301,13 +308,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
     const BRL = (n: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 
-    // Auto-format DD/MM/AAAA
-    function formatBirthInput(raw: string) {
-        const digits = raw.replace(/\D/g, '').slice(0, 8)
-        if (digits.length <= 2) return digits
-        if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
-        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
-    }
+    // formatBirthInput is now imported from @/lib/birthdate
 
     const title = isCreateMode ? 'Nova Reserva' : 'Confirmar Reserva'
     const submitLabel = isCreateMode ? 'Salvar reserva' : 'Confirmar'

@@ -13,17 +13,8 @@ import {
     downloadBlob,
     shareFile
 } from '@/lib/confirmation-card'
+import { formatBirthForDisplay } from '@/lib/birthdate'
 
-// Formats birthDate for display (handles both DD/MM/YYYY and ISO formats)
-function formatBirthForView(s: string) {
-    if (!s) return ''
-    // If ISO format (YYYY-MM-DD), convert to DD/MM/YYYY
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-        const [y, m, d] = s.split('-')
-        return `${d}/${m}/${y}`
-    }
-    return s
-}
 
 interface ViewReservationSheetProps {
     open: boolean
@@ -129,7 +120,7 @@ export default function ViewReservationSheet({
                         <p className="text-sm text-muted">{record.email}</p>
                     )}
                     {record.birthDate && (
-                        <p className="text-sm text-muted">Aniversário: {formatBirthForView(record.birthDate)}</p>
+                        <p className="text-sm text-muted">Aniversário: {formatBirthForDisplay(record.birthDate)}</p>
                     )}
                 </div>
 
