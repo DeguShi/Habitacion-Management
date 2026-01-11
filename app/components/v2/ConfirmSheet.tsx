@@ -26,6 +26,7 @@ interface ConfirmSheetProps {
     confirmedRecords?: ReservationV2[]
     prefill?: Prefill
     prefillKey?: string // Changes when contact changes, triggers form reset
+    prefillCheckIn?: string // YYYY-MM-DD - pre-fill check-in date from calendar
 }
 
 const PAYMENT_METHODS = ['Pix', 'Dinheiro', 'Cartão', 'Outro']
@@ -76,7 +77,7 @@ function setStoredRate(key: string, value: string): void {
     }
 }
 
-export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirmedRecords = [], prefill, prefillKey }: ConfirmSheetProps) {
+export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirmedRecords = [], prefill, prefillKey, prefillCheckIn }: ConfirmSheetProps) {
     // Determine if we're in create mode (no existing item)
     const isCreateMode = item === null
 
@@ -128,11 +129,16 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
             } else {
                 // Create mode: reset to defaults with today/tomorrow and localStorage rates
                 // Use prefill if available (prefillKey in deps ensures fresh prefill is used)
+                // Use prefillCheckIn from calendar if available
                 setGuestName(prefill?.guestName || '')
                 setPhone(prefill?.phone || '')
                 setEmail(prefill?.email || '')
-                setCheckIn(todayLocal())
-                setCheckOut(tomorrowLocal())
+                const checkInDate = prefillCheckIn || todayLocal()
+                setCheckIn(checkInDate)
+                // Set checkout to day after checkin
+                const ciDate = new Date(checkInDate + 'T00:00:00')
+                ciDate.setDate(ciDate.getDate() + 1)
+                setCheckOut(`${ciDate.getFullYear()}-${String(ciDate.getMonth() + 1).padStart(2, '0')}-${String(ciDate.getDate()).padStart(2, '0')}`)
                 setPartySize(String(prefill?.partySize || 1))
                 setRooms(String(prefill?.rooms || 1))
                 setNightlyRate(getStoredRate(LS_NIGHTLY_RATE, '250'))
@@ -150,7 +156,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
             setError('')
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [item, open, prefillKey])
+    }, [item, open, prefillKey, prefillCheckIn])
 
     // Auto-set checkOut if checkIn changes and checkOut is before checkIn
     useEffect(() => {
