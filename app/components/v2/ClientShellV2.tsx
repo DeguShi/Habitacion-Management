@@ -241,6 +241,10 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
 
     // Birthday notifications sheet state
     const [birthdaySheetOpen, setBirthdaySheetOpen] = useState(false)
+    const [dismissedBirthdayCount, setDismissedBirthdayCount] = useState(0)
+
+    // Compute visible birthday count for badge
+    const visibleBirthdayCount = Math.max(0, birthdayContacts.length - dismissedBirthdayCount)
 
     // ============================================================
     // Handlers
@@ -415,9 +419,9 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                     aria-label="Aniversários da semana"
                 >
                     <Bell size={20} className="eco-text" />
-                    {birthdayContacts.length > 0 && (
+                    {visibleBirthdayCount > 0 && (
                         <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
-                            {birthdayContacts.length > 9 ? '9+' : birthdayContacts.length}
+                            {visibleBirthdayCount > 9 ? '9+' : visibleBirthdayCount}
                         </span>
                     )}
                 </button>
@@ -579,6 +583,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                 open={birthdaySheetOpen}
                 onClose={() => setBirthdaySheetOpen(false)}
                 contacts={birthdayContacts}
+                onDismissedChange={setDismissedBirthdayCount}
             />
         </div>
     )
