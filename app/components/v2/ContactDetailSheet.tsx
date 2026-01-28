@@ -42,12 +42,14 @@ function isCleanPhoneForWhatsApp(phone: string | undefined): boolean {
 
 /**
  * Builds WhatsApp link for a phone number.
- * Adds +55 Brazil country code if not present.
+ * Uses number as-is if it already has country code (12+ digits).
+ * Adds +54 Argentina country code if not present (most clients are Argentine).
  */
 function buildWhatsAppLink(phone: string): string {
     let digits = phone.replace(/\D/g, '')
+    // If 10-11 digits, assume Argentine number without country code
     if (digits.length <= 11) {
-        digits = '55' + digits
+        digits = '54' + digits
     }
     return `https://wa.me/${digits}`
 }
