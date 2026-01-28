@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { Bell } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import BottomNav, { type TabId } from '@/app/components/v2/BottomNav'
 import ConfirmadasPage from '@/app/components/v2/ConfirmadasPage'
 import EmEsperaPage from '@/app/components/v2/EmEsperaPage'
@@ -16,9 +18,10 @@ import ContactDetailSheet from '@/app/components/v2/ContactDetailSheet'
 import FinalizeOkSheet from '@/app/components/v2/FinalizeOkSheet'
 import FinalizeIssueSheet from '@/app/components/v2/FinalizeIssueSheet'
 import DeleteConfirmDialog from '@/app/components/v2/DeleteConfirmDialog'
+import BirthdayNotificationsSheet from '@/app/components/v2/BirthdayNotificationsSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
-import type { Contact } from '@/lib/contacts'
-import { getBestNotesForContact } from '@/lib/contacts'
+import { deriveContacts, getBestNotesForContact, type Contact } from '@/lib/contacts'
+import { getContactsWithBirthdayThisWeek } from '@/lib/birthdays'
 import { getFinishedPending, appendInternalNote } from '@/lib/finished-utils'
 import { deleteV2Record } from '@/lib/offline/v2-offline'
 import { listV2Records, updateV2Record } from '@/lib/data/v2'
@@ -194,6 +197,18 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
         [records]
     )
 
+    // Derive contacts once (centralized, avoid re-deriving in child pages)
+    const contacts = useMemo(
+        () => deriveContacts(records),
+        [records]
+    )
+
+    // Compute birthdays for current week
+    const birthdayContacts = useMemo(
+        () => getContactsWithBirthdayThisWeek(contacts),
+        [contacts]
+    )
+
     // ============================================================
     // Sheet States
     // ============================================================
@@ -223,6 +238,9 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     // Finalizadas sheet state (Phase 9.3)
     const [finalizeOkItem, setFinalizeOkItem] = useState<ReservationV2 | null>(null)
     const [finalizeIssueItem, setFinalizeIssueItem] = useState<ReservationV2 | null>(null)
+
+    // Birthday notifications sheet state
+    const [birthdaySheetOpen, setBirthdaySheetOpen] = useState(false)
 
     // ============================================================
     // Handlers
@@ -390,6 +408,20 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                     </div>
                 )}
 
+                {/* Birthday Bell - Fixed position to appear next to navbar exit */}
+                <button
+                    onClick={() => setBirthdaySheetOpen(true)}
+                    className="fixed top-3 right-16 z-50 p-2 rounded-lg hover:bg-[var(--eco-surface-alt)] transition-colors"
+                    aria-label="Aniversários da semana"
+                >
+                    <Bell size={20} className="eco-text" />
+                    {birthdayContacts.length > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                            {birthdayContacts.length > 9 ? '9+' : birthdayContacts.length}
+                        </span>
+                    )}
+                </button>
+
                 {activeTab === 'confirmadas' && (
                     <ConfirmadasPage
                         canWrite={effectiveCanWrite}
@@ -418,6 +450,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                 {activeTab === 'contatos' && (
                     <ContatosPage
                         records={records}
+                        contacts={contacts}
                         loading={loadingInitial}
                         onViewContact={handleViewContact}
                         onViewReservation={handleViewReservation}
@@ -540,6 +573,12 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                 guestName={pendingDelete?.guestName || ''}
                 onConfirm={confirmDelete}
                 onCancel={() => setPendingDelete(null)}
+            />
+
+            <BirthdayNotificationsSheet
+                open={birthdaySheetOpen}
+                onClose={() => setBirthdaySheetOpen(false)}
+                contacts={birthdayContacts}
             />
         </div>
     )
