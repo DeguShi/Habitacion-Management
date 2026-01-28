@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Phone, Mail, Calendar, Users, Plus, Clock, XCircle, CheckCircle, Cake } from 'lucide-react'
+import { Phone, Mail, Calendar, Users, Plus, Clock, XCircle, CheckCircle, Cake, MessageCircle } from 'lucide-react'
 import BottomSheet from './BottomSheet'
 import type { Contact } from '@/lib/contacts'
 import type { ReservationV2 } from '@/core/entities_v2'
@@ -28,6 +28,28 @@ function formatBR(iso: string) {
 function formatMoney(n: number | undefined) {
     if (n == null) return '—'
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
+}
+
+/**
+ * Checks if a phone number is clean enough for WhatsApp link.
+ * Must be 10-13 digits (Brazilian patterns).
+ */
+function isCleanPhoneForWhatsApp(phone: string | undefined): boolean {
+    if (!phone) return false
+    const digits = phone.replace(/\D/g, '')
+    return digits.length >= 10 && digits.length <= 13
+}
+
+/**
+ * Builds WhatsApp link for a phone number.
+ * Adds +55 Brazil country code if not present.
+ */
+function buildWhatsAppLink(phone: string): string {
+    let digits = phone.replace(/\D/g, '')
+    if (digits.length <= 11) {
+        digits = '55' + digits
+    }
+    return `https://wa.me/${digits}`
 }
 
 export default function ContactDetailSheet({
@@ -93,6 +115,17 @@ export default function ContactDetailSheet({
                                 <a href={`tel:${contact.phone}`} className="hover:text-primary">
                                     {contact.phone}
                                 </a>
+                                {isCleanPhoneForWhatsApp(contact.phone) && (
+                                    <a
+                                        href={buildWhatsAppLink(contact.phone)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="ml-auto p-1.5 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
+                                        aria-label="Enviar WhatsApp"
+                                    >
+                                        <MessageCircle size={16} />
+                                    </a>
+                                )}
                             </div>
                         )}
                         {contact.email && (

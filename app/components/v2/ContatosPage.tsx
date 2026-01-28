@@ -1,14 +1,16 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ChevronRight, Clock, Search, X, Phone, Mail, Calendar, Users, Plus } from 'lucide-react'
+import { ChevronRight, Clock, Search, X, Phone, Mail, Calendar, Users, Plus, Cake, Filter, MessageCircle } from 'lucide-react'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { deriveContacts, searchContacts, type Contact } from '@/lib/contacts'
+import { filterContactsByBirthdayRange, formatDDMMInput, isValidDDMM } from '@/lib/birthdays'
 import { useIsMobile } from '@/app/hooks/useIsMobile'
 import PageHeader from '@/app/components/ui/PageHeader'
 
 interface ContatosPageProps {
     records: ReservationV2[]
+    contacts?: Contact[] // Optional: if provided, skip deriveContacts
     loading: boolean
     onViewContact: (contact: Contact, reservations: ReservationV2[]) => void
     onViewReservation?: (r: ReservationV2) => void
@@ -26,8 +28,23 @@ function formatMoney(n: number | undefined) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 }
 
+function isCleanPhoneForWhatsApp(phone: string | undefined): boolean {
+    if (!phone) return false
+    const digits = phone.replace(/\D/g, '')
+    return digits.length >= 10 && digits.length <= 13
+}
+
+function buildWhatsAppLink(phone: string): string {
+    let digits = phone.replace(/\D/g, '')
+    if (digits.length <= 11) {
+        digits = '55' + digits
+    }
+    return `https://wa.me/${digits}`
+}
+
 export default function ContatosPage({
     records,
+    contacts: providedContacts,
     loading,
     onViewContact,
     onViewReservation,
@@ -36,15 +53,34 @@ export default function ContatosPage({
 }: ContatosPageProps) {
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [birthdayFilterStart, setBirthdayFilterStart] = useState('')
+    const [birthdayFilterEnd, setBirthdayFilterEnd] = useState('')
+    const [showBirthdayFilter, setShowBirthdayFilter] = useState(false)
     const isMobile = useIsMobile()
 
-    // Derive contacts from records
-    const allContacts = useMemo(() => deriveContacts(records), [records])
+    // Use provided contacts or derive (fallback for backward compat)
+    const allContacts = useMemo(
+        () => providedContacts ?? deriveContacts(records),
+        [providedContacts, records]
+    )
 
-    // Filter contacts by search query
+    // Chain filters: birthday range → search
     const contacts = useMemo(() => {
-        return searchContacts(allContacts, searchQuery)
-    }, [allContacts, searchQuery])
+        // Apply birthday filter first (only if both fields valid)
+        let filtered = allContacts
+        if (isValidDDMM(birthdayFilterStart) && isValidDDMM(birthdayFilterEnd)) {
+            filtered = filterContactsByBirthdayRange(filtered, birthdayFilterStart, birthdayFilterEnd)
+        }
+        // Then apply search
+        return searchContacts(filtered, searchQuery)
+    }, [allContacts, birthdayFilterStart, birthdayFilterEnd, searchQuery])
+
+    const isBirthdayFilterActive = isValidDDMM(birthdayFilterStart) && isValidDDMM(birthdayFilterEnd)
+
+    function clearBirthdayFilter() {
+        setBirthdayFilterStart('')
+        setBirthdayFilterEnd('')
+    }
 
     // Get selected contact and their reservations
     const selectedContact = contacts.find(c => c.id === selectedId) || null
@@ -77,30 +113,87 @@ export default function ContatosPage({
                     <section className="card">
                         <PageHeader title="Contatos" subtitle={`${allContacts.length} contatos`} />
 
-                        {/* Search Input */}
-                        <div className="relative mb-4">
-                            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 eco-muted" />
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Buscar por nome, telefone ou email"
-                                className="input-eco pl-10 pr-10"
-                            />
-                            {searchQuery && (
-                                <button
-                                    onClick={() => setSearchQuery('')}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 eco-muted hover:eco-text transition-colors"
-                                >
-                                    <X size={18} />
-                                </button>
-                            )}
+                        {/* Search Input with Birthday Toggle */}
+                        <div className="flex gap-2 mb-4">
+                            <div className="relative flex-1">
+                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 eco-muted" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Buscar por nome, telefone ou email"
+                                    className="input-eco pl-10 pr-10"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 eco-muted hover:eco-text transition-colors"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                )}
+                            </div>
+                            {/* Birthday Filter Toggle */}
+                            <button
+                                onClick={() => setShowBirthdayFilter(!showBirthdayFilter)}
+                                className={`p-3 rounded-xl border transition-colors ${showBirthdayFilter || isBirthdayFilterActive
+                                    ? 'bg-[var(--eco-warning)] text-white border-[var(--eco-warning)]'
+                                    : 'eco-surface-alt border-[var(--eco-border)] hover:bg-[var(--eco-surface)]'
+                                    }`}
+                                aria-label="Filtrar por aniversário"
+                            >
+                                <Cake size={18} />
+                            </button>
                         </div>
 
-                        {/* Results count when searching */}
-                        {searchQuery && (
+                        {/* Results count when searching or filtering */}
+                        {(searchQuery || isBirthdayFilterActive) && (
                             <div className="text-xs eco-muted mb-2">
                                 {contacts.length} resultado{contacts.length !== 1 ? 's' : ''}
+                                {isBirthdayFilterActive && ` (aniversários ${birthdayFilterStart} a ${birthdayFilterEnd})`}
+                            </div>
+                        )}
+
+                        {/* Birthday Filter Panel (collapsible) */}
+                        {showBirthdayFilter && (
+                            <div className="mb-4 p-3 rounded-lg eco-surface-alt border border-[var(--eco-border)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Cake size={16} className="eco-muted" />
+                                    <span className="text-sm font-medium eco-text">Filtrar por aniversário</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={birthdayFilterStart}
+                                        onChange={(e) => setBirthdayFilterStart(formatDDMMInput(e.target.value))}
+                                        placeholder="DD/MM"
+                                        className="input-eco text-center text-sm flex-1"
+                                        maxLength={5}
+                                    />
+                                    <span className="eco-muted text-sm">até</span>
+                                    <input
+                                        type="text"
+                                        value={birthdayFilterEnd}
+                                        onChange={(e) => setBirthdayFilterEnd(formatDDMMInput(e.target.value))}
+                                        placeholder="DD/MM"
+                                        className="input-eco text-center text-sm flex-1"
+                                        maxLength={5}
+                                    />
+                                    {isBirthdayFilterActive && (
+                                        <button
+                                            onClick={clearBirthdayFilter}
+                                            className="p-2 rounded-lg hover:bg-[var(--eco-surface)] transition-colors"
+                                            aria-label="Limpar filtro"
+                                        >
+                                            <X size={16} className="eco-muted" />
+                                        </button>
+                                    )}
+                                </div>
+                                {isBirthdayFilterActive && (
+                                    <div className="text-xs text-[var(--eco-success)] mt-2">
+                                        Filtro ativo: {birthdayFilterStart} a {birthdayFilterEnd}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -203,6 +296,17 @@ function ContactDetailPanel({
                         {contact.phone && (
                             <div className="flex items-center gap-1">
                                 <Phone size={14} /> {contact.phone}
+                                {isCleanPhoneForWhatsApp(contact.phone) && (
+                                    <a
+                                        href={buildWhatsAppLink(contact.phone)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="ml-2 p-1 rounded bg-green-500 text-white hover:bg-green-600 transition-colors"
+                                        aria-label="Enviar WhatsApp"
+                                    >
+                                        <MessageCircle size={14} />
+                                    </a>
+                                )}
                             </div>
                         )}
                         {contact.email && (
