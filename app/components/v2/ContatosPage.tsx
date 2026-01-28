@@ -36,8 +36,9 @@ function isCleanPhoneForWhatsApp(phone: string | undefined): boolean {
 
 function buildWhatsAppLink(phone: string): string {
     let digits = phone.replace(/\D/g, '')
+    // If 10-11 digits, assume Argentine number without country code
     if (digits.length <= 11) {
-        digits = '55' + digits
+        digits = '54' + digits
     }
     return `https://wa.me/${digits}`
 }
