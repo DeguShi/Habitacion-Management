@@ -355,7 +355,11 @@
     animation: slideUp 0.25s ease-out;
   }
 
-  /* === Safe area for iOS === */
+  /* === Safe area for iOS notch/Dynamic Island === */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0);
   }

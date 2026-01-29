@@ -32,7 +32,8 @@ export default function BottomNav({ activeTab, onTabChange, onCreateClick, finis
             {onCreateClick && (
                 <button
                     onClick={onCreateClick}
-                    className="fixed bottom-20 right-4 z-50 w-14 h-14 btn rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all"
+                    className="fixed z-50 w-14 h-14 btn rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all"
+                    style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))', right: '1rem' }}
                     aria-label="Novo lead"
                 >
                     <Plus size={28} />

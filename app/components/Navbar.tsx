@@ -21,7 +21,7 @@ export default function Navbar() {
   const { count, openSheet } = useBirthdayBell()
 
   return (
-    <header className="sticky top-0 z-40 eco-surface backdrop-blur-sm border-b border-[var(--eco-border)]">
+    <header className="sticky top-0 z-40 eco-surface backdrop-blur-sm border-b border-[var(--eco-border)] safe-area-top">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <Image src="/logo-hab.png" alt="" width={32} height={32} className="rounded-md" priority />
