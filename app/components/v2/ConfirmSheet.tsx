@@ -16,6 +16,7 @@ interface Prefill {
     partySize?: number
     rooms?: number
     notesInternal?: string
+    birthDate?: string
 }
 
 interface ConfirmSheetProps {
@@ -148,7 +149,7 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 setManualTotal('')
                 setNotesInternal(prefill?.notesInternal || '')
                 setNotesGuest('')
-                setBirthDate('')
+                setBirthDate(prefill?.birthDate ? formatBirthForDisplay(prefill.birthDate) : '')
             }
             setDepositAmount('')
             setDepositMethod('Pix')

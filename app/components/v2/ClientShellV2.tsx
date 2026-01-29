@@ -19,12 +19,14 @@ import FinalizeOkSheet from '@/app/components/v2/FinalizeOkSheet'
 import FinalizeIssueSheet from '@/app/components/v2/FinalizeIssueSheet'
 import DeleteConfirmDialog from '@/app/components/v2/DeleteConfirmDialog'
 import BirthdayNotificationsSheet from '@/app/components/v2/BirthdayNotificationsSheet'
+import EditContactSheet from '@/app/components/v2/EditContactSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { deriveContacts, getBestNotesForContact, type Contact } from '@/lib/contacts'
 import { getContactsWithBirthdayThisWeek } from '@/lib/birthdays'
 import { getFinishedPending, appendInternalNote } from '@/lib/finished-utils'
 import { deleteV2Record } from '@/lib/offline/v2-offline'
 import { listV2Records, updateV2Record } from '@/lib/data/v2'
+import { processReservationForContactEdit, type ContactEditValues } from '@/lib/contact-edit'
 
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_FETCH === '1'
 
@@ -229,6 +231,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
         phone?: string
         email?: string
         notesInternal?: string
+        birthDate?: string
     } | null>(null)
     const [prefillKey, setPrefillKey] = useState('')
 
@@ -238,6 +241,9 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     // Finalizadas sheet state (Phase 9.3)
     const [finalizeOkItem, setFinalizeOkItem] = useState<ReservationV2 | null>(null)
     const [finalizeIssueItem, setFinalizeIssueItem] = useState<ReservationV2 | null>(null)
+
+    // Contact edit sheet state
+    const [editingContact, setEditingContact] = useState<Contact | null>(null)
 
     // Birthday bell context - syncs count and sheet state with Navbar
     const { setCount, isOpen: birthdaySheetOpen, closeSheet: closeBirthdaySheet } = useBirthdayBell()
@@ -351,6 +357,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
             phone: contact.phone,
             email: contact.email,
             notesInternal: notes,
+            birthDate: contact.birthDate,
         })
         setPrefillKey(`${contact.id}:${Date.now()}`)
         setSelectedContact(null) // Close contact sheet
@@ -365,6 +372,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
             phone: contact.phone,
             email: contact.email,
             notesInternal: notes,
+            birthDate: contact.birthDate,
         })
         setPrefillKey(`${contact.id}:${Date.now()}`)
         setSelectedContact(null) // Close contact sheet
@@ -375,6 +383,42 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     function handleViewReservationFromContact(r: ReservationV2) {
         setSelectedContact(null) // Close contact sheet
         setViewingItem(r)
+    }
+
+    // Open edit contact sheet from contact detail
+    function handleEditContact(contact: Contact) {
+        setEditingContact(contact)
+    }
+
+    // Save contact edits - updates current/future reservations, logs changes to past ones
+    async function handleSaveContactEdit(contactId: string, newValues: ContactEditValues) {
+        // Find the contact to get reservation IDs
+        const contact = contacts.find(c => c.id === contactId)
+        if (!contact) throw new Error('Contato não encontrado')
+
+        // Get all reservations for this contact
+        const contactResvs = records.filter(r => contact.reservationIds.includes(r.id))
+        if (contactResvs.length === 0) throw new Error('Nenhuma reserva encontrada')
+
+        // Process each reservation
+        const updates: Promise<ReservationV2>[] = []
+
+        for (const reservation of contactResvs) {
+            const result = processReservationForContactEdit(reservation, newValues)
+            if (result) {
+                updates.push(updateV2Record(result.reservationId, result.updatedRecord))
+            }
+        }
+
+        // Execute all updates
+        await Promise.all(updates)
+
+        // Refresh data
+        await refreshRecords('contact-edit')
+
+        // Close sheets
+        setEditingContact(null)
+        setSelectedContact(null)
     }
 
     // Phase 9.3: Finalizadas handlers
@@ -588,6 +632,14 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                 onViewReservation={handleViewReservationFromContact}
                 onCreateReservation={handleCreateReservationFromContact}
                 onCreateLead={handleCreateLeadFromContact}
+                onEditContact={handleEditContact}
+            />
+
+            <EditContactSheet
+                open={!!editingContact}
+                onClose={() => setEditingContact(null)}
+                contact={editingContact}
+                onSave={handleSaveContactEdit}
             />
 
             <FinalizeOkSheet

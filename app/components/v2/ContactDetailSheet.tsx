@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Phone, Mail, Calendar, Users, Plus, Clock, XCircle, CheckCircle, Cake, MessageCircle } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Phone, Mail, Calendar, Users, Plus, Clock, XCircle, CheckCircle, Cake, MessageCircle, Pencil, ChevronDown, FileText } from 'lucide-react'
 import BottomSheet from './BottomSheet'
 import type { Contact } from '@/lib/contacts'
 import type { ReservationV2 } from '@/core/entities_v2'
@@ -15,6 +15,7 @@ interface ContactDetailSheetProps {
     onViewReservation: (r: ReservationV2) => void
     onCreateReservation: (contact: Contact) => void
     onCreateLead: (contact: Contact) => void
+    onEditContact?: (contact: Contact) => void
 }
 
 function formatBR(iso: string) {
@@ -62,6 +63,7 @@ export default function ContactDetailSheet({
     onViewReservation,
     onCreateReservation,
     onCreateLead,
+    onEditContact,
 }: ContactDetailSheetProps) {
     if (!contact) return null
 
@@ -79,6 +81,23 @@ export default function ContactDetailSheet({
             (b.checkIn || '').localeCompare(a.checkIn || '')
         )
     }, [reservations])
+
+    // Get best internal notes from reservations
+    const internalNotes = useMemo(() => {
+        // Find the most recent reservation with notes
+        const sorted = [...reservations].sort((a, b) =>
+            (b.checkIn || '').localeCompare(a.checkIn || '')
+        )
+        for (const r of sorted) {
+            if (r.notesInternal?.trim()) {
+                return r.notesInternal.trim()
+            }
+        }
+        return null
+    }, [reservations])
+
+    // Toggle state for notes visibility
+    const [showNotes, setShowNotes] = useState(false)
 
     function getStatusPill(status?: string) {
         switch (status) {
@@ -108,7 +127,19 @@ export default function ContactDetailSheet({
             <div className="space-y-5">
                 {/* Header / Contact Info */}
                 <div>
-                    <h3 className="text-xl font-bold text-app">{contact.name}</h3>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-bold text-app">{contact.name}</h3>
+                        {onEditContact && (
+                            <button
+                                onClick={() => onEditContact(contact)}
+                                className="p-2 rounded-lg hover:bg-[var(--eco-surface-alt)] transition-colors"
+                                aria-label="Editar contato"
+                                title="Editar contato"
+                            >
+                                <Pencil size={18} className="text-[var(--eco-primary)]" />
+                            </button>
+                        )}
+                    </div>
 
                     <div className="mt-2 space-y-1">
                         {contact.phone && (
@@ -194,6 +225,30 @@ export default function ContactDetailSheet({
                         Novo pedido
                     </button>
                 </div>
+
+                {/* Internal Notes (collapsible) */}
+                {internalNotes && (
+                    <div className="border-t border-[var(--eco-border)] pt-3">
+                        <button
+                            onClick={() => setShowNotes(!showNotes)}
+                            className="w-full flex items-center justify-between text-sm font-semibold text-muted hover:text-app transition-colors"
+                        >
+                            <span className="flex items-center gap-2">
+                                <FileText size={14} />
+                                Notas internas
+                            </span>
+                            <ChevronDown
+                                size={16}
+                                className={`transition-transform ${showNotes ? 'rotate-180' : ''}`}
+                            />
+                        </button>
+                        {showNotes && (
+                            <div className="mt-2 p-3 bg-s2 rounded-lg text-sm text-app whitespace-pre-wrap">
+                                {internalNotes}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Reservation History */}
                 <div>
