@@ -242,10 +242,53 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     // Birthday bell context - syncs count and sheet state with Navbar
     const { setCount, isOpen: birthdaySheetOpen, closeSheet: closeBirthdaySheet } = useBirthdayBell()
 
-    // Sync birthday count to context
+    // Track dismissed birthday IDs (actual IDs, not just count)
+    const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
+
+    // Load dismissed IDs on mount and listen for changes
     useEffect(() => {
-        setCount(birthdayContacts.length)
-    }, [birthdayContacts.length, setCount])
+        const updateDismissedIds = () => {
+            if (typeof window === 'undefined') return
+            try {
+                const stored = localStorage.getItem('birthday-dismissed')
+                if (!stored) {
+                    setDismissedIds(new Set())
+                    return
+                }
+                const now = new Date()
+                const startOfYear = new Date(now.getFullYear(), 0, 1)
+                const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000))
+                const week = Math.ceil((days + startOfYear.getDay() + 1) / 7)
+                const currentWeekId = `${now.getFullYear()}-W${String(week).padStart(2, '0')}`
+
+                const { weekId, ids } = JSON.parse(stored)
+                if (weekId !== currentWeekId) {
+                    setDismissedIds(new Set())
+                    return
+                }
+                setDismissedIds(new Set(Array.isArray(ids) ? ids : []))
+            } catch {
+                setDismissedIds(new Set())
+            }
+        }
+
+        updateDismissedIds()
+
+        // Listen for dismiss changes from the sheet
+        window.addEventListener('birthday-dismissed-change', updateDismissedIds)
+        return () => window.removeEventListener('birthday-dismissed-change', updateDismissedIds)
+    }, [])
+
+    // Calculate visible birthday count by filtering contacts by ID (not arithmetic!)
+    const visibleBirthdayCount = useMemo(
+        () => birthdayContacts.filter(c => !dismissedIds.has(c.id)).length,
+        [birthdayContacts, dismissedIds]
+    )
+
+    // Sync visible birthday count to context
+    useEffect(() => {
+        setCount(visibleBirthdayCount)
+    }, [visibleBirthdayCount, setCount])
 
     // ============================================================
     // Handlers

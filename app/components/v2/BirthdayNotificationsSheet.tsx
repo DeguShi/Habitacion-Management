@@ -3,45 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Phone, Mail, Cake, MessageCircle, Check } from 'lucide-react'
 import BottomSheet from './BottomSheet'
-import { useBirthdayBell } from './BirthdayBellContext'
 import type { Contact } from '@/lib/contacts'
 import { formatBirthdayShort } from '@/lib/birthdays'
-
-// Storage key for dismissed birthdays (persists for current week)
-const DISMISSED_KEY = 'birthday-dismissed'
-
-function getCurrentWeekId(): string {
-    const now = new Date()
-    const startOfYear = new Date(now.getFullYear(), 0, 1)
-    const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000))
-    const week = Math.ceil((days + startOfYear.getDay() + 1) / 7)
-    return `${now.getFullYear()}-W${String(week).padStart(2, '0')}`
-}
-
-function loadDismissed(): Set<string> {
-    if (typeof window === 'undefined') return new Set()
-    try {
-        const stored = localStorage.getItem(DISMISSED_KEY)
-        if (!stored) return new Set()
-        const { weekId, ids } = JSON.parse(stored)
-        if (weekId !== getCurrentWeekId()) return new Set()
-        return new Set(ids)
-    } catch {
-        return new Set()
-    }
-}
-
-function saveDismissed(ids: Set<string>): void {
-    if (typeof window === 'undefined') return
-    try {
-        localStorage.setItem(DISMISSED_KEY, JSON.stringify({
-            weekId: getCurrentWeekId(),
-            ids: Array.from(ids)
-        }))
-    } catch {
-        // Ignore storage errors
-    }
-}
+import { loadDismissedBirthdays, saveDismissedBirthdays } from '@/lib/birthday-dismissed'
 
 interface BirthdayNotificationsSheetProps {
     open: boolean
@@ -68,26 +32,20 @@ export default function BirthdayNotificationsSheet({
     onClose,
     contacts,
 }: BirthdayNotificationsSheetProps) {
-    const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed())
-    const { setCount } = useBirthdayBell()
+    const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissedBirthdays())
 
     const visibleContacts = contacts.filter(c => !dismissed.has(c.id))
 
     // Load dismissed on mount
     useEffect(() => {
-        setDismissed(loadDismissed())
+        setDismissed(loadDismissedBirthdays())
     }, [])
-
-    // Sync visible count to context whenever it changes
-    useEffect(() => {
-        setCount(visibleContacts.length)
-    }, [visibleContacts.length, setCount])
 
     function handleDismiss(contactId: string) {
         setDismissed(prev => {
             const next = new Set(prev)
             next.add(contactId)
-            saveDismissed(next)
+            saveDismissedBirthdays(next) // This dispatches the custom event
             return next
         })
     }
