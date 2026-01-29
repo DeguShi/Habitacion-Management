@@ -3,16 +3,13 @@
 import { useState, useEffect } from 'react'
 import { Phone, Mail, Cake, MessageCircle, Check } from 'lucide-react'
 import BottomSheet from './BottomSheet'
+import { useBirthdayBell } from './BirthdayBellContext'
 import type { Contact } from '@/lib/contacts'
 import { formatBirthdayShort } from '@/lib/birthdays'
 
 // Storage key for dismissed birthdays (persists for current week)
 const DISMISSED_KEY = 'birthday-dismissed'
 
-/**
- * Get the current week identifier (YYYY-WW format).
- * Used to reset dismissed list each week.
- */
 function getCurrentWeekId(): string {
     const now = new Date()
     const startOfYear = new Date(now.getFullYear(), 0, 1)
@@ -21,16 +18,12 @@ function getCurrentWeekId(): string {
     return `${now.getFullYear()}-W${String(week).padStart(2, '0')}`
 }
 
-/**
- * Load dismissed IDs from localStorage for current week.
- */
 function loadDismissed(): Set<string> {
     if (typeof window === 'undefined') return new Set()
     try {
         const stored = localStorage.getItem(DISMISSED_KEY)
         if (!stored) return new Set()
         const { weekId, ids } = JSON.parse(stored)
-        // Reset if different week
         if (weekId !== getCurrentWeekId()) return new Set()
         return new Set(ids)
     } catch {
@@ -38,9 +31,6 @@ function loadDismissed(): Set<string> {
     }
 }
 
-/**
- * Save dismissed IDs to localStorage.
- */
 function saveDismissed(ids: Set<string>): void {
     if (typeof window === 'undefined') return
     try {
@@ -57,27 +47,18 @@ interface BirthdayNotificationsSheetProps {
     open: boolean
     onClose: () => void
     contacts: Contact[]
-    onDismissedChange?: (dismissedCount: number) => void
 }
 
-/**
- * Checks if a phone number is clean enough for WhatsApp link.
- * Must be 10-13 digits.
- */
 function isCleanPhoneForWhatsApp(phone: string | undefined): boolean {
     if (!phone) return false
     const digits = phone.replace(/\D/g, '')
     return digits.length >= 10 && digits.length <= 13
 }
 
-/**
- * Builds WhatsApp link for a phone number.
- * Adds +54 Argentina country code if not present (most clients are Argentine).
- */
 function buildWhatsAppLink(phone: string): string {
     let digits = phone.replace(/\D/g, '')
     if (digits.length <= 11) {
-        digits = '54' + digits
+        digits = '54' + digits // Argentina country code
     }
     return `https://wa.me/${digits}`
 }
@@ -86,26 +67,21 @@ export default function BirthdayNotificationsSheet({
     open,
     onClose,
     contacts,
-    onDismissedChange,
 }: BirthdayNotificationsSheetProps) {
     const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed())
+    const { setCount } = useBirthdayBell()
 
-    // Filter out dismissed contacts
     const visibleContacts = contacts.filter(c => !dismissed.has(c.id))
-
-    // Count dismissed that are actually in this week's list
-    const dismissedInList = contacts.filter(c => dismissed.has(c.id)).length
 
     // Load dismissed on mount
     useEffect(() => {
-        const loaded = loadDismissed()
-        setDismissed(loaded)
+        setDismissed(loadDismissed())
     }, [])
 
-    // Notify parent when dismissed count changes (only count those in contacts list)
+    // Sync visible count to context whenever it changes
     useEffect(() => {
-        onDismissedChange?.(dismissedInList)
-    }, [dismissedInList, onDismissedChange])
+        setCount(visibleContacts.length)
+    }, [visibleContacts.length, setCount])
 
     function handleDismiss(contactId: string) {
         setDismissed(prev => {
@@ -115,9 +91,6 @@ export default function BirthdayNotificationsSheet({
             return next
         })
     }
-
-    // Return null if closed, but hooks have already run above
-    if (!open) return null
 
     return (
         <BottomSheet open={open} onClose={onClose} title="Aniversários da Semana">
@@ -164,13 +137,11 @@ export default function BirthdayNotificationsSheet({
                             </div>
 
                             <div className="flex items-center gap-2 shrink-0 ml-3">
-                                {/* Birthday badge */}
                                 <div className="flex items-center gap-1 text-sm font-medium text-[var(--eco-warning)]">
                                     <Cake size={16} />
                                     {formatBirthdayShort(contact.birthDate)}
                                 </div>
 
-                                {/* WhatsApp link if phone is clean */}
                                 {isCleanPhoneForWhatsApp(contact.phone) && (
                                     <a
                                         href={buildWhatsAppLink(contact.phone!)}
@@ -183,7 +154,6 @@ export default function BirthdayNotificationsSheet({
                                     </a>
                                 )}
 
-                                {/* Dismiss / Mark as done button */}
                                 <button
                                     onClick={() => handleDismiss(contact.id)}
                                     className="p-2 rounded-lg bg-[var(--eco-success)] text-white hover:opacity-80 transition-colors"

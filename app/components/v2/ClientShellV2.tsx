@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Bell } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import { useBirthdayBell } from '@/app/components/v2/BirthdayBellContext'
 import BottomNav, { type TabId } from '@/app/components/v2/BottomNav'
 import ConfirmadasPage from '@/app/components/v2/ConfirmadasPage'
 import EmEsperaPage from '@/app/components/v2/EmEsperaPage'
@@ -239,12 +239,13 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     const [finalizeOkItem, setFinalizeOkItem] = useState<ReservationV2 | null>(null)
     const [finalizeIssueItem, setFinalizeIssueItem] = useState<ReservationV2 | null>(null)
 
-    // Birthday notifications sheet state
-    const [birthdaySheetOpen, setBirthdaySheetOpen] = useState(false)
-    const [dismissedBirthdayCount, setDismissedBirthdayCount] = useState(0)
+    // Birthday bell context - syncs count and sheet state with Navbar
+    const { setCount, isOpen: birthdaySheetOpen, closeSheet: closeBirthdaySheet } = useBirthdayBell()
 
-    // Compute visible birthday count for badge
-    const visibleBirthdayCount = Math.max(0, birthdayContacts.length - dismissedBirthdayCount)
+    // Sync birthday count to context
+    useEffect(() => {
+        setCount(birthdayContacts.length)
+    }, [birthdayContacts.length, setCount])
 
     // ============================================================
     // Handlers
@@ -412,19 +413,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                     </div>
                 )}
 
-                {/* Birthday Bell - Fixed position to appear next to navbar exit */}
-                <button
-                    onClick={() => setBirthdaySheetOpen(true)}
-                    className="fixed top-3 right-16 z-50 p-2 rounded-lg hover:bg-[var(--eco-surface-alt)] transition-colors"
-                    aria-label="Aniversários da semana"
-                >
-                    <Bell size={20} className="eco-text" />
-                    {visibleBirthdayCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
-                            {visibleBirthdayCount > 9 ? '9+' : visibleBirthdayCount}
-                        </span>
-                    )}
-                </button>
+
 
                 {activeTab === 'confirmadas' && (
                     <ConfirmadasPage
@@ -581,9 +570,8 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
 
             <BirthdayNotificationsSheet
                 open={birthdaySheetOpen}
-                onClose={() => setBirthdaySheetOpen(false)}
+                onClose={closeBirthdaySheet}
                 contacts={birthdayContacts}
-                onDismissedChange={setDismissedBirthdayCount}
             />
         </div>
     )
