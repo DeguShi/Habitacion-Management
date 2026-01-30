@@ -87,7 +87,7 @@ describe("Schema V2 Field Preservation", () => {
         assert.deepStrictEqual(parsed.payment, { deposit: { paid: true } });
     });
 
-    it("preserves notesInternal and notesGuest through parse", () => {
+    it("preserves notesReservation, guestPreferences, and notesGuest through parse", () => {
         const input = {
             guestName: "Test Guest",
             partySize: 2,
@@ -96,12 +96,14 @@ describe("Schema V2 Field Preservation", () => {
             breakfastIncluded: false,
             nightlyRate: 100,
             breakfastPerPersonPerNight: 0,
-            notesInternal: "Staff only",
+            notesReservation: "Per-reservation note",
+            guestPreferences: "Guest preferences",
             notesGuest: "Welcome note",
         };
 
         const parsed = reservationInputSchema.parse(input);
-        assert.strictEqual(parsed.notesInternal, "Staff only");
+        assert.strictEqual(parsed.notesReservation, "Per-reservation note");
+        assert.strictEqual(parsed.guestPreferences, "Guest preferences");
         assert.strictEqual(parsed.notesGuest, "Welcome note");
     });
 

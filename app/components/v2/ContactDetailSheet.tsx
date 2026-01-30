@@ -16,6 +16,7 @@ interface ContactDetailSheetProps {
     onCreateReservation: (contact: Contact) => void
     onCreateLead: (contact: Contact) => void
     onEditContact?: (contact: Contact) => void
+    onUpdateGuestPreferences?: (contact: Contact, preferences: string) => Promise<void>
 }
 
 function formatBR(iso: string) {
@@ -64,6 +65,7 @@ export default function ContactDetailSheet({
     onCreateReservation,
     onCreateLead,
     onEditContact,
+    onUpdateGuestPreferences,
 }: ContactDetailSheetProps) {
     if (!contact) return null
 
@@ -82,22 +84,25 @@ export default function ContactDetailSheet({
         )
     }, [reservations])
 
-    // Get best internal notes from reservations
-    const internalNotes = useMemo(() => {
-        // Find the most recent reservation with notes
+    // Get best guest preferences from reservations
+    const guestPreferences = useMemo(() => {
+        // Find the most recent reservation with guest preferences
         const sorted = [...reservations].sort((a, b) =>
             (b.checkIn || '').localeCompare(a.checkIn || '')
         )
         for (const r of sorted) {
-            if (r.notesInternal?.trim()) {
-                return r.notesInternal.trim()
+            if (r.guestPreferences?.trim()) {
+                return r.guestPreferences.trim()
             }
         }
         return null
     }, [reservations])
 
-    // Toggle state for notes visibility
-    const [showNotes, setShowNotes] = useState(false)
+    // State for preferences editing
+    const [showPreferences, setShowPreferences] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [editedPreferences, setEditedPreferences] = useState('')
+    const [saving, setSaving] = useState(false)
 
     function getStatusPill(status?: string) {
         switch (status) {
@@ -226,29 +231,82 @@ export default function ContactDetailSheet({
                     </button>
                 </div>
 
-                {/* Internal Notes (collapsible) */}
-                {internalNotes && (
-                    <div className="border-t border-[var(--eco-border)] pt-3">
-                        <button
-                            onClick={() => setShowNotes(!showNotes)}
-                            className="w-full flex items-center justify-between text-sm font-semibold text-muted hover:text-app transition-colors"
-                        >
-                            <span className="flex items-center gap-2">
-                                <FileText size={14} />
-                                Notas internas
-                            </span>
-                            <ChevronDown
-                                size={16}
-                                className={`transition-transform ${showNotes ? 'rotate-180' : ''}`}
-                            />
-                        </button>
-                        {showNotes && (
-                            <div className="mt-2 p-3 bg-s2 rounded-lg text-sm text-app whitespace-pre-wrap">
-                                {internalNotes}
-                            </div>
-                        )}
-                    </div>
-                )}
+                {/* Guest Preferences (collapsible + editable) */}
+                <div className="border-t border-[var(--eco-border)] pt-3">
+                    <button
+                        onClick={() => {
+                            setShowPreferences(!showPreferences)
+                            if (!showPreferences) {
+                                setEditedPreferences(guestPreferences || '')
+                                setIsEditing(false)
+                            }
+                        }}
+                        className="w-full flex items-center justify-between text-sm font-semibold text-muted hover:text-app transition-colors"
+                    >
+                        <span className="flex items-center gap-2">
+                            <FileText size={14} />
+                            Preferências do Hóspede
+                            {!guestPreferences && <span className="text-xs text-muted">(vazio)</span>}
+                        </span>
+                        <ChevronDown
+                            size={16}
+                            className={`transition-transform ${showPreferences ? 'rotate-180' : ''}`}
+                        />
+                    </button>
+                    {showPreferences && (
+                        <div className="mt-2 space-y-2">
+                            {isEditing ? (
+                                <>
+                                    <textarea
+                                        value={editedPreferences}
+                                        onChange={(e) => setEditedPreferences(e.target.value)}
+                                        rows={3}
+                                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                                        placeholder="Preferências do cliente (dieta, quartos, etc.)"
+                                        disabled={saving}
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setIsEditing(false)}
+                                            className="flex-1 px-3 py-1.5 text-sm border border-[var(--eco-border)] rounded-lg"
+                                            disabled={saving}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (!contact || !onUpdateGuestPreferences) return
+                                                setSaving(true)
+                                                try {
+                                                    await onUpdateGuestPreferences(contact, editedPreferences.trim())
+                                                    setIsEditing(false)
+                                                } finally {
+                                                    setSaving(false)
+                                                }
+                                            }}
+                                            className="flex-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                                            disabled={saving}
+                                        >
+                                            {saving ? 'Salvando...' : 'Salvar'}
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div
+                                    onClick={() => {
+                                        if (onUpdateGuestPreferences) {
+                                            setEditedPreferences(guestPreferences || '')
+                                            setIsEditing(true)
+                                        }
+                                    }}
+                                    className={`p-3 bg-s2 rounded-lg text-sm text-app whitespace-pre-wrap ${onUpdateGuestPreferences ? 'cursor-pointer hover:bg-s3' : ''}`}
+                                >
+                                    {guestPreferences || <span className="text-muted italic">Nenhuma preferência registrada. Clique para adicionar.</span>}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
 
                 {/* Reservation History */}
                 <div>

@@ -50,7 +50,8 @@ export const reservationInputSchema = z.object({
   status: bookingStatusSchema.optional(),
   rooms: z.coerce.number().int().min(1).max(4).optional(),
   payment: z.record(z.unknown()).optional(),
-  notesInternal: z.string().optional(),
+  notesReservation: z.string().optional(),
+  guestPreferences: z.string().optional(),
   notesGuest: z.string().optional(),
 }).passthrough(); // Preserve unknown keys for future expansion
 

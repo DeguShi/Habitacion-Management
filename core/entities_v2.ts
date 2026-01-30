@@ -115,12 +115,26 @@ export interface ReservationV2 {
     payment: Payment;
 
     /**
-     * Notes visible only to staff (migrated from v1 notes)
+     * Reservation-specific internal notes (e.g., "pays at exit")
+     * NOT inherited across reservations for the same contact.
+     */
+    notesReservation?: string;
+
+    /**
+     * Guest preferences (e.g., dietary restrictions, room preferences)
+     * Global per contact - inherited and editable from ContactDetailSheet.
+     */
+    guestPreferences?: string;
+
+    /**
+     * @deprecated Use notesReservation and guestPreferences instead.
+     * Kept for backward compatibility with stored data.
+     * Will be migrated automatically when records are loaded.
      */
     notesInternal?: string;
 
     /**
-     * Notes intended for/from guest
+     * Notes intended for/from guest (shown on confirmation card)
      */
     notesGuest?: string;
 

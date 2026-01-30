@@ -21,9 +21,9 @@ import DeleteConfirmDialog from '@/app/components/v2/DeleteConfirmDialog'
 import BirthdayNotificationsSheet from '@/app/components/v2/BirthdayNotificationsSheet'
 import EditContactSheet from '@/app/components/v2/EditContactSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
-import { deriveContacts, getBestNotesForContact, type Contact } from '@/lib/contacts'
+import { deriveContacts, getBestGuestPreferences, type Contact } from '@/lib/contacts'
 import { getContactsWithBirthdayThisWeek } from '@/lib/birthdays'
-import { getFinishedPending, appendInternalNote } from '@/lib/finished-utils'
+import { getFinishedPending, appendReservationNote } from '@/lib/finished-utils'
 import { deleteV2Record } from '@/lib/offline/v2-offline'
 import { listV2Records, updateV2Record } from '@/lib/data/v2'
 import { processReservationForContactEdit, type ContactEditValues } from '@/lib/contact-edit'
@@ -230,7 +230,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
         guestName?: string
         phone?: string
         email?: string
-        notesInternal?: string
+        guestPreferences?: string
         birthDate?: string
     } | null>(null)
     const [prefillKey, setPrefillKey] = useState('')
@@ -351,12 +351,12 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
 
     // Create reservation from contact
     function handleCreateReservationFromContact(contact: Contact) {
-        const notes = getBestNotesForContact(contactReservations)
+        const preferences = getBestGuestPreferences(contactReservations)
         setContactPrefill({
             guestName: contact.name,
             phone: contact.phone,
             email: contact.email,
-            notesInternal: notes,
+            guestPreferences: preferences,
             birthDate: contact.birthDate,
         })
         setPrefillKey(`${contact.id}:${Date.now()}`)
@@ -366,12 +366,12 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
 
     // Create lead from contact
     function handleCreateLeadFromContact(contact: Contact) {
-        const notes = getBestNotesForContact(contactReservations)
+        const preferences = getBestGuestPreferences(contactReservations)
         setContactPrefill({
             guestName: contact.name,
             phone: contact.phone,
             email: contact.email,
-            notesInternal: notes,
+            guestPreferences: preferences,
             birthDate: contact.birthDate,
         })
         setPrefillKey(`${contact.id}:${Date.now()}`)
@@ -436,13 +436,13 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
         try {
             const now = new Date().toISOString()
             const updatedNotes = notes
-                ? appendInternalNote(finalizeOkItem.notesInternal, `[CHECKOUT OK] ${notes}`)
-                : finalizeOkItem.notesInternal
+                ? appendReservationNote(finalizeOkItem.notesReservation, `[CHECKOUT OK] ${notes}`)
+                : finalizeOkItem.notesReservation
 
             await updateV2Record(finalizeOkItem.id, {
                 ...finalizeOkItem,
                 extraSpend: extraSpend || finalizeOkItem.extraSpend,
-                notesInternal: updatedNotes,
+                notesReservation: updatedNotes,
                 stayReview: {
                     state: 'ok',
                     reviewedAt: now,
@@ -460,14 +460,14 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
 
         try {
             const now = new Date().toISOString()
-            const updatedNotes = appendInternalNote(
-                finalizeIssueItem.notesInternal,
+            const updatedNotes = appendReservationNote(
+                finalizeIssueItem.notesReservation,
                 `[CHECKOUT PROBLEMA] ${reason}`
             )
 
             await updateV2Record(finalizeIssueItem.id, {
                 ...finalizeIssueItem,
-                notesInternal: updatedNotes,
+                notesReservation: updatedNotes,
                 stayReview: {
                     state: 'issue',
                     reviewedAt: now,

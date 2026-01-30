@@ -197,12 +197,18 @@ export default function ViewReservationSheet({
 
 
                 {/* Notes */}
-                {(record.notesInternal || record.notesGuest) && (
+                {(record.notesReservation || record.guestPreferences || record.notesGuest) && (
                     <div className="bg-s2 rounded-xl p-4 space-y-2">
-                        {record.notesInternal && (
+                        {record.notesReservation && (
                             <div>
-                                <p className="text-xs text-muted">Notas internas</p>
-                                <p className="text-sm text-app">{record.notesInternal}</p>
+                                <p className="text-xs text-muted">Notas da Reserva</p>
+                                <p className="text-sm text-app">{record.notesReservation}</p>
+                            </div>
+                        )}
+                        {record.guestPreferences && (
+                            <div>
+                                <p className="text-xs text-muted">Preferências do Hóspede</p>
+                                <p className="text-sm text-app">{record.guestPreferences}</p>
                             </div>
                         )}
                         {record.notesGuest && (

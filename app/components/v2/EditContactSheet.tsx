@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Phone, Mail, Cake } from 'lucide-react'
+import { User, Phone, Mail, Cake, FileText } from 'lucide-react'
 import BottomSheet from './BottomSheet'
 import type { Contact } from '@/lib/contacts'
 import type { ContactEditValues } from '@/lib/contact-edit'
@@ -53,6 +53,7 @@ export default function EditContactSheet({
     const [phone, setPhone] = useState('')
     const [email, setEmail] = useState('')
     const [birthDate, setBirthDate] = useState('')
+    const [guestPreferences, setGuestPreferences] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -64,6 +65,7 @@ export default function EditContactSheet({
             setEmail(contact.email || '')
             // Convert birthDate to YYYY-MM-DD for HTML input
             setBirthDate(toHtmlDateFormat(contact.birthDate))
+            setGuestPreferences(contact.guestPreferences || '')
             setError(null)
         }
     }, [contact])
@@ -88,6 +90,7 @@ export default function EditContactSheet({
                 phone: phone.trim() || undefined,
                 email: email.trim() || undefined,
                 birthDate: birthDate.trim() || undefined,
+                guestPreferences: guestPreferences.trim() || undefined,
             })
             onClose()
         } catch (err) {
@@ -161,6 +164,22 @@ export default function EditContactSheet({
                         value={birthDate}
                         onChange={(e) => setBirthDate(e.target.value)}
                         className="input w-full"
+                        disabled={saving}
+                    />
+                </div>
+
+                {/* Guest Preferences */}
+                <div>
+                    <label className="block text-sm font-medium eco-text mb-1">
+                        <FileText size={14} className="inline mr-1" />
+                        Preferências do Hóspede
+                    </label>
+                    <textarea
+                        value={guestPreferences}
+                        onChange={(e) => setGuestPreferences(e.target.value)}
+                        className="input w-full"
+                        placeholder="Ex: Vegetariano, quarto longe da escada..."
+                        rows={3}
                         disabled={saving}
                     />
                 </div>

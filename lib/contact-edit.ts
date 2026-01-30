@@ -3,7 +3,8 @@
  * 
  * Provides functions for editing contact info across reservations.
  * - Updates current/future reservations directly
- * - Logs changes to past reservations in notesInternal
+ * - Logs changes to past reservations in notesReservation
+ * - Propagates guestPreferences across all contact reservations
  */
 
 import type { ReservationV2 } from '@/core/entities_v2'
@@ -17,6 +18,7 @@ export interface ContactEditValues {
     phone?: string
     email?: string
     birthDate?: string
+    guestPreferences?: string
 }
 
 /**
@@ -101,15 +103,15 @@ export function buildContactChangeLogs(
 }
 
 /**
- * Appends change logs to a reservation's notesInternal
+ * Appends change logs to a reservation's notesReservation
  */
 export function appendChangeLogs(
-    notesInternal: string | undefined,
+    notesReservation: string | undefined,
     logs: string[]
 ): string {
-    if (logs.length === 0) return notesInternal || ''
+    if (logs.length === 0) return notesReservation || ''
 
-    const existingNotes = notesInternal?.trim() || ''
+    const existingNotes = notesReservation?.trim() || ''
     const logBlock = logs.join('\n')
 
     if (existingNotes) {
@@ -127,6 +129,7 @@ export function getContactValuesFromReservation(r: ReservationV2): ContactEditVa
         phone: r.phone,
         email: r.email,
         birthDate: r.birthDate,
+        guestPreferences: r.guestPreferences,
     }
 }
 
@@ -143,6 +146,7 @@ export function applyContactValuesToReservation(
         phone: newValues.phone,
         email: newValues.email,
         birthDate: newValues.birthDate,
+        guestPreferences: newValues.guestPreferences,
         updatedAt: new Date().toISOString(),
     }
 }
@@ -161,7 +165,7 @@ export interface ContactEditResult {
  * Processes a single reservation for contact edit.
  * 
  * - ALL reservations: contact fields are updated to maintain consistent grouping
- * - Past reservations: also appends change logs to notesInternal
+ * - Past reservations: also appends change logs to notesReservation
  * 
  * @returns null if no changes needed
  */
@@ -181,7 +185,7 @@ export function processReservationForContactEdit(
     if (isPast) {
         // Past reservation: update contact fields AND add change logs
         const updatedRecord = applyContactValuesToReservation(reservation, newValues) as Partial<ReservationV2> & { id: string }
-        updatedRecord.notesInternal = appendChangeLogs(reservation.notesInternal, logs)
+        updatedRecord.notesReservation = appendChangeLogs(reservation.notesReservation, logs)
 
         return {
             reservationId: reservation.id,
