@@ -23,6 +23,7 @@ export interface Contact {
     phone?: string;
     email?: string;
     birthDate?: string;
+    guestPreferences?: string;
     lastStayDate: string;
     totalBookings: number;
     hasWaiting: boolean;
@@ -81,6 +82,7 @@ export function deriveContacts(records: ReservationV2[]): Contact[] {
         phone?: string;
         email?: string;
         birthDate?: string;
+        guestPreferences?: string;
         lastStayDate: string;
         hasWaiting: boolean;
         hasRejected: boolean;
@@ -96,6 +98,7 @@ export function deriveContacts(records: ReservationV2[]): Contact[] {
                 phone: record.phone,
                 email: record.email,
                 birthDate: record.birthDate,
+                guestPreferences: record.guestPreferences,
                 lastStayDate: record.checkOut || record.checkIn,
                 hasWaiting: false,
                 hasRejected: false,
@@ -114,6 +117,9 @@ export function deriveContacts(records: ReservationV2[]): Contact[] {
         }
         if (!group.birthDate && record.birthDate) {
             group.birthDate = record.birthDate;
+        }
+        if (!group.guestPreferences && record.guestPreferences) {
+            group.guestPreferences = record.guestPreferences;
         }
 
         // Track most recent stay
@@ -141,6 +147,7 @@ export function deriveContacts(records: ReservationV2[]): Contact[] {
             phone: group.phone,
             email: group.email,
             birthDate: group.birthDate,
+            guestPreferences: group.guestPreferences,
             lastStayDate: group.lastStayDate,
             totalBookings: group.reservationIds.length,
             hasWaiting: group.hasWaiting,
@@ -221,10 +228,13 @@ export function searchContacts(contacts: Contact[], query: string): Contact[] {
 }
 
 /**
- * Gets the best notes from a contact's reservations.
- * Picks the most recent notesInternal (by checkIn date, most recent first).
+ * Gets the best guest preferences from a contact's reservations.
+ * Picks the most recent guestPreferences (by checkIn date, most recent first).
+ * 
+ * Note: guestPreferences is global per contact (inherited across reservations).
+ * notesReservation is per-reservation and is NOT returned here.
  */
-export function getBestNotesForContact(records: ReservationV2[]): string | undefined {
+export function getBestGuestPreferences(records: ReservationV2[]): string | undefined {
     if (!records || records.length === 0) return undefined;
 
     // Sort by checkIn date descending (most recent first)
@@ -235,10 +245,10 @@ export function getBestNotesForContact(records: ReservationV2[]): string | undef
         return dateB.localeCompare(dateA);
     });
 
-    // Find first record with meaningful notes
+    // Find first record with meaningful guest preferences
     for (const r of sorted) {
-        if (r.notesInternal && r.notesInternal.trim()) {
-            return r.notesInternal.trim();
+        if (r.guestPreferences && r.guestPreferences.trim()) {
+            return r.guestPreferences.trim();
         }
     }
 

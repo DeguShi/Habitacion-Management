@@ -1,12 +1,23 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ChevronRight, Clock, Search, X, Phone, Mail, Calendar, Users, Plus, Cake, Filter, MessageCircle } from 'lucide-react'
+import { ChevronRight, ChevronUp, ChevronDown, Clock, Search, X, Phone, Mail, Calendar, Users, Plus, Cake, MessageCircle, ArrowUpDown, ArrowDownAZ, Hash, CalendarClock } from 'lucide-react'
 import type { ReservationV2 } from '@/core/entities_v2'
 import { deriveContacts, searchContacts, type Contact } from '@/lib/contacts'
 import { filterContactsByBirthdayRange, formatDDMMInput, isValidDDMM } from '@/lib/birthdays'
 import { useIsMobile } from '@/app/hooks/useIsMobile'
 import PageHeader from '@/app/components/ui/PageHeader'
+
+/** Sort options for contacts list */
+type ContactSortOption = 'relevance' | 'alphabetical' | 'bookings'
+
+const SORT_LABELS: Record<ContactSortOption, string> = {
+    relevance: 'Relevância',
+    alphabetical: 'A-Z',
+    bookings: '# Reservas',
+}
+
+const SORT_OPTIONS: ContactSortOption[] = ['relevance', 'alphabetical', 'bookings']
 
 interface ContatosPageProps {
     records: ReservationV2[]
@@ -57,7 +68,16 @@ export default function ContatosPage({
     const [birthdayFilterStart, setBirthdayFilterStart] = useState('')
     const [birthdayFilterEnd, setBirthdayFilterEnd] = useState('')
     const [showBirthdayFilter, setShowBirthdayFilter] = useState(false)
+    const [sortOption, setSortOption] = useState<ContactSortOption>('relevance')
+    const [sortAscending, setSortAscending] = useState(true)
     const isMobile = useIsMobile()
+
+    // Cycle to next sort option
+    function cycleSortOption() {
+        const currentIndex = SORT_OPTIONS.indexOf(sortOption)
+        const nextIndex = (currentIndex + 1) % SORT_OPTIONS.length
+        setSortOption(SORT_OPTIONS[nextIndex])
+    }
 
     // Use provided contacts or derive (fallback for backward compat)
     const allContacts = useMemo(
@@ -65,7 +85,7 @@ export default function ContatosPage({
         [providedContacts, records]
     )
 
-    // Chain filters: birthday range → search
+    // Chain filters: birthday range → search → sort
     const contacts = useMemo(() => {
         // Apply birthday filter first (only if both fields valid)
         let filtered = allContacts
@@ -73,8 +93,52 @@ export default function ContatosPage({
             filtered = filterContactsByBirthdayRange(filtered, birthdayFilterStart, birthdayFilterEnd)
         }
         // Then apply search
-        return searchContacts(filtered, searchQuery)
-    }, [allContacts, birthdayFilterStart, birthdayFilterEnd, searchQuery])
+        const searched = searchContacts(filtered, searchQuery)
+
+        // Finally, apply sorting
+        const today = new Date().toISOString().split('T')[0]
+
+        const sorted = [...searched].sort((a, b) => {
+            let result = 0
+            switch (sortOption) {
+                case 'alphabetical':
+                    result = a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
+                    break
+
+                case 'bookings':
+                    result = b.totalBookings - a.totalBookings
+                    break
+
+                case 'relevance':
+                default: {
+                    // Get upcoming reservations for each contact
+                    const aUpcoming = records
+                        .filter(r => a.reservationIds.includes(r.id) && r.checkIn >= today)
+                        .sort((x, y) => x.checkIn.localeCompare(y.checkIn))[0]?.checkIn
+                    const bUpcoming = records
+                        .filter(r => b.reservationIds.includes(r.id) && r.checkIn >= today)
+                        .sort((x, y) => x.checkIn.localeCompare(y.checkIn))[0]?.checkIn
+
+                    // Both have upcoming: closest first
+                    if (aUpcoming && bUpcoming) {
+                        result = aUpcoming.localeCompare(bUpcoming)
+                    } else if (aUpcoming) {
+                        result = -1
+                    } else if (bUpcoming) {
+                        result = 1
+                    } else {
+                        // Neither has upcoming: most recent past first
+                        result = b.lastStayDate.localeCompare(a.lastStayDate)
+                    }
+                    break
+                }
+            }
+            // Apply direction (ascending = natural order, descending = reversed)
+            return sortAscending ? result : -result
+        })
+
+        return sorted
+    }, [allContacts, birthdayFilterStart, birthdayFilterEnd, searchQuery, sortOption, sortAscending, records])
 
     const isBirthdayFilterActive = isValidDDMM(birthdayFilterStart) && isValidDDMM(birthdayFilterEnd)
 
@@ -114,7 +178,7 @@ export default function ContatosPage({
                     <section className="card">
                         <PageHeader title="Contatos" subtitle={`${allContacts.length} contatos`} />
 
-                        {/* Search Input with Birthday Toggle */}
+                        {/* Search Input with Sort + Birthday Toggle */}
                         <div className="flex gap-2 mb-4">
                             <div className="relative flex-1">
                                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 eco-muted" />
@@ -133,6 +197,26 @@ export default function ContatosPage({
                                         <X size={18} />
                                     </button>
                                 )}
+                            </div>
+                            {/* Sort Button Group */}
+                            <div className="flex rounded-xl border border-[var(--eco-border)] overflow-hidden">
+                                {/* Mode Button - cycles through options */}
+                                <button
+                                    onClick={cycleSortOption}
+                                    className="px-3 py-2 eco-surface-alt hover:bg-[var(--eco-surface)] transition-colors text-sm eco-text font-medium min-w-[90px]"
+                                    aria-label="Alterar modo de ordenação"
+                                >
+                                    {SORT_LABELS[sortOption]}
+                                </button>
+                                {/* Direction Toggle */}
+                                <button
+                                    onClick={() => setSortAscending(!sortAscending)}
+                                    className="px-2 py-2 eco-surface-alt hover:bg-[var(--eco-surface)] transition-colors border-l border-[var(--eco-border)] flex items-center"
+                                    aria-label={sortAscending ? "Ordenar decrescente" : "Ordenar crescente"}
+                                >
+                                    <ChevronUp size={14} className={sortAscending ? 'eco-text' : 'eco-muted opacity-40'} />
+                                    <ChevronDown size={14} className={!sortAscending ? 'eco-text' : 'eco-muted opacity-40'} style={{ marginLeft: -6 }} />
+                                </button>
                             </div>
                             {/* Birthday Filter Toggle */}
                             <button

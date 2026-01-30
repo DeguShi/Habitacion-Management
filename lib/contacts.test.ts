@@ -286,46 +286,46 @@ describe("Search Helpers - searchContacts", () => {
 });
 
 // ============================================================
-// Best Notes Helper (Patch 9.2)
+// Best Guest Preferences Helper (Patch 9.2)
 // ============================================================
 
-import { getBestNotesForContact } from "./contacts";
+import { getBestGuestPreferences } from "./contacts";
 
-describe("getBestNotesForContact", () => {
+describe("getBestGuestPreferences", () => {
     it("returns undefined for empty array", () => {
-        assert.strictEqual(getBestNotesForContact([]), undefined);
+        assert.strictEqual(getBestGuestPreferences([]), undefined);
     });
 
-    it("returns notesInternal when available", () => {
+    it("returns guestPreferences when available", () => {
         const records = [
-            makeReservation({ id: "1", notesInternal: "Dietary restrictions" }),
+            makeReservation({ id: "1", guestPreferences: "Dietary restrictions" }),
         ];
-        assert.strictEqual(getBestNotesForContact(records), "Dietary restrictions");
+        assert.strictEqual(getBestGuestPreferences(records), "Dietary restrictions");
     });
 
-    it("picks most recent record with notes", () => {
+    it("picks most recent record with preferences", () => {
         const records = [
-            makeReservation({ id: "1", checkIn: "2025-01-01", notesInternal: "Old note" }),
-            makeReservation({ id: "2", checkIn: "2025-03-01", notesInternal: "Recent note" }),
-            makeReservation({ id: "3", checkIn: "2025-02-01", notesInternal: "Middle note" }),
+            makeReservation({ id: "1", checkIn: "2025-01-01", guestPreferences: "Old preference" }),
+            makeReservation({ id: "2", checkIn: "2025-03-01", guestPreferences: "Recent preference" }),
+            makeReservation({ id: "3", checkIn: "2025-02-01", guestPreferences: "Middle preference" }),
         ];
-        assert.strictEqual(getBestNotesForContact(records), "Recent note");
+        assert.strictEqual(getBestGuestPreferences(records), "Recent preference");
     });
 
-    it("skips records without notes", () => {
+    it("skips records without preferences", () => {
         const records = [
-            makeReservation({ id: "1", checkIn: "2025-03-01" }), // No notes
-            makeReservation({ id: "2", checkIn: "2025-01-01", notesInternal: "Has notes" }),
+            makeReservation({ id: "1", checkIn: "2025-03-01" }), // No preferences
+            makeReservation({ id: "2", checkIn: "2025-01-01", guestPreferences: "Has preferences" }),
         ];
-        assert.strictEqual(getBestNotesForContact(records), "Has notes");
+        assert.strictEqual(getBestGuestPreferences(records), "Has preferences");
     });
 
-    it("returns undefined if no records have notes", () => {
+    it("returns undefined if no records have preferences", () => {
         const records = [
             makeReservation({ id: "1" }),
             makeReservation({ id: "2" }),
         ];
-        assert.strictEqual(getBestNotesForContact(records), undefined);
+        assert.strictEqual(getBestGuestPreferences(records), undefined);
     });
 });
 

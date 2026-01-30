@@ -15,7 +15,8 @@ interface Prefill {
     email?: string
     partySize?: number
     rooms?: number
-    notesInternal?: string
+    guestPreferences?: string
+    birthDate?: string
 }
 
 interface ConfirmSheetProps {
@@ -99,7 +100,8 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
     const [depositAmount, setDepositAmount] = useState('')
     const [depositMethod, setDepositMethod] = useState('Pix')
     const [depositNote, setDepositNote] = useState('')
-    const [notesInternal, setNotesInternal] = useState('')
+    const [notesReservation, setNotesReservation] = useState('')
+    const [guestPreferences, setGuestPreferences] = useState('')
     const [notesGuest, setNotesGuest] = useState('')
     const [birthDate, setBirthDate] = useState('')
     const [saving, setSaving] = useState(false)
@@ -123,7 +125,8 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 setBreakfastRate(String(item.breakfastPerPersonPerNight || getStoredRate(LS_BREAKFAST_RATE, '30')))
                 setManualLodging(item.manualLodgingEnabled || false)
                 setManualTotal(item.manualLodgingTotal ? String(item.manualLodgingTotal) : '')
-                setNotesInternal(item.notesInternal || '')
+                setNotesReservation(item.notesReservation || '')
+                setGuestPreferences(item.guestPreferences || '')
                 setNotesGuest(item.notesGuest || '')
                 setBirthDate(formatBirthForDisplay(item.birthDate))
             } else {
@@ -146,9 +149,10 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 setBreakfastRate(getStoredRate(LS_BREAKFAST_RATE, '0'))
                 setManualLodging(false)
                 setManualTotal('')
-                setNotesInternal(prefill?.notesInternal || '')
+                setNotesReservation('')
+                setGuestPreferences(prefill?.guestPreferences || '')
                 setNotesGuest('')
-                setBirthDate('')
+                setBirthDate(prefill?.birthDate ? formatBirthForDisplay(prefill.birthDate) : '')
             }
             setDepositAmount('')
             setDepositMethod('Pix')
@@ -263,7 +267,8 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                     depositPaidAmount: parseFloat(depositAmount) || undefined,
                     depositMethod: depositMethod,
                     depositNote: depositNote.trim() || undefined,
-                    notesInternal: notesInternal.trim() || undefined,
+                    notesReservation: notesReservation.trim() || undefined,
+                    guestPreferences: guestPreferences.trim() || undefined,
                     notesGuest: notesGuest.trim() || undefined,
                     birthDate: birthDate.trim() || undefined,
                 })
@@ -282,7 +287,8 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                     depositPaidAmount: parseFloat(depositAmount) || undefined,
                     depositMethod: depositMethod || undefined,
                     depositNote: depositNote.trim() || undefined,
-                    notesInternal: notesInternal.trim() || undefined,
+                    notesReservation: notesReservation.trim() || undefined,
+                    guestPreferences: guestPreferences.trim() || undefined,
                     notesGuest: notesGuest.trim() || undefined,
                     birthDate: birthDate.trim() || undefined,
                 })
@@ -567,14 +573,26 @@ export default function ConfirmSheet({ open, onClose, onConfirmed, item, confirm
                 <div className="border-t pt-4 space-y-3">
                     <div>
                         <label className="block text-sm font-medium eco-text mb-1">
-                            Notas internas
+                            Notas da Reserva
                         </label>
                         <textarea
-                            value={notesInternal}
-                            onChange={(e) => setNotesInternal(e.target.value)}
+                            value={notesReservation}
+                            onChange={(e) => setNotesReservation(e.target.value)}
                             rows={2}
                             className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="Visível apenas para a equipe"
+                            placeholder="Específico desta reserva (não herdado)"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium eco-text mb-1">
+                            Preferências do Hóspede
+                        </label>
+                        <textarea
+                            value={guestPreferences}
+                            onChange={(e) => setGuestPreferences(e.target.value)}
+                            rows={2}
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Preferências globais do cliente (dieta, quartos, etc.)"
                         />
                     </div>
                     <div>

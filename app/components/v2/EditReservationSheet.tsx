@@ -39,7 +39,8 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
     const [extraSpend, setExtraSpend] = useState('0')
 
     // Notes
-    const [notesInternal, setNotesInternal] = useState('')
+    const [notesReservation, setNotesReservation] = useState('')
+    const [guestPreferences, setGuestPreferences] = useState('')
     const [notesGuest, setNotesGuest] = useState('')
 
     // Birth date
@@ -73,7 +74,8 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
             setManualLodging(item.manualLodgingEnabled || false)
             setManualTotal(item.manualLodgingTotal ? String(item.manualLodgingTotal) : '')
             setExtraSpend(String(item.extraSpend || 0))
-            setNotesInternal(item.notesInternal || '')
+            setNotesReservation(item.notesReservation || '')
+            setGuestPreferences(item.guestPreferences || '')
             setNotesGuest(item.notesGuest || '')
             setBirthDate(formatBirthForDisplay(item.birthDate))
             setPaymentEvents(item.payment?.events || [])
@@ -185,7 +187,8 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 extraSpend: extra,
                 totalNights: nights,
                 totalPrice: totalPreview,
-                notesInternal: notesInternal.trim() || undefined,
+                notesReservation: notesReservation.trim() || undefined,
+                guestPreferences: guestPreferences.trim() || undefined,
                 notesGuest: notesGuest.trim() || undefined,
                 birthDate: birthDate.trim() || undefined,
                 // Preserve payment events - this is critical!
@@ -508,13 +511,26 @@ export default function EditReservationSheet({ open, onClose, onSaved, item }: E
                 <div className="border-t pt-4 space-y-3">
                     <div>
                         <label className="block text-sm font-medium eco-text mb-1">
-                            Notas internas
+                            Notas da Reserva
                         </label>
                         <textarea
-                            value={notesInternal}
-                            onChange={(e) => setNotesInternal(e.target.value)}
+                            value={notesReservation}
+                            onChange={(e) => setNotesReservation(e.target.value)}
                             rows={2}
                             className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Específico desta reserva (não herdado)"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium eco-text mb-1">
+                            Preferências do Hóspede
+                        </label>
+                        <textarea
+                            value={guestPreferences}
+                            onChange={(e) => setGuestPreferences(e.target.value)}
+                            rows={2}
+                            className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Preferências globais do cliente (dieta, quartos, etc.)"
                         />
                     </div>
                     <div>

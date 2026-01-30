@@ -240,7 +240,8 @@ export interface CreateLeadInput {
     checkIn?: string;
     checkOut?: string;
     partySize?: number;
-    notesInternal?: string;
+    notesReservation?: string;
+    guestPreferences?: string;
 }
 
 /**
@@ -281,7 +282,8 @@ export async function createWaitingLead(input: CreateLeadInput): Promise<Reserva
         totalNights: 0,
         totalPrice: 0,
         payment: {},
-        notesInternal: input.notesInternal?.trim() || undefined,
+        notesReservation: input.notesReservation?.trim() || undefined,
+        guestPreferences: input.guestPreferences?.trim() || undefined,
         createdAt: now,
         updatedAt: now,
     };
@@ -320,7 +322,8 @@ export interface ConfirmLeadInput {
     depositPaidAmount?: number;
     depositMethod?: string;
     depositNote?: string;
-    notesInternal?: string;
+    notesReservation?: string;
+    guestPreferences?: string;
     notesGuest?: string;
     birthDate?: string;
 }
@@ -398,7 +401,8 @@ export interface CreateConfirmedInput {
     depositNote?: string;
 
     // Notes (optional)
-    notesInternal?: string;
+    notesReservation?: string;
+    guestPreferences?: string;
     notesGuest?: string;
 
     // Personal info (optional)
@@ -501,7 +505,8 @@ export async function createConfirmedReservation(
         totalPrice,
         status: "confirmed" as const,
         payment: Object.keys(payment).length > 0 ? payment : {},
-        notesInternal: input.notesInternal?.trim(),
+        notesReservation: input.notesReservation?.trim(),
+        guestPreferences: input.guestPreferences?.trim(),
         notesGuest: input.notesGuest?.trim(),
         birthDate: input.birthDate?.trim(),
     };
@@ -586,7 +591,8 @@ export async function confirmWaitingLead(
         totalNights: nights,
         totalPrice,
         payment,
-        notesInternal: details.notesInternal ?? current.notesInternal,
+        notesReservation: details.notesReservation ?? current.notesReservation,
+        guestPreferences: details.guestPreferences ?? current.guestPreferences,
         notesGuest: details.notesGuest ?? current.notesGuest,
         birthDate: details.birthDate ?? current.birthDate,
         status: "confirmed" as const,

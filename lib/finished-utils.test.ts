@@ -5,7 +5,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 
-import { isAfterCheckoutNoonBRT, getFinishedPending, appendInternalNote } from "./finished-utils";
+import { isAfterCheckoutNoonBRT, getFinishedPending, appendReservationNote } from "./finished-utils";
 import type { ReservationV2 } from "@/core/entities_v2";
 
 // Helper to create a minimal v2 reservation
@@ -133,14 +133,14 @@ describe("getFinishedPending", () => {
     });
 });
 
-describe("appendInternalNote", () => {
+describe("appendReservationNote", () => {
     it("creates new note when existing is undefined", () => {
-        const result = appendInternalNote(undefined, "Test note", "2025-01-18");
+        const result = appendReservationNote(undefined, "Test note", "2025-01-18");
         assert.strictEqual(result, "[2025-01-18] Test note");
     });
 
     it("appends to existing notes", () => {
-        const result = appendInternalNote("Existing note", "New note", "2025-01-18");
+        const result = appendReservationNote("Existing note", "New note", "2025-01-18");
         assert.strictEqual(result, "Existing note\n[2025-01-18] New note");
     });
 });

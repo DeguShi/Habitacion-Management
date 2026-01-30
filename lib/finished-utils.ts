@@ -82,14 +82,14 @@ export function getFinishedPending(records: ReservationV2[], now?: Date): Reserv
 }
 
 /**
- * Appends a line to internal notes without overwriting existing content.
+ * Appends a line to reservation notes without overwriting existing content.
  * 
  * @param existing - Existing notes (may be undefined)
  * @param line - Line to append (will be timestamped)
  * @param timestamp - Optional ISO timestamp (defaults to now)
  * @returns Updated notes string
  */
-export function appendInternalNote(
+export function appendReservationNote(
     existing: string | undefined,
     line: string,
     timestamp?: string

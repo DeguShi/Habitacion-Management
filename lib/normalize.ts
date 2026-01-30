@@ -91,7 +91,7 @@ function findUnknownKeys(v1: Record<string, unknown>): string[] {
  * - depositDue → payment.deposit.due
  * - depositPaid → payment.deposit.paid
  * - depositPaid=true + depositDue>0 → payment.events[] with legacy deposit event (Phase 9.3)
- * - notes → notesInternal
+ * - notes → notesReservation (reservation-specific, not inherited)
  * - Unknown keys → listed in _importMeta.unknownKeys (keys only, values preserved at top level)
  *
  * @param v1 - Raw v1 record object
@@ -153,13 +153,16 @@ export function normalizeV1ToV2(v1: Record<string, unknown>): Record<string, unk
     }
 
     // Build notes (preserve existing + append if needed)
-    let notesInternal = v1.notes;
+    // Copy to BOTH fields so manager can later separate them
+    let notesReservation = v1.notes;
+    let guestPreferences = v1.notes; // Same content initially
     if (notesAppend) {
-        if (typeof notesInternal === "string" && notesInternal.trim()) {
-            notesInternal = `${notesInternal}\n${notesAppend}`;
+        if (typeof notesReservation === "string" && notesReservation.trim()) {
+            notesReservation = `${notesReservation}\n${notesAppend}`;
         } else {
-            notesInternal = notesAppend;
+            notesReservation = notesAppend;
         }
+        // Don't append import notes to guestPreferences, only to notesReservation
     }
 
     // Build v2 record
@@ -190,7 +193,8 @@ export function normalizeV1ToV2(v1: Record<string, unknown>): Record<string, unk
         // New v2 fields
         status: "confirmed", // Default for migrated records
         payment,
-        notesInternal, // notes → notesInternal (+ possible append)
+        notesReservation, // notes → notesReservation (+ possible append)
+        guestPreferences, // notes → guestPreferences (same content initially)
 
         // Import metadata
         _importMeta: importMeta,
@@ -220,7 +224,46 @@ export function isV2Record(record: unknown): boolean {
 }
 
 /**
+ * Migrates existing v2 records that have notesInternal to use the new fields.
+ * Copies notesInternal to BOTH notesReservation and guestPreferences so the
+ * manager can later separate them manually.
+ */
+function migrateV2NotesInternal(record: Record<string, unknown>): Record<string, unknown> {
+    const notesInternal = record.notesInternal as string | undefined;
+
+    // If no notesInternal or already migrated (has new fields), return as-is
+    if (!notesInternal?.trim()) {
+        return record;
+    }
+
+    // Check if already has new fields with content
+    const hasNotesReservation = !!(record.notesReservation as string)?.trim();
+    const hasGuestPreferences = !!(record.guestPreferences as string)?.trim();
+
+    // If both new fields are empty, copy notesInternal to both
+    if (!hasNotesReservation && !hasGuestPreferences) {
+        return {
+            ...record,
+            notesReservation: notesInternal,
+            guestPreferences: notesInternal,
+            // Keep notesInternal for backward compatibility during transition
+        };
+    }
+
+    // If only one field is populated, fill the other
+    if (!hasNotesReservation) {
+        return { ...record, notesReservation: notesInternal };
+    }
+    if (!hasGuestPreferences) {
+        return { ...record, guestPreferences: notesInternal };
+    }
+
+    return record;
+}
+
+/**
  * Normalizes a record if it's v1, returns as-is if v2.
+ * Also migrates existing v2 records with notesInternal to new fields.
  *
  * @param record - Raw record object
  * @returns { normalized: Record<string, unknown>; wasNormalized: boolean }
@@ -237,7 +280,10 @@ export function normalizeRecord(record: Record<string, unknown>): {
     }
 
     if (detection.version === 2) {
-        return { normalized: record, wasNormalized: false };
+        // Migrate v2 records that still have notesInternal
+        const migrated = migrateV2NotesInternal(record);
+        const wasMigrated = migrated !== record;
+        return { normalized: migrated, wasNormalized: wasMigrated };
     }
 
     return { normalized: normalizeV1ToV2(record), wasNormalized: true };
