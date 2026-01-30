@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Phone, Mail, Calendar, Users, Plus, Clock, XCircle, CheckCircle, Cake, MessageCircle } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Phone, Mail, Calendar, Users, Plus, Clock, XCircle, CheckCircle, Cake, MessageCircle, Pencil, ChevronDown, FileText } from 'lucide-react'
 import BottomSheet from './BottomSheet'
 import type { Contact } from '@/lib/contacts'
 import type { ReservationV2 } from '@/core/entities_v2'
@@ -15,6 +15,8 @@ interface ContactDetailSheetProps {
     onViewReservation: (r: ReservationV2) => void
     onCreateReservation: (contact: Contact) => void
     onCreateLead: (contact: Contact) => void
+    onEditContact?: (contact: Contact) => void
+    onUpdateGuestPreferences?: (contact: Contact, preferences: string) => Promise<void>
 }
 
 function formatBR(iso: string) {
@@ -62,6 +64,8 @@ export default function ContactDetailSheet({
     onViewReservation,
     onCreateReservation,
     onCreateLead,
+    onEditContact,
+    onUpdateGuestPreferences,
 }: ContactDetailSheetProps) {
     if (!contact) return null
 
@@ -79,6 +83,26 @@ export default function ContactDetailSheet({
             (b.checkIn || '').localeCompare(a.checkIn || '')
         )
     }, [reservations])
+
+    // Get best guest preferences from reservations
+    const guestPreferences = useMemo(() => {
+        // Find the most recent reservation with guest preferences
+        const sorted = [...reservations].sort((a, b) =>
+            (b.checkIn || '').localeCompare(a.checkIn || '')
+        )
+        for (const r of sorted) {
+            if (r.guestPreferences?.trim()) {
+                return r.guestPreferences.trim()
+            }
+        }
+        return null
+    }, [reservations])
+
+    // State for preferences editing
+    const [showPreferences, setShowPreferences] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [editedPreferences, setEditedPreferences] = useState('')
+    const [saving, setSaving] = useState(false)
 
     function getStatusPill(status?: string) {
         switch (status) {
@@ -108,7 +132,19 @@ export default function ContactDetailSheet({
             <div className="space-y-5">
                 {/* Header / Contact Info */}
                 <div>
-                    <h3 className="text-xl font-bold text-app">{contact.name}</h3>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-bold text-app">{contact.name}</h3>
+                        {onEditContact && (
+                            <button
+                                onClick={() => onEditContact(contact)}
+                                className="p-2 rounded-lg hover:bg-[var(--eco-surface-alt)] transition-colors"
+                                aria-label="Editar contato"
+                                title="Editar contato"
+                            >
+                                <Pencil size={18} className="text-[var(--eco-primary)]" />
+                            </button>
+                        )}
+                    </div>
 
                     <div className="mt-2 space-y-1">
                         {contact.phone && (
@@ -193,6 +229,83 @@ export default function ContactDetailSheet({
                         <Plus size={18} />
                         Novo pedido
                     </button>
+                </div>
+
+                {/* Guest Preferences (collapsible + editable) */}
+                <div className="border-t border-[var(--eco-border)] pt-3">
+                    <button
+                        onClick={() => {
+                            setShowPreferences(!showPreferences)
+                            if (!showPreferences) {
+                                setEditedPreferences(guestPreferences || '')
+                                setIsEditing(false)
+                            }
+                        }}
+                        className="w-full flex items-center justify-between text-sm font-semibold text-muted hover:text-app transition-colors"
+                    >
+                        <span className="flex items-center gap-2">
+                            <FileText size={14} />
+                            Preferências do Hóspede
+                            {!guestPreferences && <span className="text-xs text-muted">(vazio)</span>}
+                        </span>
+                        <ChevronDown
+                            size={16}
+                            className={`transition-transform ${showPreferences ? 'rotate-180' : ''}`}
+                        />
+                    </button>
+                    {showPreferences && (
+                        <div className="mt-2 space-y-2">
+                            {isEditing ? (
+                                <>
+                                    <textarea
+                                        value={editedPreferences}
+                                        onChange={(e) => setEditedPreferences(e.target.value)}
+                                        rows={3}
+                                        className="w-full px-3 py-2 border border-[var(--eco-border)] rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                                        placeholder="Preferências do cliente (dieta, quartos, etc.)"
+                                        disabled={saving}
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setIsEditing(false)}
+                                            className="flex-1 px-3 py-1.5 text-sm border border-[var(--eco-border)] rounded-lg"
+                                            disabled={saving}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (!contact || !onUpdateGuestPreferences) return
+                                                setSaving(true)
+                                                try {
+                                                    await onUpdateGuestPreferences(contact, editedPreferences.trim())
+                                                    setIsEditing(false)
+                                                } finally {
+                                                    setSaving(false)
+                                                }
+                                            }}
+                                            className="flex-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                                            disabled={saving}
+                                        >
+                                            {saving ? 'Salvando...' : 'Salvar'}
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div
+                                    onClick={() => {
+                                        if (onUpdateGuestPreferences) {
+                                            setEditedPreferences(guestPreferences || '')
+                                            setIsEditing(true)
+                                        }
+                                    }}
+                                    className={`p-3 bg-s2 rounded-lg text-sm text-app whitespace-pre-wrap ${onUpdateGuestPreferences ? 'cursor-pointer hover:bg-s3' : ''}`}
+                                >
+                                    {guestPreferences || <span className="text-muted italic">Nenhuma preferência registrada. Clique para adicionar.</span>}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Reservation History */}

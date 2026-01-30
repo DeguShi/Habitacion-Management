@@ -108,9 +108,9 @@ describe("V1 to V2 Normalization - normalizeV1ToV2", () => {
         assert.strictEqual(deposit.paid, true);
     });
 
-    it("maps notes to notesInternal", () => {
+    it("maps notes to notesReservation", () => {
         const v2 = normalizeV1ToV2(minimalV1);
-        assert.strictEqual(v2.notesInternal, "Early check-in requested");
+        assert.strictEqual(v2.notesReservation, "Early check-in requested");
         assert.strictEqual(v2.notes, undefined); // notes should not be present
     });
 
@@ -187,7 +187,7 @@ describe("V1 to V2 Normalization - normalizeV1ToV2", () => {
         };
         const v2 = normalizeV1ToV2(minimal);
         assert.strictEqual(v2.schemaVersion, 2);
-        assert.strictEqual(v2.notesInternal, undefined);
+        assert.strictEqual(v2.notesReservation, undefined);
         // payment should be empty object if no deposit info
         const payment = v2.payment as Record<string, unknown>;
         assert.strictEqual(payment.deposit, undefined);
@@ -277,7 +277,7 @@ describe("v1 Deposit to v2 Payment Event (Phase 9.3)", () => {
 
         const payment = v2.payment as { events?: unknown[] };
         assert.ok(!payment.events || payment.events.length === 0);
-        assert.ok((v2.notesInternal as string)?.includes("[IMPORTADO]"));
+        assert.ok((v2.notesReservation as string)?.includes("[IMPORTADO]"));
     });
 
     it("appends note when depositPaid=true but depositDue=0", () => {
@@ -289,7 +289,7 @@ describe("v1 Deposit to v2 Payment Event (Phase 9.3)", () => {
         };
         const v2 = normalizeV1ToV2(v1);
 
-        assert.ok((v2.notesInternal as string)?.includes("[IMPORTADO]"));
+        assert.ok((v2.notesReservation as string)?.includes("[IMPORTADO]"));
     });
 
     it("does NOT add duplicate events on second normalization", () => {

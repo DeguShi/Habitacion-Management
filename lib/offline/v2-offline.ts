@@ -116,7 +116,8 @@ export interface CreateLeadInput {
     checkIn?: string
     checkOut?: string
     partySize?: number
-    notesInternal?: string
+    notesReservation?: string
+    guestPreferences?: string
 }
 
 /**
@@ -156,7 +157,8 @@ export async function createWaitingLead(input: CreateLeadInput): Promise<Reserva
         totalNights: 0,
         totalPrice: 0,
         payment: {},
-        notesInternal: input.notesInternal?.trim(),
+        notesReservation: input.notesReservation?.trim(),
+        guestPreferences: input.guestPreferences?.trim(),
     })
 }
 
@@ -179,7 +181,8 @@ export interface CreateConfirmedInput {
     depositPaidAmount?: number
     depositMethod?: string
     depositNote?: string
-    notesInternal?: string
+    notesReservation?: string
+    guestPreferences?: string
     notesGuest?: string
     birthDate?: string
 }
@@ -250,7 +253,8 @@ export async function createConfirmedReservation(input: CreateConfirmedInput): P
         totalPrice,
         status: 'confirmed',
         payment: Object.keys(payment).length > 0 ? payment : {},
-        notesInternal: input.notesInternal?.trim(),
+        notesReservation: input.notesReservation?.trim(),
+        guestPreferences: input.guestPreferences?.trim(),
         notesGuest: input.notesGuest?.trim(),
         birthDate: input.birthDate?.trim(),
     })
@@ -272,7 +276,8 @@ export interface ConfirmLeadInput {
     depositPaidAmount?: number
     depositMethod?: string
     depositNote?: string
-    notesInternal?: string
+    notesReservation?: string
+    guestPreferences?: string
     notesGuest?: string
     birthDate?: string
 }
@@ -344,7 +349,8 @@ export async function confirmWaitingLead(
         totalNights: nights,
         totalPrice,
         payment,
-        notesInternal: details.notesInternal ?? current.notesInternal,
+        notesReservation: details.notesReservation ?? current.notesReservation,
+        guestPreferences: details.guestPreferences ?? current.guestPreferences,
         notesGuest: details.notesGuest ?? current.notesGuest,
         birthDate: details.birthDate ?? current.birthDate,
         status: 'confirmed',

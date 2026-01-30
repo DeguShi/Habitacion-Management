@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Bell } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import { useBirthdayBell } from '@/app/components/v2/BirthdayBellContext'
 import BottomNav, { type TabId } from '@/app/components/v2/BottomNav'
 import ConfirmadasPage from '@/app/components/v2/ConfirmadasPage'
 import EmEsperaPage from '@/app/components/v2/EmEsperaPage'
@@ -19,12 +19,14 @@ import FinalizeOkSheet from '@/app/components/v2/FinalizeOkSheet'
 import FinalizeIssueSheet from '@/app/components/v2/FinalizeIssueSheet'
 import DeleteConfirmDialog from '@/app/components/v2/DeleteConfirmDialog'
 import BirthdayNotificationsSheet from '@/app/components/v2/BirthdayNotificationsSheet'
+import EditContactSheet from '@/app/components/v2/EditContactSheet'
 import type { ReservationV2 } from '@/core/entities_v2'
-import { deriveContacts, getBestNotesForContact, type Contact } from '@/lib/contacts'
+import { deriveContacts, getBestGuestPreferences, type Contact } from '@/lib/contacts'
 import { getContactsWithBirthdayThisWeek } from '@/lib/birthdays'
-import { getFinishedPending, appendInternalNote } from '@/lib/finished-utils'
+import { getFinishedPending, appendReservationNote } from '@/lib/finished-utils'
 import { deleteV2Record } from '@/lib/offline/v2-offline'
 import { listV2Records, updateV2Record } from '@/lib/data/v2'
+import { processReservationForContactEdit, type ContactEditValues } from '@/lib/contact-edit'
 
 const DEBUG = process.env.NEXT_PUBLIC_DEBUG_FETCH === '1'
 
@@ -228,7 +230,8 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
         guestName?: string
         phone?: string
         email?: string
-        notesInternal?: string
+        guestPreferences?: string
+        birthDate?: string
     } | null>(null)
     const [prefillKey, setPrefillKey] = useState('')
 
@@ -239,8 +242,59 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     const [finalizeOkItem, setFinalizeOkItem] = useState<ReservationV2 | null>(null)
     const [finalizeIssueItem, setFinalizeIssueItem] = useState<ReservationV2 | null>(null)
 
-    // Birthday notifications sheet state
-    const [birthdaySheetOpen, setBirthdaySheetOpen] = useState(false)
+    // Contact edit sheet state
+    const [editingContact, setEditingContact] = useState<Contact | null>(null)
+
+    // Birthday bell context - syncs count and sheet state with Navbar
+    const { setCount, isOpen: birthdaySheetOpen, closeSheet: closeBirthdaySheet } = useBirthdayBell()
+
+    // Track dismissed birthday IDs (actual IDs, not just count)
+    const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
+
+    // Load dismissed IDs on mount and listen for changes
+    useEffect(() => {
+        const updateDismissedIds = () => {
+            if (typeof window === 'undefined') return
+            try {
+                const stored = localStorage.getItem('birthday-dismissed')
+                if (!stored) {
+                    setDismissedIds(new Set())
+                    return
+                }
+                const now = new Date()
+                const startOfYear = new Date(now.getFullYear(), 0, 1)
+                const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000))
+                const week = Math.ceil((days + startOfYear.getDay() + 1) / 7)
+                const currentWeekId = `${now.getFullYear()}-W${String(week).padStart(2, '0')}`
+
+                const { weekId, ids } = JSON.parse(stored)
+                if (weekId !== currentWeekId) {
+                    setDismissedIds(new Set())
+                    return
+                }
+                setDismissedIds(new Set(Array.isArray(ids) ? ids : []))
+            } catch {
+                setDismissedIds(new Set())
+            }
+        }
+
+        updateDismissedIds()
+
+        // Listen for dismiss changes from the sheet
+        window.addEventListener('birthday-dismissed-change', updateDismissedIds)
+        return () => window.removeEventListener('birthday-dismissed-change', updateDismissedIds)
+    }, [])
+
+    // Calculate visible birthday count by filtering contacts by ID (not arithmetic!)
+    const visibleBirthdayCount = useMemo(
+        () => birthdayContacts.filter(c => !dismissedIds.has(c.id)).length,
+        [birthdayContacts, dismissedIds]
+    )
+
+    // Sync visible birthday count to context
+    useEffect(() => {
+        setCount(visibleBirthdayCount)
+    }, [visibleBirthdayCount, setCount])
 
     // ============================================================
     // Handlers
@@ -297,12 +351,13 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
 
     // Create reservation from contact
     function handleCreateReservationFromContact(contact: Contact) {
-        const notes = getBestNotesForContact(contactReservations)
+        const preferences = getBestGuestPreferences(contactReservations)
         setContactPrefill({
             guestName: contact.name,
             phone: contact.phone,
             email: contact.email,
-            notesInternal: notes,
+            guestPreferences: preferences,
+            birthDate: contact.birthDate,
         })
         setPrefillKey(`${contact.id}:${Date.now()}`)
         setSelectedContact(null) // Close contact sheet
@@ -311,12 +366,13 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
 
     // Create lead from contact
     function handleCreateLeadFromContact(contact: Contact) {
-        const notes = getBestNotesForContact(contactReservations)
+        const preferences = getBestGuestPreferences(contactReservations)
         setContactPrefill({
             guestName: contact.name,
             phone: contact.phone,
             email: contact.email,
-            notesInternal: notes,
+            guestPreferences: preferences,
+            birthDate: contact.birthDate,
         })
         setPrefillKey(`${contact.id}:${Date.now()}`)
         setSelectedContact(null) // Close contact sheet
@@ -327,6 +383,42 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
     function handleViewReservationFromContact(r: ReservationV2) {
         setSelectedContact(null) // Close contact sheet
         setViewingItem(r)
+    }
+
+    // Open edit contact sheet from contact detail
+    function handleEditContact(contact: Contact) {
+        setEditingContact(contact)
+    }
+
+    // Save contact edits - updates current/future reservations, logs changes to past ones
+    async function handleSaveContactEdit(contactId: string, newValues: ContactEditValues) {
+        // Find the contact to get reservation IDs
+        const contact = contacts.find(c => c.id === contactId)
+        if (!contact) throw new Error('Contato não encontrado')
+
+        // Get all reservations for this contact
+        const contactResvs = records.filter(r => contact.reservationIds.includes(r.id))
+        if (contactResvs.length === 0) throw new Error('Nenhuma reserva encontrada')
+
+        // Process each reservation
+        const updates: Promise<ReservationV2>[] = []
+
+        for (const reservation of contactResvs) {
+            const result = processReservationForContactEdit(reservation, newValues)
+            if (result) {
+                updates.push(updateV2Record(result.reservationId, result.updatedRecord))
+            }
+        }
+
+        // Execute all updates
+        await Promise.all(updates)
+
+        // Refresh data
+        await refreshRecords('contact-edit')
+
+        // Close sheets
+        setEditingContact(null)
+        setSelectedContact(null)
     }
 
     // Phase 9.3: Finalizadas handlers
@@ -344,13 +436,13 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
         try {
             const now = new Date().toISOString()
             const updatedNotes = notes
-                ? appendInternalNote(finalizeOkItem.notesInternal, `[CHECKOUT OK] ${notes}`)
-                : finalizeOkItem.notesInternal
+                ? appendReservationNote(finalizeOkItem.notesReservation, `[CHECKOUT OK] ${notes}`)
+                : finalizeOkItem.notesReservation
 
             await updateV2Record(finalizeOkItem.id, {
                 ...finalizeOkItem,
                 extraSpend: extraSpend || finalizeOkItem.extraSpend,
-                notesInternal: updatedNotes,
+                notesReservation: updatedNotes,
                 stayReview: {
                     state: 'ok',
                     reviewedAt: now,
@@ -368,14 +460,14 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
 
         try {
             const now = new Date().toISOString()
-            const updatedNotes = appendInternalNote(
-                finalizeIssueItem.notesInternal,
+            const updatedNotes = appendReservationNote(
+                finalizeIssueItem.notesReservation,
                 `[CHECKOUT PROBLEMA] ${reason}`
             )
 
             await updateV2Record(finalizeIssueItem.id, {
                 ...finalizeIssueItem,
-                notesInternal: updatedNotes,
+                notesReservation: updatedNotes,
                 stayReview: {
                     state: 'issue',
                     reviewedAt: now,
@@ -408,19 +500,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                     </div>
                 )}
 
-                {/* Birthday Bell - Fixed position to appear next to navbar exit */}
-                <button
-                    onClick={() => setBirthdaySheetOpen(true)}
-                    className="fixed top-3 right-16 z-50 p-2 rounded-lg hover:bg-[var(--eco-surface-alt)] transition-colors"
-                    aria-label="Aniversários da semana"
-                >
-                    <Bell size={20} className="eco-text" />
-                    {birthdayContacts.length > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
-                            {birthdayContacts.length > 9 ? '9+' : birthdayContacts.length}
-                        </span>
-                    )}
-                </button>
+
 
                 {activeTab === 'confirmadas' && (
                     <ConfirmadasPage
@@ -552,6 +632,14 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
                 onViewReservation={handleViewReservationFromContact}
                 onCreateReservation={handleCreateReservationFromContact}
                 onCreateLead={handleCreateLeadFromContact}
+                onEditContact={handleEditContact}
+            />
+
+            <EditContactSheet
+                open={!!editingContact}
+                onClose={() => setEditingContact(null)}
+                contact={editingContact}
+                onSave={handleSaveContactEdit}
             />
 
             <FinalizeOkSheet
@@ -577,7 +665,7 @@ export default function ClientShellV2({ canWrite = false, demoMode = false, offl
 
             <BirthdayNotificationsSheet
                 open={birthdaySheetOpen}
-                onClose={() => setBirthdaySheetOpen(false)}
+                onClose={closeBirthdaySheet}
                 contacts={birthdayContacts}
             />
         </div>

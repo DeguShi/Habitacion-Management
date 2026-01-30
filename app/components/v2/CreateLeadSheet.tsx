@@ -9,7 +9,7 @@ interface Prefill {
     phone?: string
     email?: string
     partySize?: number
-    notesInternal?: string
+    guestPreferences?: string
 }
 
 interface CreateLeadSheetProps {
@@ -42,7 +42,7 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
             setCheckIn(prefillCheckIn || '')
             setCheckOut('')
             setPartySize(String(prefill?.partySize || 1))
-            setNotes(prefill?.notesInternal || '')
+            setNotes('')
             setError('')
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,7 +77,7 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
                 checkIn: checkIn || undefined,
                 checkOut: checkOut || undefined,
                 partySize: parseInt(partySize) || 1,
-                notesInternal: notes.trim() || undefined,
+                notesReservation: notes.trim() || undefined,
             })
             resetForm()
             onCreated()
@@ -179,14 +179,14 @@ export default function CreateLeadSheet({ open, onClose, onCreated, prefill, pre
 
                 <div>
                     <label className="block text-sm font-medium text-muted mb-1">
-                        Notas internas
+                        Notas da Reserva
                     </label>
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         className="w-full px-3 py-2 border border-[var(--eco-border)] bg-[var(--eco-surface-alt)] rounded-lg focus:ring-2 focus:ring-blue-500"
                         rows={2}
-                        placeholder="Observações para a equipe..."
+                        placeholder="Observações específicas deste pedido..."
                     />
                 </div>
 

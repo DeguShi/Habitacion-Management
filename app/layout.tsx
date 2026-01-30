@@ -1,6 +1,5 @@
 import './globals.css'
-import Navbar from './components/Navbar'
-import { NextAuthProvider } from '@/lib/auth.client' // wraps SessionProvider
+import Providers from './components/Providers'
 import type { Viewport } from 'next'
 
 export const viewport: Viewport = {
@@ -34,10 +33,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#0f172a" />
       </head>
       <body>
-        <NextAuthProvider>
-          <Navbar />
+        <Providers>
           {children}
-        </NextAuthProvider>
+        </Providers>
 
         {/* Service Worker Registration */}
         <script

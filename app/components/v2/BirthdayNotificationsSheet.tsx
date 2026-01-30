@@ -1,9 +1,11 @@
 'use client'
 
-import { Phone, Mail, Cake, MessageCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Phone, Mail, Cake, MessageCircle, Check } from 'lucide-react'
 import BottomSheet from './BottomSheet'
 import type { Contact } from '@/lib/contacts'
 import { formatBirthdayShort } from '@/lib/birthdays'
+import { loadDismissedBirthdays, saveDismissedBirthdays } from '@/lib/birthday-dismissed'
 
 interface BirthdayNotificationsSheetProps {
     open: boolean
@@ -11,27 +13,16 @@ interface BirthdayNotificationsSheetProps {
     contacts: Contact[]
 }
 
-/**
- * Checks if a phone number is clean enough for WhatsApp link.
- * Must be 10-11 digits (Brazilian patterns: DDD + number).
- */
 function isCleanPhoneForWhatsApp(phone: string | undefined): boolean {
     if (!phone) return false
     const digits = phone.replace(/\D/g, '')
-    // BR mobile: 11 digits (with 9), BR landline: 10 digits
-    // Could also have country code +55 (13 digits)
     return digits.length >= 10 && digits.length <= 13
 }
 
-/**
- * Builds WhatsApp link for a phone number.
- * Assumes Brazilian phone, adds +55 if not present.
- */
 function buildWhatsAppLink(phone: string): string {
     let digits = phone.replace(/\D/g, '')
-    // Add Argentina country code if not present (most clients are Argentine)
     if (digits.length <= 11) {
-        digits = '54' + digits
+        digits = '54' + digits // Argentina country code
     }
     return `https://wa.me/${digits}`
 }
@@ -41,18 +32,38 @@ export default function BirthdayNotificationsSheet({
     onClose,
     contacts,
 }: BirthdayNotificationsSheetProps) {
-    if (!open) return null
+    const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissedBirthdays())
+
+    const visibleContacts = contacts.filter(c => !dismissed.has(c.id))
+
+    // Load dismissed on mount
+    useEffect(() => {
+        setDismissed(loadDismissedBirthdays())
+    }, [])
+
+    function handleDismiss(contactId: string) {
+        setDismissed(prev => {
+            const next = new Set(prev)
+            next.add(contactId)
+            saveDismissedBirthdays(next) // This dispatches the custom event
+            return next
+        })
+    }
 
     return (
         <BottomSheet open={open} onClose={onClose} title="Aniversários da Semana">
-            {contacts.length === 0 ? (
+            {visibleContacts.length === 0 ? (
                 <div className="text-center py-8">
                     <Cake size={48} className="mx-auto mb-3 eco-muted opacity-50" />
-                    <p className="text-sm eco-muted">Nenhum aniversário esta semana</p>
+                    <p className="text-sm eco-muted">
+                        {contacts.length > 0
+                            ? 'Todos os aniversários foram marcados ✓'
+                            : 'Nenhum aniversário esta semana'}
+                    </p>
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {contacts.map((contact) => (
+                    {visibleContacts.map((contact) => (
                         <div
                             key={contact.id}
                             className="mini-card flex items-center justify-between"
@@ -84,13 +95,11 @@ export default function BirthdayNotificationsSheet({
                             </div>
 
                             <div className="flex items-center gap-2 shrink-0 ml-3">
-                                {/* Birthday badge */}
                                 <div className="flex items-center gap-1 text-sm font-medium text-[var(--eco-warning)]">
                                     <Cake size={16} />
                                     {formatBirthdayShort(contact.birthDate)}
                                 </div>
 
-                                {/* WhatsApp link if phone is clean */}
                                 {isCleanPhoneForWhatsApp(contact.phone) && (
                                     <a
                                         href={buildWhatsAppLink(contact.phone!)}
@@ -102,6 +111,15 @@ export default function BirthdayNotificationsSheet({
                                         <MessageCircle size={18} />
                                     </a>
                                 )}
+
+                                <button
+                                    onClick={() => handleDismiss(contact.id)}
+                                    className="p-2 rounded-lg bg-[var(--eco-success)] text-white hover:opacity-80 transition-colors"
+                                    aria-label="Marcar como visto"
+                                    title="Marcar como visto"
+                                >
+                                    <Check size={18} />
+                                </button>
                             </div>
                         </div>
                     ))}
